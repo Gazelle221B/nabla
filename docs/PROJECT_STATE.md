@@ -1,19 +1,20 @@
-# プロジェクト状態  (最終更新: 2026-07-02 / 更新者: `ARCHITECT` (Claude Code, T0系ドキュメント整備))
+# プロジェクト状態  (最終更新: 2026-07-02 / 更新者: `ARCHITECT` (Claude Code, Step 1完了))
 
 > ★ **これが真の記憶である。** 全エージェントが随時更新する。大コンテキストモデルの内部記憶を真実の源にしない。
 > どのエージェントが落ちても・交代しても、このファイルを読めば継続できる状態を保つ。
 
 ## 現在のフェーズ
 
-**要件定義・設計・実装計画・ガバナンス導入・M0(規約類整備)は完了。実装(コード)は未着手。** 次はStep 1(空のAstroサイトをGitHub Pagesへ通す)。
+**M0(規約類整備)・Step 1(空のAstroサイトをGitHub Pagesへ通す、T1-1)完了。** 次はT1-2(React+MDX+KaTeX統合)、続けてT2-1(三平方の定理の純粋数学モデル)。
 
+- リポジトリは公開済み: https://github.com/Gazelle221B/nabla 。GitHub Pages公開URL: https://gazelle221b.github.io/nabla/ (200確認済み、favicon等のサブパスアセットも200)。
 - `docs/REQUIREMENTS.md`(v1.0 Final相当)、`docs/DESIGN.md`(PLAN.md v1.0 + レンダリング戦略ハイブリッド確定版)、`docs/IMPLEMENTATION_PLAN.md`(M0〜M3・T0〜T5タスク分解)は作成済み。
 - conclaveガバナンス一式(`AGENTS.md`, `docs/conclave/*`, `prompts/*`)を `/Users/kairyon/projects/conclave` から導入済み(`node conclave.js init`、`conclave check` PASS)。
-- `docs/PROJECT_PLAN.md` に、2本の企画会話ログ(`meeting.md`, `meeting2.md`)の統合経緯・レンダリング戦略の対立解消の記録が残っている(本ファイルより詳細な物語が必要な時に参照)。
+- `docs/PROJECT_PLAN.md` に、2本の企画会話ログ(`meeting.md`, `meeting2.md`)の統合経緯・レンダリング戦略の対立解消の記録が残っている(本ファイルより詳細な物語が必要な時に参照)。**meeting.md/meeting2.mdは個人的な壁打ちログのため`.gitignore`で公開リポジトリから除外している**(ローカルには残存)。
 
 ## 作業中ブランチ
 
-なし(ドキュメント整備は `main` 上で直接実施。コード実装からは `agent/<task-id>-impl` を使用する)。
+`main`(直接コミット済み、root commit `fd9b9f3`)。今後のコード実装タスクからは `agent/<task-id>-impl` を使用する。
 
 ## 直近の設計判断
 
@@ -26,21 +27,20 @@
 
 - Tier 3a(Three.js)・Tier 3b(WebGPU)それぞれの初回導入対象単元は未確定(MVP 3着手時に選定、`docs/DESIGN.md` §オープン論点)。
 - インタラクティブ図解の作り込みコストが高く、横展開時のスケールがボトルネックになりうる(既知リスクとしてREQUIREMENTS.mdに記載済み、対策は図解コンポーネントの再利用パターン確立)。
-- `npm run test`/`lint`/`typecheck`等のコマンド(`AGENTS.md` §4)はまだ実体がない(package.json未作成、Step 1で確定)。
+- `npm run test`/`lint`はまだ実体がない(`typecheck`は`astro check`で導入済み・0 errors確認済み)。テストはStep 2(Vitest + fast-check)、lintはESLint導入時に追加する。
+- devDependency `@astrojs/check` の依存先(`yaml`パッケージ、`yaml-language-server`経由)にmoderate severityの脆弱性(deeply nested YAML collectionsによるstack overflow、GHSA-48c2-rrv3-qjmp)が`npm audit`で検出されている。開発時の型チェックツールのみが依存し、ビルド成果物には含まれず、当プロジェクトが任意のYAML入力を解析する経路もないため実害は低いと判断し、`npm audit fix --force`(breaking change)は保留した。ESLint等追加時に再評価する。
 
 ## レビューの直近結果
 
-なし(実装未着手のためレビューサイクル未実施)。
+なし(実装未着手のためレビューサイクル未実施)。T1-1はローカルビルド・プレビュー・本番URL(https://gazelle221b.github.io/nabla/ )への実疎通で自己検証済み(index/favicon.svg/favicon.ico すべて200)。
 
 ## 次に実行すべきアクション
 
-**T0系タスクは全て完了。** 次はStep 1(`docs/IMPLEMENTATION_PLAN.md` T1-1・T1-2)に着手する:
+**Step 1(T1-1)完了。** 次は以下:
 
-1. `git init`(現時点でnablaはgitリポジトリではない。conclaveはGit-native運用が前提のため、コード実装前に必要)。
-2. T1-1: Astro初期化 + `astro.config.mjs`(site/base設定) + `.github/workflows/deploy.yml` + 仮トップページ。GitHub Pagesサブパスで200が返ることを確認。
-3. T1-2: React + MDX + KaTeX統合。サンプルMDX1本でビルド時KaTeX HTML化を確認。
-4. Step 1完了後、`AGENTS.md` §4の主要コマンド(`npm install`/`test`/`lint`/`typecheck`等)を実コマンドで更新する(現在はプレースホルダのまま)。
-5. T2-1(三平方の定理の純粋数学モデル+不変条件テスト)へ進む。
+1. T1-2: React + MDX + KaTeX統合。`npx astro add react mdx`等で導入し、サンプルMDX1本でビルド時KaTeX HTML化を確認。
+2. T2-1(三平方の定理の純粋数学モデル `lib/math/pythagoras.ts` + 不変条件テスト)。この時点でVitest + fast-checkを導入し、`AGENTS.md` §4の`npm run test`を実コマンド化する。
+3. ESLint導入時に`npm run lint`を実コマンド化し、未解決リスクの脆弱性を再評価する。
 
 ## 人間判断待ちの事項
 
