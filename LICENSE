@@ -1,0 +1,18 @@
+nabla(∇) uses two licenses for two different kinds of material in this
+repository, because source code and educational content have different
+licensing needs (see LICENSES.md for the exact directory boundaries).
+
+  * Source code (components, libraries, build scripts) is licensed
+    under the GNU General Public License v3.0 or later.
+    See LICENSE-CODE for the full text.
+
+  * MDX lesson content, prose, and original diagrams/figures are
+    licensed under Creative Commons Attribution-ShareAlike 4.0
+    International (CC BY-SA 4.0).
+    See LICENSE-CONTENT for the full text.
+
+Third-party assets, fonts, and dependencies retain their own licenses;
+see LICENSES.md for details.
+
+This file is a summary for convenience. In case of any conflict, the
+full license texts in LICENSE-CODE and LICENSE-CONTENT govern.

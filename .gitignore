@@ -1,0 +1,30 @@
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+*.log
+
+# environment variables
+.env
+.env.production
+
+# macOS
+.DS_Store
+
+# editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OMC / Claude Code local state (tool-internal, not project content)
+.omc/
+.claude/settings.local.json
+
+# personal planning chat logs — not intended for the public repo (see commit message)
+meeting.md
+meeting2.md

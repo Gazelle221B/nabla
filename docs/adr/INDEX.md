@@ -1,0 +1,13 @@
+# ADR Index
+
+設計判断記録(Architecture Decision Records)の一覧。新規ADRを追加したら本表に追記する。
+
+| ID | タイトル | ステータス | 概要 |
+|---|---|---|---|
+| [ADR-001](ADR-001.md) | 図解レンダリング基盤の技術選定(Tier 3a=Three.js / Tier 3b=WebGPU) | Accepted | レンダリング技術を4階層(Mafs/SVG既定 → Pixi.js/WebGPU高密度2D → Three.js標準3D → WebGPUシェーダー品質3D)に確定。WebGPU必須・フォールバックなしはTier 3bのみに限定 |
+
+## ADRの起票規約
+
+- 重大な設計判断(技術スタックの変更、Tier境界の変更、依存ライブラリの新規採用等)は、実装前にADRとして記録する(`AGENTS.md` §3 C-6, `DEVELOPMENT.md` §4)。
+- 形式は自由だが、最低限「文脈」「決定」「結果(利点・代償)」「改訂履歴」を含める(`docs/adr/ADR-001.md`を雛形として使ってよい)。
+- ADR追加時は本INDEX.mdへの追記と、`docs/PROJECT_STATE.md`「改訂履歴」への記録を忘れないこと。
