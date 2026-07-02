@@ -1,11 +1,11 @@
-# プロジェクト状態  (最終更新: 2026-07-02 / 更新者: `IMPLEMENTER` (Claude Code Sonnet, T1-2+T2-1完了))
+# プロジェクト状態  (最終更新: 2026-07-02 / 更新者: `QA_MEMORY` (Gemini 3.5 Flash, T1-2+T2-1 QA PASS))
 
 > ★ **これが真の記憶である。** 全エージェントが随時更新する。大コンテキストモデルの内部記憶を真実の源にしない。
 > どのエージェントが落ちても・交代しても、このファイルを読めば継続できる状態を保つ。
 
 ## 現在のフェーズ
 
-**M1進行中。T1-2(React+MDX+KaTeX統合)・T2-1(三平方の定理の純粋数学モデル)完了。** 次はT3-1(最小React実験・InteractiveExperiment)。
+**M1進行中。T1-2・T2-1完了。PR #1 QAレビュー合格 (PASS)。** 次はT3-1(最小React実験・InteractiveExperiment)。
 
 - ブランチ: `agent/t1-2-t2-1-impl`(PRレビュー待ち)。マージ後は `main` から `agent/t3-1-impl` を切り直す。
 - リポジトリは公開済み: https://github.com/Gazelle221B/nabla 。GitHub Pages公開URL: https://gazelle221b.github.io/nabla/ (200確認済み)。
@@ -33,23 +33,24 @@
 
 ## レビューの直近結果
 
-なし(T1-2+T2-1のコードレビュー未実施。**マージ前に** REVIEWER(Codex) + QA_MEMORY(Gemini) のレビュー PASS + 人間承認が必要 — AGENTS.md §8 の三条件)。
+- **T1-2 & T2-1 (PR #1 / ブランチ `agent/t1-2-t2-1-impl`)**:
+  - `REVIEWER` (Codex / GPT-5.5 xhigh、`codex exec`直接実行・セッションログで実行検証済み): **PASS** — Critical/High 0件。2パス実行(read-only静的レビュー→workspace-writeでfresh test/typecheck/build取得)。詳細: `docs/REVIEW_REPORT.md`
+  - `QA_MEMORY` (Antigravity / Gemini 3.5 Flash (High)、`agy --print`直接実行): **PASS** — 受け入れ条件はスコープ内PASS/スコープ外WAIVED、数学的誤りなし。詳細: `docs/QA_REPORT.md`
+  - **プロセス監査記録**: 初回のラッパーエージェント経由の試行は、(a) Codex側=セッションログ不在によりCLI未実行の自己生成報告と判明、(b) Antigravity側=Bash安全分類器の一時障害でagy実行失敗しClaude代替検証、のためいずれも**無効として破棄**。上記PASSはオーケストレーターが直接起動した本物のCLI実行のみに基づく(判定者の別系統性を担保)。
 
 ## 次に実行すべきアクション
 
-**T1-2・T2-1完了。** 次は以下:
+**PR #1 QAレビューPASS。** 次は以下:
 
-1. `agent/t1-2-t2-1-impl` PR を REVIEWER(Codex) にレビュー依頼 → QA_MEMORY(Gemini) で数学的正しさ確認 → 人間承認後 `main` へマージ。
-2. T3-1: 最小 React 実験(InteractiveExperiment)— `src/components/scenes/mafs/PythagorasScene.tsx` + `src/components/lesson/InteractiveExperiment.tsx`。予想・制約付き可動点・代替入力(数値入力/矢印キー)・残差表示・リセット。
+1. `agent/t1-2-t2-1-impl` PR を人間（HUMAN）が確認し、`main` へマージ。
+2. `main` から `agent/t3-1-impl` ブランチを切り、T3-1 (最小 React 実験) の実装に着手する。
 3. ESLint導入時に`npm run lint`を実コマンド化し、未解決リスクの脆弱性を再評価する。
 
 ## 人間判断待ちの事項
 
-現時点で人間判断待ちの事項はない(T1-2+T2-1 は自動検証済み)。
-
 | 判断 | 準備済み材料 |
 |---|---|
-| (なし) | |
+| **PR #1 のマージ承認**(mergeは人間専権 — AGENTS.md §3 C-1) | REVIEWER PASS(`docs/REVIEW_REPORT.md`)+ QA PASS(`docs/QA_REPORT.md`)+ Copilot指摘8件対応済み。PR: https://github.com/Gazelle221B/nabla/pull/1 |
 
 ## 改訂履歴
 
@@ -61,3 +62,5 @@
 | 2026-07-02 | ARCHITECT(Claude Code) | Tier 3をThree.js(3a)/WebGPU(3b)へ分割。全ガバナンス文書を同期 |
 | 2026-07-02 | ARCHITECT(Claude Code) | T0系タスク完了。`MATH_CONVENTIONS.md`(GPL/CC BY-SA正文はgnu.org/creativecommons.orgから取得)、`LICENSE`/`LICENSE-CODE`/`LICENSE-CONTENT`/`LICENSES.md`、`DEVELOPMENT.md`、`CONTRIBUTING.md`、`docs/adr/ADR-001.md`+`INDEX.md` を作成 |
 | 2026-07-02 | IMPLEMENTER(Claude Code Sonnet) | T1-2完了: React+MDX+KaTeX統合。T2-1完了: `src/lib/math/pythagoras.ts` + Vitest+fast-check 不変条件テスト(20件全GREEN、seed=42)。`npm run test/typecheck/build` 全通過。ブランチ `agent/t1-2-t2-1-impl`。 |
+| 2026-07-02 | QA_MEMORY(Gemini) | T1-2+T2-1 (PR #1) のQAレビュー完了。QA_REPORT.md を作成し、品質ゲート判定を PASS とする。 |
+| 2026-07-02 | ARCHITECT(Claude Code) | ゲートのプロセス監査: ラッパー経由の初回レビュー/QA試行を無効と判定し破棄(Codex未実行・agy実行失敗)。codex exec(GPT-5.5 xhigh)とagy(Gemini 3.5 Flash High)を直接実行し、両ゲート正規PASS。REVIEW_REPORT.md作成、QA_REPORT.md誤字修正、人間判断待ちにPR #1マージ承認を登録 |
