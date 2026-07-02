@@ -32,12 +32,12 @@ describe('squaredDistance', () => {
 		expect(squaredDistance([0, 0], [5, 12])).toBe(169);
 	});
 
-	it('NaN 入力 → NaN を返す (ドキュメント済みセンチネル, MATH_CONVENTIONS §3)', () => {
-		expect(squaredDistance([NaN, 0], [0, 0])).toBeNaN();
+	it('NaN 入力 → RangeError (サイレントに NaN を伝播させない, MATH_CONVENTIONS §3)', () => {
+		expect(() => squaredDistance([NaN, 0], [0, 0])).toThrow(RangeError);
 	});
 
-	it('Infinity 入力 → Infinity を返す (ドキュメント済みセンチネル)', () => {
-		expect(squaredDistance([Infinity, 0], [0, 0])).toBe(Infinity);
+	it('Infinity 入力 → RangeError (非有限入力は事前条件違反, MATH_CONVENTIONS §3)', () => {
+		expect(() => squaredDistance([Infinity, 0], [0, 0])).toThrow(RangeError);
 	});
 
 	it('property: squaredDistance(a,b) === squaredDistance(b,a)', () => {
@@ -88,12 +88,12 @@ describe('pythagoreanResidual', () => {
 		expect(Number.isFinite(pythagoreanResidual([0, 0], [1e150, 0], [0, 1e150]))).toBe(true);
 	});
 
-	it('NaN 入力 → NaN (ドキュメント済みセンチネル, MATH_CONVENTIONS §3)', () => {
-		expect(pythagoreanResidual([0, 0], [NaN, 0], [0, 4])).toBeNaN();
+	it('NaN 入力 → RangeError (サイレントに NaN を伝播させない, MATH_CONVENTIONS §3)', () => {
+		expect(() => pythagoreanResidual([0, 0], [NaN, 0], [0, 4])).toThrow(RangeError);
 	});
 
-	it('Infinity 入力 → 非有限 (Infinity + finite - Infinity = NaN, IEEE 754 不定形)', () => {
-		expect(Number.isFinite(pythagoreanResidual([0, 0], [Infinity, 0], [0, 4]))).toBe(false);
+	it('Infinity 入力 → RangeError (非有限入力は事前条件違反, MATH_CONVENTIONS §3)', () => {
+		expect(() => pythagoreanResidual([0, 0], [Infinity, 0], [0, 4])).toThrow(RangeError);
 	});
 
 	describe('invariants (fast-check, seed 42, numRuns 200)', () => {
@@ -141,7 +141,8 @@ describe('pythagoreanResidual', () => {
 		});
 
 		it('平行移動不変: 三頂点を同じベクトルだけ平行移動しても残差は変わらない', () => {
-			// squaredDistance は差分のみ使用。脚長 a>=0.01 >> eps(|tx+dx|<=1.001e6)≈2.2e-10 なので完全一致
+			// 大きな平行移動では加算→減算の丸め誤差で完全一致しないため、
+			// 残差の差分をスケール相対誤差で比較する(MATH_CONVENTIONS §2)
 			fc.assert(
 				fc.property(
 					fc.double({ min: -1e3, max: 1e3, noNaN: true }),
@@ -157,7 +158,11 @@ describe('pythagoreanResidual', () => {
 						const OT: Point2 = [tx + dx, ty + dy];
 						const AT: Point2 = [tx + a + dx, ty + dy];
 						const BT: Point2 = [tx + dx, ty + b + dy];
-						return pythagoreanResidual(O, A, B) === pythagoreanResidual(OT, AT, BT);
+						const residual = pythagoreanResidual(O, A, B);
+						const translated = pythagoreanResidual(OT, AT, BT);
+						const scale =
+							squaredDistance(OT, AT) + squaredDistance(OT, BT) + squaredDistance(AT, BT);
+						return approximatelyZero(residual - translated, scale);
 					},
 				),
 				{ seed: 42, numRuns: 200 },

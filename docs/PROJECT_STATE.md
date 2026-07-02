@@ -33,7 +33,7 @@
 
 ## レビューの直近結果
 
-なし(T1-2+T2-1のコードレビュー未実施。PRマージ後に REVIEWER(Codex) + QA_MEMORY(Gemini) によるレビューを実施すること)。
+なし(T1-2+T2-1のコードレビュー未実施。**マージ前に** REVIEWER(Codex) + QA_MEMORY(Gemini) のレビュー PASS + 人間承認が必要 — AGENTS.md §8 の三条件)。
 
 ## 次に実行すべきアクション
 
