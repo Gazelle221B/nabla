@@ -23,7 +23,7 @@ nabla(∇/ナブラ)は、日本の学習指導要領に沿って中学数学〜
 
 > 全文・分類は [CONSTITUTION](docs/conclave/governance/CONSTITUTION.md) 相当。**いずれか抵触しそうなら実装を止めてエスカレーション** ([ESCALATION](docs/conclave/governance/ESCALATION.md))。
 
-- **C-1 リポジトリ**: 保護ブランチ直push禁止 / mergeは人間専権 / hookスキップ禁止 / `.env` commit禁止。**MVP期間中は外部コードPRを原則受け付けない**(Issue提案は歓迎、`CONTRIBUTING.md`)。
+- **C-1 リポジトリ**: 保護ブランチ直push禁止 / mergeはレビューPASS+QA PASS+GitHub Copilotコードレビュー依頼済みを条件にオーケストレータAIが実施可(2026-07-04 制作者決定、制作者はGitHub上で事後監査・随時revert可) / hookスキップ禁止 / `.env` commit禁止。**MVP期間中は外部コードPRを原則受け付けない**(Issue提案は歓迎、`CONTRIBUTING.md`)。
 - **C-2 データ**: frontmatterのcurriculumスキーマ(`type: mext` / `type: independent`)を勝手に変更しない。`prerequisites` が指す単元IDは実在すること(孤立ノード・リンク切れ禁止)。
 - **C-3 耐障害性**: WebGPU初期化失敗・非対応時、Tier 3b(WebGPU)コンポーネントは無言でクラッシュさせず「対応ブラウザで開いてください」を表示する(fail-openではなくfail-with-message)。Tier 3a(Three.js/WebGL)は主要モダンブラウザ全てが対象のため該当しない。JS無効時も本文と数式は読める状態を保つ。
 - **C-4 スコープ境界**: MVP 1(Tier 1・Mafs/SVGのみの3記事: 三平方の定理/微分係数と接線/2×2行列と固有ベクトル)のDoD充足まで、Tier 2(Pixi.js/WebGPU)・Tier 3a(Three.js)・Tier 3b(WebGPU)を導入しない。3D表現が必要になっても「安易に3D=WebGPU」と決め打ちせず、まずTier 3a(Three.js)で足りるかを検討する。ログイン・進捗保存・検索・CMS・多言語対応等の非対象機能を「ついでに」実装しない。12週間超過時は期間延長ではなく機能削減(削減順: 装飾アニメーション→実例1件のみの早すぎる汎用化→GA4カスタムイベント→付加的な説明図→記事数3本→2本。**サンドボックス・予想・数学テスト・アクセシビリティは削減対象外**)。
@@ -42,11 +42,11 @@ npm run dev           # http://localhost:4321/nabla/
 npm run build          # ./dist/ へビルド(base: /nabla を反映)
 npm run preview        # ビルド結果をローカルで確認
 # 品質ゲート(Step 2〜5で順次追加。導入時にこのセクションを同期更新する)
-npm run test           # 未導入。Step 2でVitest + fast-check(lib/math の不変条件テスト含む)を追加
+npm run test            # vitest run。T2-1で導入済み(lib/math の不変条件テスト含む)。全テストPASS確認済み
 npm run typecheck       # astro check(tsconfig strict)。0 errors確認済み
-npm run lint            # 未導入。ESLint導入時に追加
-npx playwright test    # 未導入。スモークテスト(Step 5〜)
-npx axe <url>            # アクセシビリティ(Critical/Serious 0件が必須、Step 5〜)
+npm run lint            # eslint .(flat config, T5-1で導入)。0 errors確認済み
+npm run test:e2e        # playwright test。既存ページのスモーク+axe(@axe-core/playwright)をCritical/Serious 0件で検証(T5-1)
+npm test --if-present   # CIで使用。npm run test未導入のリビジョンに対して実行しても失敗しないための防御
 ```
 
 ## 5. アーキテクチャ方針
@@ -88,7 +88,7 @@ docs/                                     # 本ガバナンス一式(Conclave)+ 
 
 - Conventional Commits: `<type>: <description>`(`feat`/`fix`/`refactor`/`docs`/`test`/`chore`/`perf`/`ci`)
 - `main`: 常に安定。直接push禁止。実装は `agent/<task-id>-impl`。**PRマージ後はブランチを使い回さず最新mainから切り直す。**
-- mergeは**レビューPASS + QA PASS + 人間承認**の三条件後のみ。
+- mergeは**レビューPASS + QA PASS**の二条件後、**GitHub上のCopilotコードレビューをPRにリクエストしてから**オーケストレータAIが実施可(2026-07-04 制作者決定。Copilot指摘のCritical級は解消必須、それ以外は判断の上コメントで応答。制作者はGitHub上で事後監査し、必要なら revert する)。
 - PR前チェック: テスト緑 / lintクリーン / 型クリーン / 数学モデルの不変条件テスト緑 / axe Critical・Serious 0件 / PROJECT_STATE最新化 / 絶対NG自己点検 / 秘密混入なし。
 
 ## 9. 品質ゲート(Definition of Done)
