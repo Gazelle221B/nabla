@@ -15,7 +15,9 @@ export default defineConfig({
 	},
 	projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 	webServer: {
-		command: 'npm run build && npm run preview',
+		// CIでは.github/workflows/ci.ymlが直前に`npm run build`を実行済みのため、
+		// 二重ビルドを避けてpreviewのみ起動する。ローカルでは毎回build+previewする。
+		command: process.env.CI ? 'npm run preview' : 'npm run build && npm run preview',
 		url: 'http://localhost:4321/nabla/',
 		reuseExistingServer: !process.env.CI,
 		timeout: 120_000,

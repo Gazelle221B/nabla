@@ -37,7 +37,9 @@ jobs:
       - name: Build
         run: npm run build
 
-      # Vitest導入(T2-1)前はこのスクリプトが存在しないため --if-present でスキップする。
+      # T2-1でVitest導入済み(`npm run test`が実体)。--if-presentは、この
+      # ワークフローをT2-1より前のブランチ/リビジョンに対して実行しても
+      # 失敗させない防御目的で残している。
       - name: Unit tests
         run: npm test --if-present
 

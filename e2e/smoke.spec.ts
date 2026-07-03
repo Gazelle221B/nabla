@@ -15,12 +15,17 @@ test.describe('トップページ', () => {
 		page.on('pageerror', (error) => pageErrors.push(error));
 
 		await page.goto('./');
+		// React Islandsのハイドレーション等、初期描画後の非同期処理が例外を
+		// 出す場合も拾えるよう、判定前にネットワークが落ち着くまで待つ。
+		await page.waitForLoadState('networkidle');
 
 		expect(pageErrors).toEqual([]);
 	});
 
 	test('axe: Critical/Seriousの違反が0件', async ({ page }) => {
 		await page.goto('./');
+		// ハイドレーション後のDOMを検査対象にするため、axe解析前に安定を待つ。
+		await page.waitForLoadState('networkidle');
 
 		const results = await new AxeBuilder({ page }).analyze();
 		const criticalOrSerious = results.violations.filter(
