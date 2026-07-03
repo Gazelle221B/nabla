@@ -19,7 +19,8 @@ astro.config.mjs, *.config.*  GPL-3.0-or-later
 
 | 種別 | ライセンス | 備考 |
 |---|---|---|
-| npm依存パッケージ(Astro, React, Mafs, KaTeX 等) | 各パッケージの `package.json` に記載のライセンスに従う | `npm ls --json` 等で定期確認。GPL-3.0-or-laterと非両立のライセンス(コピーレフト条件が衝突するもの)は導入前にADRで検討する |
+| npm依存パッケージ(Astro, React, KaTeX 等) | 各パッケージの `package.json` に記載のライセンスに従う | `npm ls --json` 等で定期確認。GPL-3.0-or-laterと非両立のライセンス(コピーレフト条件が衝突するもの)は導入前にADRで検討する |
+| `mafs`(Tier 1 図解ライブラリ、T3-1で採用) | MIT | `docs/adr/ADR-002.md` で採用を記録。MIT は GPL-3.0-or-later のコード側と両立 |
 | フォント | 採用時に個別記載(未選定) | OFL等のWebフォントライセンスを想定 |
 | `@mathigon/euclid` / `@mathigon/fermat`(評価ゲート通過時のみ) | MIT | `docs/DESIGN.md` §検討した代替案を参照。採用時はここに追記する |
 

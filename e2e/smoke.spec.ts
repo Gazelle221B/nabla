@@ -1,18 +1,23 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
-// T5-1スモーク: 記事がまだ無いため、既存の唯一のページ(トップページ)を対象に
-// 到達性・基本表示・axeでのCritical/Serious 0件のみを確認する。
-// 記事追加時(T4-1〜)は対象ページを拡張する。
+// スモーク: 到達性・基本表示・axe Critical/Serious 0件・コンソール未処理例外0件を確認する。
+// 対象: トップページ(T5-1)と、三平方の定理の対話ページ(T3-1)。
 test.describe('トップページ', () => {
 	test('表示される', async ({ page }) => {
 		await page.goto('./');
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('nabla(∇)');
 	});
 
-	test('コンソール未処理例外が発生しない', async ({ page }) => {
+	test('コンソール未処理例外・console.error が発生しない', async ({ page }) => {
 		const pageErrors: Error[] = [];
+		const consoleErrors: string[] = [];
 		page.on('pageerror', (error) => pageErrors.push(error));
+		// pageerror(未処理例外)だけでなく console.error も収集し、DoD の
+		// 「コンソール未処理例外0」を表現どおり厳密に担保する。
+		page.on('console', (msg) => {
+			if (msg.type() === 'error') consoleErrors.push(msg.text());
+		});
 
 		await page.goto('./');
 		// React Islandsのハイドレーション等、初期描画後の非同期処理が例外を
@@ -20,6 +25,7 @@ test.describe('トップページ', () => {
 		await page.waitForLoadState('networkidle');
 
 		expect(pageErrors).toEqual([]);
+		expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
 	});
 
 	test('axe: Critical/Seriousの違反が0件', async ({ page }) => {
@@ -33,5 +39,68 @@ test.describe('トップページ', () => {
 		);
 
 		expect(criticalOrSerious, JSON.stringify(criticalOrSerious, null, 2)).toEqual([]);
+	});
+});
+
+// T3-1: InteractiveExperiment(三平方の定理)の実ブラウザ検証。ユニットテストは Mafs を
+// スタブ化しているため、実際のハイドレーション・Mafs 描画・キーボード操作をここで担保する。
+const PYTHAGORAS_PATH = './lessons/pythagorean-theorem/';
+
+test.describe('三平方の定理ページ (InteractiveExperiment)', () => {
+	test('コンソール未処理例外・console.error が発生しない (ハイドレーション含む)', async ({ page }) => {
+		const pageErrors: Error[] = [];
+		const consoleErrors: string[] = [];
+		page.on('pageerror', (error) => pageErrors.push(error));
+		page.on('console', (msg) => {
+			if (msg.type() === 'error') consoleErrors.push(msg.text());
+		});
+
+		await page.goto(PYTHAGORAS_PATH);
+		// Island のハイドレーションと Mafs のマウント後まで待つ。
+		await page.waitForLoadState('networkidle');
+		await expect(page.getByRole('heading', { name: '実験: 直角三角形の辺を動かす' })).toBeVisible();
+
+		expect(pageErrors).toEqual([]);
+		expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
+	});
+
+	test('axe: Critical/Seriousの違反が0件', async ({ page }) => {
+		await page.goto(PYTHAGORAS_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const results = await new AxeBuilder({ page }).analyze();
+		const criticalOrSerious = results.violations.filter(
+			(violation) => violation.impact === 'critical' || violation.impact === 'serious',
+		);
+
+		expect(criticalOrSerious, JSON.stringify(criticalOrSerious, null, 2)).toEqual([]);
+	});
+
+	test('予想確定 → スライダー操作 → 残差表示の基本フローが機能する', async ({ page }) => {
+		await page.goto(PYTHAGORAS_PATH);
+		await page.waitForLoadState('networkidle');
+
+		// 操作前は観察パネルが出ていない (予想ゲート)
+		await expect(page.getByRole('heading', { name: '観察' })).toHaveCount(0);
+
+		// 予想を選んで確定する
+		await page.getByRole('radio', { name: /常に成り立つ/ }).check();
+		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
+
+		// 観察パネルが現れ、初期の 3-4-5 直角三角形で残差 ≈ 0
+		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
+		const residualRow = page.getByRole('row', { name: /残差/ });
+		await expect(residualRow).toContainText('≈ 0');
+
+		// 辺 a のスライダーをキーボード (End=最大 5) で操作 → a² が 25 に更新、残差は ≈ 0 のまま
+		const sliderA = page.getByRole('slider', { name: '辺 a の長さ' });
+		await sliderA.focus();
+		await sliderA.press('End');
+
+		const a2Row = page
+			.getByRole('row')
+			.filter({ has: page.getByRole('rowheader', { name: 'a²', exact: true }) });
+		await expect(a2Row.getByRole('cell')).toHaveText('25');
+		await expect(residualRow).toContainText('≈ 0');
 	});
 });
