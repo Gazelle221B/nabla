@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout your repository using git
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      # T2-1でVitest導入済み(`npm run test`が実体)。--if-presentは、この
+      # ワークフローをT2-1より前のブランチ/リビジョンに対して実行しても
+      # 失敗させない防御目的で残している。
+      - name: Unit tests
+        run: npm test --if-present
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # E2E/アクセシビリティ(axe)スモーク。まだ記事が無いため既存ページのみが対象(docs/IMPLEMENTATION_PLAN.md T5-1)。
+      - name: E2E smoke + accessibility (axe)
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          # test-results/ にはtrace等の失敗解析情報が入る。html reporterが
+          # 生成しないケースがあっても失敗させないよう if-no-files-found: ignore。
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
