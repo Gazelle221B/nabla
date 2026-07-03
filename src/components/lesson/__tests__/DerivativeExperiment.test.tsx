@@ -72,7 +72,7 @@ describe('DerivativeExperiment (M2)', () => {
 		const user = userEvent.setup();
 		render(<DerivativeExperiment />);
 		await enterExperiment(user);
-		expect(screen.getByRole('slider', { name: '接点 a の位置' })).toHaveFocus();
+		expect(screen.getByRole('slider', { name: '接点 a の位置(スライダー)' })).toHaveFocus();
 	});
 
 	it('h を小さくすると割線の傾きが微分係数に近づく (収束の体感)', async () => {
@@ -80,7 +80,7 @@ describe('DerivativeExperiment (M2)', () => {
 		render(<DerivativeExperiment />);
 		await enterExperiment(user);
 
-		const hSlider = screen.getByRole('slider', { name: 'h(a からの距離)' });
+		const hSlider = screen.getByRole('slider', { name: 'h(a からの距離)(スライダー)' });
 		fireEvent.change(hSlider, { target: { value: '0.05' } });
 
 		// a=1, h=0.05: secant = ((1.05)^2 - 1)/0.05 = (1.1025-1)/0.05 = 2.05

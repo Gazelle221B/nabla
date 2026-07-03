@@ -94,6 +94,14 @@ export function DerivativeExperiment() {
 		if (submitted) aSliderRef.current?.focus();
 	}, [submitted]);
 
+	// クライアントでマウント(ハイドレーション)が完了したことを示すフラグ。
+	// data-hydrated 属性として公開し、E2E がハイドレーション完了を確定的に待てるようにする
+	// (client:visible で島がビューポート外にある間は false のまま)。
+	const [hydrated, setHydrated] = useState(false);
+	useEffect(() => {
+		setHydrated(true);
+	}, []);
+
 	const reset = () => {
 		setA(INITIAL_A);
 		setH(INITIAL_H);
@@ -113,7 +121,11 @@ export function DerivativeExperiment() {
 	const predictionCorrect = prediction === 'converges-to-derivative';
 
 	return (
-		<section className={styles.experiment} aria-labelledby="derivative-exp-title">
+		<section
+			className={styles.experiment}
+			aria-labelledby="derivative-exp-title"
+			data-hydrated={hydrated ? 'true' : undefined}
+		>
 			<h2 id="derivative-exp-title">実験: 割線を接線に近づける</h2>
 
 			{/* JS 無効時のフォールバック (Mafs はマウントまで描画しないため図は出ない)。
@@ -191,9 +203,9 @@ export function DerivativeExperiment() {
 					    (docs/DESIGN.md §非機能要件: 可動点には代替入力を併設) */}
 					<div className={styles.controls}>
 						<div className={styles.control}>
-							<label id="a-label" htmlFor="a-number">
-								接点 a の位置
-							</label>
+							<label htmlFor="a-number">接点 a の位置</label>
+							{/* スライダーと数値入力は同じ量を操作するが、支援技術が区別できるよう
+							    アクセシブルネームを分ける (スライダー側に接尾辞を付ける)。 */}
 							<input
 								id="a-slider"
 								ref={aSliderRef}
@@ -202,7 +214,7 @@ export function DerivativeExperiment() {
 								max={A_MAX}
 								step={STEP_A}
 								value={a}
-								aria-labelledby="a-label"
+								aria-label="接点 a の位置(スライダー)"
 								onChange={(e) => handleAChange(Number(e.target.value))}
 							/>
 							<input
@@ -219,9 +231,7 @@ export function DerivativeExperiment() {
 							/>
 						</div>
 						<div className={styles.control}>
-							<label id="h-label" htmlFor="h-number">
-								h(a からの距離)
-							</label>
+							<label htmlFor="h-number">h(a からの距離)</label>
 							<input
 								id="h-slider"
 								type="range"
@@ -229,7 +239,7 @@ export function DerivativeExperiment() {
 								max={H_MAX}
 								step={STEP_H}
 								value={h}
-								aria-labelledby="h-label"
+								aria-label="h(a からの距離)(スライダー)"
 								onChange={(e) => handleHChange(Number(e.target.value))}
 							/>
 							<input

@@ -208,7 +208,7 @@ test.describe('微分係数と接線ページ (DerivativeExperiment)', () => {
 		await expect(secantRow.getByRole('cell')).toHaveText('3');
 
 		// h のスライダーをキーボード (Home=最小 0.05) で操作 → 割線の傾きが微分係数 (2) に近づく
-		const sliderH = page.getByRole('slider', { name: 'h(a からの距離)' });
+		const sliderH = page.getByRole('slider', { name: 'h(a からの距離)(スライダー)' });
 		await sliderH.focus();
 		await sliderH.press('Home');
 

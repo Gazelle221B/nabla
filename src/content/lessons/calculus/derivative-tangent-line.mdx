@@ -1,16 +1,26 @@
 ---
-layout: ../../layouts/BaseLayout.astro
-title: 微分係数と接線 — 割線から接線へ
+title: 微分係数と接線
+description: 割線の傾き(平均変化率)が、h を 0 に近づける極限として微分係数(接線の傾き)に収束する様子を、数値操作を通じて発見する対話的教材。
+learningGoals:
+  - 平均変化率(割線の傾き)が、h を 0 に近づける極限として瞬間の変化率(微分係数・接線の傾き)に収束することを、自分の言葉で説明できる。
+  - 接線が「割線の極限」として定義される直線であることを理解し、なぜ「h = 0 を代入する」という素朴な考え方が破綻するかを説明できる。
+prerequisites: []
+curriculum:
+  type: mext
+  jurisdiction: jp
+  stage: high-school
+  guidelineYear: 2018
+  subject: mathematics
+  units: [differentiation]
+lastReviewed: 2026-07-04
+references:
+  - { title: 高等学校学習指導要領(2018年告示)解説 数学編, type: curriculum, locator: 数学II 微分・積分の考え }
+contentReview:
+  mathematicalStatus: self-reviewed
+  educationalStatus: unvalidated
 ---
 
-import { DerivativeExperiment } from '../../components/lesson/DerivativeExperiment.tsx';
-
-# 微分係数と接線
-
-<p style="color: var(--nabla-text-secondary, #a7adc0);">
-	学習目標: (1) 平均変化率(割線の傾き)が、h を 0 に近づける極限として瞬間の変化率(微分係数・接線の傾き)に収束することを、具体的な数値操作を通じて説明できる。
-	(2) 接線が「割線の極限」として定義される直線であることを理解し、なぜ「h = 0 を代入する」という素朴な考え方が破綻するかを説明できる。
-</p>
+import { DerivativeExperiment } from '../../../components/lesson/DerivativeExperiment.tsx';
 
 ## 平易な説明: 平均の速さと、その瞬間の速さ
 
@@ -53,6 +63,10 @@ $$
 ## 実験してみよう
 
 <DerivativeExperiment client:visible />
+
+<noscript>
+(この対話図は JavaScript が必要です。無効の場合は図が表示されませんが、上の形式的な定義 $f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}$ を使えば、下の転用問題の計算は手元の計算だけで進められます。)
+</noscript>
 
 ## 転用問題: 別の点で試してみる
 
