@@ -1,8 +1,8 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
-// zod は astro:content 経由の再エクスポート(非推奨)ではなく直接 import する
-// (Astro が依存する zod と同一。content collection スキーマの正準的な書き方)。
-import { z } from 'zod';
+// content collection スキーマの zod は Astro 公式が案内する `astro/zod` から取る
+// (Zod 4 対応の再エクスポート。astro:content 経由の `z` は非推奨)。
+import { z } from 'astro/zod';
 
 // 単元(lesson)コンテンツコレクションのスキーマ (docs/DESIGN.md §データ構造・スキーマ)。
 // curriculum は type で判別する (中学・高校 = mext / 大学教養 = independent)。

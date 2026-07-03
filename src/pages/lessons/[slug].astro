@@ -6,10 +6,26 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 // (例: geometry/pythagorean-theorem → /lessons/pythagorean-theorem/)。
 export async function getStaticPaths() {
 	const lessons = await getCollection('lessons');
-	return lessons.map((entry) => ({
-		params: { slug: entry.id.split('/').pop() },
+	const paths = lessons.map((entry) => ({
+		params: { slug: entry.id.split('/').pop()! },
 		props: { entry },
 	}));
+
+	// サブジェクト階層を落としたスラッグは重複しうる (例: geometry/foo と algebra/foo)。
+	// 静かに一方を落とすと記事が消えるため、ビルド時に検知して失敗させる。
+	const seen = new Map<string, string>();
+	for (const { params, props } of paths) {
+		const existing = seen.get(params.slug);
+		if (existing) {
+			throw new Error(
+				`Lesson slug collision: "${existing}" and "${props.entry.id}" both map to /lessons/${params.slug}/. ` +
+					`ファイル名スラッグを一意にするか、URL 生成規約を見直してください。`,
+			);
+		}
+		seen.set(params.slug, props.entry.id);
+	}
+
+	return paths;
 }
 
 const { entry } = Astro.props;
