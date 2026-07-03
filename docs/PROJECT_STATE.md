@@ -1,11 +1,13 @@
-# プロジェクト状態  (最終更新: 2026-07-02 / 更新者: `ARCHITECT` (Claude Code, Step 1完了))
+# プロジェクト状態  (最終更新: 2026-07-04 / 更新者: `IMPLEMENTER` (Claude Code Sonnet, T5-1実装))
 
 > ★ **これが真の記憶である。** 全エージェントが随時更新する。大コンテキストモデルの内部記憶を真実の源にしない。
 > どのエージェントが落ちても・交代しても、このファイルを読めば継続できる状態を保つ。
 
 ## 現在のフェーズ
 
-**M0(規約類整備)・Step 1(空のAstroサイトをGitHub Pagesへ通す、T1-1)完了。** 次はT1-2(React+MDX+KaTeX統合)、続けてT2-1(三平方の定理の純粋数学モデル)。
+**M0(規約類整備)・Step 1(T1-1)完了。T5-1(品質ゲート一式)を`main`起点のブランチ`agent/t5-1-quality-gates`で実装しPRレビュー待ち。** T1-2/T2-1はPR #1(`agent/t1-2-t2-1-impl`)としてレビューPASS済み・マージ待ち(本更新時点で未マージ)。T5-1はPR #1と並行してmain起点で進めたため、マージ順によりどちらかでリベースが必要になる見込み。
+
+- T5-1で導入したもの: ESLint(flat config, `eslint.config.js`。`@eslint/js`+`typescript-eslint`+`eslint-plugin-astro`のrecommendedのみ、追加ルールなし)、`.github/workflows/ci.yml`(pull_request + main push で typecheck/lint/build/test(--if-present)/E2Eを実行)、Playwright + `@axe-core/playwright`による最小スモーク(`e2e/smoke.spec.ts`: トップページ表示・コンソール未処理例外0件・axe Critical/Serious 0件)。記事がまだ無いため対象は既存のトップページのみ(過剰実装しない、T4-1で記事追加時に対象拡張)。
 
 - リポジトリは公開済み: https://github.com/Gazelle221B/nabla 。GitHub Pages公開URL: https://gazelle221b.github.io/nabla/ (200確認済み、favicon等のサブパスアセットも200)。
 - `docs/REQUIREMENTS.md`(v1.0 Final相当)、`docs/DESIGN.md`(PLAN.md v1.0 + レンダリング戦略ハイブリッド確定版)、`docs/IMPLEMENTATION_PLAN.md`(M0〜M3・T0〜T5タスク分解)は作成済み。
@@ -14,7 +16,7 @@
 
 ## 作業中ブランチ
 
-`main`(直接コミット済み、root commit `fd9b9f3`)。今後のコード実装タスクからは `agent/<task-id>-impl` を使用する。
+`agent/t5-1-quality-gates`(main起点、T5-1実装、PRレビュー待ち)。別途 `agent/t1-2-t2-1-impl`(PR #1、T1-2+T2-1、レビューPASS・マージ待ち)が並行して存在する。
 
 ## 直近の設計判断
 
@@ -27,28 +29,28 @@
 
 - Tier 3a(Three.js)・Tier 3b(WebGPU)それぞれの初回導入対象単元は未確定(MVP 3着手時に選定、`docs/DESIGN.md` §オープン論点)。
 - インタラクティブ図解の作り込みコストが高く、横展開時のスケールがボトルネックになりうる(既知リスクとしてREQUIREMENTS.mdに記載済み、対策は図解コンポーネントの再利用パターン確立)。
-- `npm run test`/`lint`はまだ実体がない(`typecheck`は`astro check`で導入済み・0 errors確認済み)。テストはStep 2(Vitest + fast-check)、lintはESLint導入時に追加する。
+- `npm run test`(Vitest)はまだ実体がない(main起点のためPR #1のT2-1導入分が未反映。マージ後に反映される見込み)。`typecheck`/`lint`/`build`/E2E(`npm run test:e2e`)はT5-1で全て実体化・0 errors/0 failures確認済み。
 - devDependency `@astrojs/check` の依存先(`yaml`パッケージ、`yaml-language-server`経由)にmoderate severityの脆弱性(deeply nested YAML collectionsによるstack overflow、GHSA-48c2-rrv3-qjmp)が`npm audit`で検出されている。開発時の型チェックツールのみが依存し、ビルド成果物には含まれず、当プロジェクトが任意のYAML入力を解析する経路もないため実害は低いと判断し、`npm audit fix --force`(breaking change)は保留した。ESLint等追加時に再評価する。
 
 ## レビューの直近結果
 
-なし(実装未着手のためレビューサイクル未実施)。T1-1はローカルビルド・プレビュー・本番URL(https://gazelle221b.github.io/nabla/ )への実疎通で自己検証済み(index/favicon.svg/favicon.ico すべて200)。
+- **T5-1(品質ゲート一式、本ブランチ `agent/t5-1-quality-gates`)**: 実装者(Claude Code Sonnet)によるローカル自己検証のみ完了。`npm run typecheck`/`npm run lint`/`npm run build`/`npm test --if-present`/`npm run test:e2e`をフレッシュ実行し全て緑(E2Eはaxe Critical/Serious 0件含め3件全PASS)。独立REVIEWER/QA_MEMORYによるレビューは未実施(AGENTS.md §7の分離原則に従い、PR作成後に別エージェントへ依頼する)。
+- T1-1はローカルビルド・プレビュー・本番URL(https://gazelle221b.github.io/nabla/ )への実疎通で自己検証済み(index/favicon.svg/favicon.ico すべて200)。
 
 ## 次に実行すべきアクション
 
-**Step 1(T1-1)完了。** 次は以下:
+**T5-1実装完了、PR作成待ち。** 次は以下:
 
-1. T1-2: React + MDX + KaTeX統合。`npx astro add react mdx`等で導入し、サンプルMDX1本でビルド時KaTeX HTML化を確認。
-2. T2-1(三平方の定理の純粋数学モデル `lib/math/pythagoras.ts` + 不変条件テスト)。この時点でVitest + fast-checkを導入し、`AGENTS.md` §4の`npm run test`を実コマンド化する。
-3. ESLint導入時に`npm run lint`を実コマンド化し、未解決リスクの脆弱性を再評価する。
+1. `agent/t5-1-quality-gates` のPRに対しREVIEWER/QA_MEMORYの独立レビューを実施。
+2. PR #1(`agent/t1-2-t2-1-impl`)とT5-1のどちらか一方がマージされた後、他方をmainへリベースする(package.json等で変更箇所が近接するため軽微な衝突が見込まれる)。
+3. ESLint導入は完了。未解決リスクの`@astrojs/check`依存のyaml脆弱性は今回のESLint関連パッケージ追加では新規混入なし(`npm audit`で確認済み)。引き続き保留方針を維持。
 
 ## 人間判断待ちの事項
 
-現時点で人間判断待ちの事項はない(要件・設計・ガバナンス導入は全て確定済み)。
-
 | 判断 | 準備済み材料 |
 |---|---|
-| (なし) | |
+| `agent/t5-1-quality-gates` PRのマージ承認(mergeは人間専権 — AGENTS.md §3 C-1) | ローカル品質ゲート全緑(本ファイル「レビューの直近結果」参照)。REVIEWER/QA_MEMORYレビューは未実施のため、その結果も踏まえて判断されたい。 |
+| `chore/merge-delegation`ブランチのcommit 416963a(マージ権限をオーケストレータAIへ委任)の正当性確認 | 制作者の実際の指示があったか要確認。T5-1実装中に偶発的に発見(詳細は本タスクの最終報告を参照)。 |
 
 ## 改訂履歴
 
@@ -59,3 +61,4 @@
 | 2026-07-02 | ARCHITECT(Claude Code) | conclaveガバナンス導入。AGENTS.md/REQUIREMENTS.md/DESIGN.md/IMPLEMENTATION_PLAN.md/PROJECT_STATE.md を作成 |
 | 2026-07-02 | ARCHITECT(Claude Code) | Tier 3をThree.js(3a)/WebGPU(3b)へ分割。全ガバナンス文書を同期 |
 | 2026-07-02 | ARCHITECT(Claude Code) | T0系タスク完了。`MATH_CONVENTIONS.md`(GPL/CC BY-SA正文はgnu.org/creativecommons.orgから取得)、`LICENSE`/`LICENSE-CODE`/`LICENSE-CONTENT`/`LICENSES.md`、`DEVELOPMENT.md`、`CONTRIBUTING.md`、`docs/adr/ADR-001.md`+`INDEX.md` を作成 |
+| 2026-07-04 | IMPLEMENTER(Claude Code Sonnet) | T5-1完了: ESLint(flat config)導入・`.github/workflows/ci.yml`新設(PR + main push で typecheck/lint/build/test/E2E)・Playwright+`@axe-core/playwright`によるE2Eスモーク基盤(既存トップページのみ対象)。`npm run lint`/`typecheck`/`build`/`test:e2e`フレッシュ実行で全緑。ブランチ`agent/t5-1-quality-gates`(main起点、PR #1とは独立)。 |
