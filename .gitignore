@@ -29,6 +29,7 @@ npm-debug.log*
 # OMC / Claude Code local state (tool-internal, not project content)
 .omc/
 .claude/settings.local.json
+.sisyphus/
 
 # personal planning chat logs — not intended for the public repo (see commit message)
 meeting.md
