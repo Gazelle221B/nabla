@@ -39,6 +39,18 @@ describe('differenceQuotient', () => {
 		expect(() => differenceQuotient(SQUARE, 1, 0)).toThrow(RangeError);
 	});
 
+	it('h が実質ゼロ (approximatelyZero の境界 EPSILON/2) → RangeError', () => {
+		// compare.ts の EPSILON と同じ値 (ファイル先頭の EPSILON 定数)。approximatelyZero(h,1) は
+		// |h|<=EPSILON で真になるため、その内側 (EPSILON/2) は「実質ゼロ」としてゼロ除算と
+		// 同様に扱われることを境界値として確認する。
+		expect(() => differenceQuotient(SQUARE, 1, EPSILON / 2)).toThrow(RangeError);
+		expect(() => differenceQuotient(SQUARE, 1, -EPSILON / 2)).toThrow(RangeError);
+	});
+
+	it('h が境界のすぐ外側 (2*EPSILON) なら RangeError にならない', () => {
+		expect(() => differenceQuotient(SQUARE, 1, 2 * EPSILON)).not.toThrow();
+	});
+
 	it('NaN な x → RangeError', () => {
 		expect(() => differenceQuotient(SQUARE, NaN, 1)).toThrow(RangeError);
 	});
@@ -113,6 +125,10 @@ describe('secantLine / tangentLine / evaluateLine', () => {
 		expect(() => secantLine(SQUARE, 2, 2)).toThrow(RangeError);
 	});
 
+	it('x1 - x0 が実質ゼロ (approximatelyZero の境界 EPSILON/2) → RangeError', () => {
+		expect(() => secantLine(SQUARE, 2, 2 + EPSILON / 2)).toThrow(RangeError);
+	});
+
 	it('NaN な x → RangeError (tangentLine)', () => {
 		expect(() => tangentLine(SQUARE, NaN)).toThrow(RangeError);
 	});
@@ -153,25 +169,33 @@ describe('secantLine / tangentLine / evaluateLine', () => {
 		);
 	});
 
-	it('property: 割線の傾きは h→0 で微分係数に収束する (核心の不変条件)', () => {
-		// |Q(x,h) - f'(x)| は |h| を 1/50 に縮めるたびに単調に減少する(またはすでに極小)。
-		// SQUARE/CUBE/SIN いずれも滑らかな関数であり、テイラー展開の剰余項が h のオーダーで
-		// 縮小することの数値的な現れ。derivative.ts の実装を介さず、fn.derivative という
-		// 独立に与えられた真の値との差を見ているため自己確認的テストにはならない。
+	// 差分商の誤差上界: 平均値定理形の剰余(f が C^2 のとき)
+	//   (f(x+h) - f(x))/h - f'(x) = (h/2) f''(ξ)  (ξ は x と x+h の間のどこか)
+	// が成り立つため、|Q(x,h) - f'(x)| <= (|h|/2) * max|f''| という上界が導ける。
+	// これは「h を縮めれば誤差が必ず減る」という経験的な単調性の仮定を一切使わない、
+	// 独立に証明可能な数学的事実(SQUARE/CUBE は多項式なので剰余項は打ち切りなしの厳密恒等式、
+	// SIN はテイラーの剰余定理そのもの)。x∈[-5,5], |h|<=1 の探索域では x+h∈[-6,6] に収まるため、
+	// 各関数の secondDerivativeBound は max|f''| をこの範囲で評価した値。
+	const SECOND_DERIVATIVE_BOUNDS: { fn: DifferentiableFunction; bound: number }[] = [
+		{ fn: SQUARE, bound: 2 }, // f''(x) = 2 (定数)
+		{ fn: CUBE, bound: 36 }, // f''(x) = 6x, |x| <= 6 → max|f''| = 36
+		{ fn: SIN, bound: 1 }, // f''(x) = -sin(x), |f''| <= 1
+	];
+
+	it('property: 差分商と微分係数の誤差は |h|/2 * (2階微分の上界) で抑えられる (平均値定理の剰余、核心の不変条件)', () => {
 		fc.assert(
 			fc.property(
-				fc.constantFrom(SQUARE, CUBE, SIN),
+				fc.constantFrom(...SECOND_DERIVATIVE_BOUNDS),
 				fc.double({ min: -5, max: 5, noNaN: true }),
 				fc.double({ min: 0.05, max: 1, noNaN: true }),
 				fc.boolean(),
-				(fn, x, hMag, negate) => {
-					const h1 = negate ? -hMag : hMag;
-					const h2 = h1 / 50;
+				({ fn, bound }, x, hMag, negate) => {
+					const h = negate ? -hMag : hMag;
 					const trueSlope = derivativeAt(fn, x);
-					const err1 = Math.abs(differenceQuotient(fn, x, h1) - trueSlope);
-					const err2 = Math.abs(differenceQuotient(fn, x, h2) - trueSlope);
+					const err = Math.abs(differenceQuotient(fn, x, h) - trueSlope);
+					const errorBound = (Math.abs(h) / 2) * bound;
 					// 浮動小数点の丸めの余地として小さな許容値を足す
-					return err2 <= err1 + 1e-9;
+					return err <= errorBound + 1e-9;
 				},
 			),
 			{ seed: 42, numRuns: 200 },

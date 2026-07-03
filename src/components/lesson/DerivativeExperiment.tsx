@@ -174,6 +174,7 @@ export function DerivativeExperiment() {
 					h={h}
 					minA={A_MIN}
 					maxA={A_MAX}
+					maxH={H_MAX}
 					tangentSlope={tangentSlope}
 					interactive={submitted}
 					onAChange={handleAChange}

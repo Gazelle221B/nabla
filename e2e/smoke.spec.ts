@@ -109,6 +109,34 @@ test.describe('三平方の定理ページ (InteractiveExperiment)', () => {
 // スタブ化しているため、実際のハイドレーション・Mafs 描画・キーボード操作をここで担保する。
 const DERIVATIVE_PATH = './lessons/derivative-tangent-line/';
 
+// client:visible の島は交差検出後に JS チャンクを取得してハイドレーションするため、
+// ページ到達直後や scrollIntoViewIfNeeded 直後のクリックはリスナー未接続のまま
+// ネイティブ DOM だけを変化させて失われることがある。ここで厄介なのは、ラジオボタンは
+// 「既にチェック済みの選択肢」を再クリックしても checked 状態が変化しないため
+// change イベントが再発火しない、というネイティブ HTML の仕様: 1回目のクリックが
+// ハイドレーション未接続で失われると、同じ選択肢を何度リトライしてもネイティブ DOM 側は
+// 既に checked のままなので新たな change は一切発火せず、click() の単純なリトライは
+// 効果がない(実測: 20秒リトライしても解消しないフレークを確認)。
+// 対策: 別の選択肢 (decoy) → 目的の選択肢、を1セットにしてクリックする。こうすると
+// 毎回のリトライが必ず「未選択→選択」または「別の選択肢→目的の選択肢」という
+// 本物の状態遷移になり、native の change イベントが確実に発火する。ハイドレーションが
+// 完了した直後のセットで React 側が拾い、確定ボタンが有効になる(実測: 5/5 成功、
+// いずれも初回セットかつ100ms未満で成功)。
+async function selectPredictionRobustly(
+	page: import('@playwright/test').Page,
+	targetLabel: string,
+	decoyLabel: string,
+): Promise<void> {
+	const decoyRadio = page.getByRole('radio', { name: decoyLabel });
+	const targetRadio = page.getByRole('radio', { name: targetLabel });
+	const submitButton = page.getByRole('button', { name: '予想を確定して実験する' });
+	await expect(async () => {
+		await decoyRadio.click();
+		await targetRadio.click();
+		await expect(submitButton).toBeEnabled({ timeout: 1000 });
+	}).toPass({ timeout: 20000 });
+}
+
 test.describe('微分係数と接線ページ (DerivativeExperiment)', () => {
 	test('コンソール未処理例外・console.error が発生しない (ハイドレーション含む)', async ({ page }) => {
 		const pageErrors: Error[] = [];
@@ -142,12 +170,12 @@ test.describe('微分係数と接線ページ (DerivativeExperiment)', () => {
 		page,
 	}) => {
 		// このページは記事本文(導入・形式的定義・誤解の説明)が長く、client:visible の島は
-		// 標準的なビューポートでは初期表示位置の外にある。client:visible は
-		// IntersectionObserver で交差を検出してから JS のフェッチ・ハイドレーションを
-		// 遅延実行するため、scrollIntoViewIfNeeded() で要素をビューポート端ぎりぎりに
-		// 合わせると交差率が閾値付近になり検出が不安定になった(同一条件で成功/30秒失敗を
-		// 繰り返すフレークを観測)。ビューポート自体を縦に十分広げ、記事全体を初期表示に
-		// 収めることでスクロール操作自体を不要にし、レースを構造的に無くす。
+		// 標準的なビューポートでは初期表示位置の外にある。ビューポートを縦に十分広げて記事
+		// 全体を初期表示に収めておくと、ページ読み込み時点で島が既に交差済みとなり
+		// goto 直後には概ねハイドレーションが完了しているため、素朴な操作でも安定する
+		// (実際のハイドレーション未完了レースへの耐性は selectPredictionRobustly が担保する
+		// ので、ここでは「スクロール操作自体が要らない経路」の確認に主眼を置く。
+		// 標準ビューポートでスクロールが必要な経路は次のテストで別途検証する)。
 		await page.setViewportSize({ width: 1280, height: 4000 });
 		await page.goto(DERIVATIVE_PATH);
 		await page.waitForLoadState('networkidle');
@@ -155,19 +183,10 @@ test.describe('微分係数と接線ページ (DerivativeExperiment)', () => {
 		// 操作前は観察パネルが出ていない (予想ゲート)
 		await expect(page.getByRole('heading', { name: '観察' })).toHaveCount(0);
 
-		// 予想を選んで確定する。ハイドレーション完了を待つ固定 sleep の代わりに、
-		// 「クリック → ボタンが有効になったか確認」を丸ごとリトライする
-		// (Playwright 推奨パターン)。check() は既にチェック済みなら何もしないため、
-		// リスナー未接続のままネイティブ DOM だけ checked になった場合にリトライが
-		// 空振りし続ける。click() は state に関わらず毎回クリックイベントを発火するので
-		// リトライに使う。
-		const predictionRadio = page.getByRole('radio', { name: '微分係数(接線の傾き)に近づく' });
-		const submitButton = page.getByRole('button', { name: '予想を確定して実験する' });
-		await expect(async () => {
-			await predictionRadio.click();
-			await expect(submitButton).toBeEnabled({ timeout: 1000 });
-		}).toPass({ timeout: 10000 });
-		await submitButton.click();
+		// 予想を選んで確定する(ハイドレーション未完了時の取りこぼし対策は
+		// selectPredictionRobustly のコメント参照)。
+		await selectPredictionRobustly(page, '微分係数(接線の傾き)に近づく', '0 に近づく');
+		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
 
 		// 観察パネルが現れ、初期値 (a=1, h=1) で割線の傾き=3、微分係数=2
 		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
@@ -180,5 +199,30 @@ test.describe('微分係数と接線ページ (DerivativeExperiment)', () => {
 		await sliderH.press('Home');
 
 		await expect(secantRow.getByRole('cell')).toHaveText('2.05');
+	});
+
+	test('通常ビューポート → スクロール → ハイドレーション → 操作可能、という実ユーザー経路が機能する', async ({
+		page,
+	}) => {
+		// 上のテストはビューポートを縦に拡大してスクロール自体を不要にすることでレースを
+		// 構造的に避けているが、実際の読者は標準的な画面サイズで記事を読み進めてスクロール
+		// することで client:visible の島と交差する。その経路も別途検証する
+		// (レビュー指摘: height:4000 方式だけでは実ユーザー経路を検証できていない)。
+		await page.goto(DERIVATIVE_PATH);
+		await page.waitForLoadState('networkidle');
+
+		// 標準ビューポートでは実験セクションは初期表示外にあるはず
+		await expect(
+			page.getByRole('heading', { name: '実験: 割線を接線に近づける' }),
+		).not.toBeInViewport();
+
+		await page
+			.getByRole('heading', { name: '実験: 割線を接線に近づける' })
+			.scrollIntoViewIfNeeded();
+
+		await selectPredictionRobustly(page, '微分係数(接線の傾き)に近づく', '0 に近づく');
+		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
+
+		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
 	});
 });

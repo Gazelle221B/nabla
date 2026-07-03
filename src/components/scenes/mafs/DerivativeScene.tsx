@@ -33,6 +33,9 @@ export interface DerivativeSceneProps {
 	/** 可動点 a の可動範囲 */
 	minA: number;
 	maxA: number;
+	/** h の最大値。到達しうる最も高い点 (maxA+maxH, f(maxA+maxH)) が viewBox に収まるよう
+	 *  y の上限を決めるために使う(h 自体は scene 側では制約しない、親が clamp 済み)。 */
+	maxH: number;
 	/**
 	 * 接線の傾き (真の微分係数)。lib/math で計算済みの値を受け取るだけ。
 	 * 割線はここでは傾きを受け取らず、(a, f(a)) と (a+h, f(a+h)) の2点から
@@ -51,6 +54,7 @@ export function DerivativeScene({
 	h,
 	minA,
 	maxA,
+	maxH,
 	tangentSlope,
 	interactive,
 	onAChange,
@@ -71,12 +75,19 @@ export function DerivativeScene({
 		return [cx, f(cx)];
 	};
 
+	// viewBox は「到達しうる最も遠い点」を基準に決める(a=maxA, h=maxH のとき
+	// a+h=maxA+maxH が最も右・最も高い点になる。f は x>0 で単調増加なので、視界の右端 hi を
+	// その点よりさらに右に取れば、曲線の hi での高さ f(hi) が常に点の高さより大きくなり、
+	// 曲線・点の両方を単一の上限で覆える)。
+	// 以前は y 上限を f(hi)*0.55 のように「縮める」実装になっており、a・h をともに最大にすると
+	// 点 (a+h, f(a+h)) が viewBox からはみ出すバグがあった(レビュー指摘)。
 	const lo = minA - 1;
-	const hi = maxA + 3;
+	const hi = maxA + maxH + 1;
+	const yTop = f(hi) + 2; // 曲線・点・ラベルの余白を含めて必ず収まる上限
 
 	return (
 		<Mafs
-			viewBox={{ x: [lo, hi], y: [-2, f(hi) * 0.55] }}
+			viewBox={{ x: [lo, hi], y: [-2, yTop] }}
 			preserveAspectRatio="contain"
 			pan={false}
 			zoom={false}
@@ -84,9 +95,9 @@ export function DerivativeScene({
 		>
 			<Coordinates.Cartesian subdivisions={false} />
 
-			{/* 曲線 f(x) = x^2 */}
+			{/* 曲線 f(x) = x^2。ラベルは曲線上の点のすぐ上に置く (viewBox のスケールに依存しない)。 */}
 			<Plot.OfX y={f} color={COLORS.curve} />
-			<LaTeX at={[hi - 0.6, f(hi - 0.6) * 0.55]} tex="f(x)=x^2" color={COLORS.curve} />
+			<LaTeX at={[hi - 0.6, f(hi - 0.6) + 0.6]} tex="f(x)=x^2" color={COLORS.curve} />
 
 			{/* 接線: a だけで定まる基準線 (h に依存しない) */}
 			<Line.ThroughPoints point1={tangentP1} point2={tangentP2} color={COLORS.tangent} />
