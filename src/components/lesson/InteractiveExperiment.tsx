@@ -80,6 +80,14 @@ export function InteractiveExperiment() {
 		if (submitted) legASliderRef.current?.focus();
 	}, [submitted]);
 
+	// クライアントでマウント(ハイドレーション)が完了したことを示すフラグ。
+	// data-hydrated 属性として公開し、E2E がハイドレーション完了を確定的に待てるようにする
+	// (client:visible で島がビューポート外にある間は false のまま)。
+	const [hydrated, setHydrated] = useState(false);
+	useEffect(() => {
+		setHydrated(true);
+	}, []);
+
 	const reset = () => {
 		setLegA(INITIAL_A);
 		setLegB(INITIAL_B);
@@ -99,7 +107,11 @@ export function InteractiveExperiment() {
 	const predictionCorrect = prediction === 'held';
 
 	return (
-		<section className={styles.experiment} aria-labelledby="pythagoras-exp-title">
+		<section
+			className={styles.experiment}
+			aria-labelledby="pythagoras-exp-title"
+			data-hydrated={hydrated ? 'true' : undefined}
+		>
 			<h2 id="pythagoras-exp-title">実験: 直角三角形の辺を動かす</h2>
 
 			{/* JS 無効時のフォールバック (Mafs はマウントまで描画しないため図は出ない)。
@@ -174,9 +186,9 @@ export function InteractiveExperiment() {
 					    (docs/DESIGN.md §非機能要件: 可動点には代替入力を併設) */}
 					<div className={styles.controls}>
 						<div className={styles.control}>
-							<label id="leg-a-label" htmlFor="leg-a-number">
-								辺 a の長さ
-							</label>
+							<label htmlFor="leg-a-number">辺 a の長さ</label>
+							{/* スライダーと数値入力は同じ量を操作するが、支援技術が区別できるよう
+							    アクセシブルネームを分ける (スライダー側に接尾辞を付ける)。 */}
 							<input
 								id="leg-a-slider"
 								ref={legASliderRef}
@@ -185,7 +197,7 @@ export function InteractiveExperiment() {
 								max={MAX_LEG}
 								step={STEP}
 								value={legA}
-								aria-labelledby="leg-a-label"
+								aria-label="辺 a の長さ(スライダー)"
 								onChange={(e) => handleLegA(Number(e.target.value))}
 							/>
 							{/* type=text + inputMode=decimal: type=number は "1." 等の入力途中を
@@ -205,9 +217,7 @@ export function InteractiveExperiment() {
 							/>
 						</div>
 						<div className={styles.control}>
-							<label id="leg-b-label" htmlFor="leg-b-number">
-								辺 b の長さ
-							</label>
+							<label htmlFor="leg-b-number">辺 b の長さ</label>
 							<input
 								id="leg-b-slider"
 								type="range"
@@ -215,7 +225,7 @@ export function InteractiveExperiment() {
 								max={MAX_LEG}
 								step={STEP}
 								value={legB}
-								aria-labelledby="leg-b-label"
+								aria-label="辺 b の長さ(スライダー)"
 								onChange={(e) => handleLegB(Number(e.target.value))}
 							/>
 							<input
@@ -265,7 +275,7 @@ export function InteractiveExperiment() {
 									<td>{round2(hypotenuse)}</td>
 								</tr>
 								<tr>
-									<th scope="row">残差 (a² + b² − c²)</th>
+									<th scope="row">a² + b² と c² の差 (a² + b² − c²)</th>
 									<td>{holds ? '≈ 0' : round2(residual)}</td>
 								</tr>
 							</tbody>
@@ -288,8 +298,8 @@ export function InteractiveExperiment() {
 						</p>
 						<p>
 							{predictionCorrect
-								? '実際、辺 a・b をどう変えても残差は 0 のまま——直角が保たれる限り a² + b² = c² は常に成り立ちます。'
-								: '実際に辺を動かしてみると、直角が保たれている限り残差は 0 のまま——a² + b² = c² は常に成り立ちます。予想と見比べてみましょう。'}
+								? '実際、辺 a・b をどう変えても a² + b² と c² の差は 0 のまま——直角が保たれる限り a² + b² = c² は常に成り立ちます。'
+								: '実際に辺を動かしてみると、直角が保たれている限り a² + b² と c² の差は 0 のまま——a² + b² = c² は常に成り立ちます。予想と見比べてみましょう。'}
 						</p>
 						<p className={styles.narration}>
 							なぜ常に成り立つのか: この三角形は原点で常に直角
