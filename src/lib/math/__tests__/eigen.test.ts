@@ -364,6 +364,37 @@ describe('computeEigenSystem', () => {
 		expect(sorted[1]).toBeCloseTo(1 + 1e-10, 10);
 	});
 
+	it('対角行列のアンダーフロー回帰テスト: diag(0, 1e-200) は distinct-real (a≠d)', () => {
+		// 実数の数学では discriminant=(a−d)²=0 ⟺ a===d だが、IEEE754 では
+		// (0 - 1e-200)² = 1e-400 は最小正規化数(~2.2e-308)を大きく下回り
+		// アンダーフローして厳密に 0 になる。判別式の符号だけで分類すると、
+		// a≠d(相異なる実固有値を持つ)行列を誤って重解(repeated-full)と
+		// 判定してしまう。a・d の直接比較で正しく distinct-real と判定できる。
+		const result = computeEigenSystem([
+			[0, 0],
+			[0, 1e-200],
+		]);
+		expect(classifyEigenSystem(result)).toBe('distinct-real');
+		expect(result.realEigenvalues).toEqual([0, 1e-200]);
+		expect(result.eigenvectors).toEqual([
+			[1, 0],
+			[0, 1],
+		]);
+	});
+
+	it('対角行列のアンダーフロー回帰テスト: diag(Number.MIN_VALUE, 0) は distinct-real', () => {
+		const result = computeEigenSystem([
+			[Number.MIN_VALUE, 0],
+			[0, 0],
+		]);
+		expect(classifyEigenSystem(result)).toBe('distinct-real');
+		expect(result.realEigenvalues).toEqual([Number.MIN_VALUE, 0]);
+		expect(result.eigenvectors).toEqual([
+			[1, 0],
+			[0, 1],
+		]);
+	});
+
 	it('NaN 成分 → RangeError', () => {
 		expect(() => computeEigenSystem([[NaN, 0], [0, 1]])).toThrow(RangeError);
 	});

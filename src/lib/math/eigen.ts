@@ -114,27 +114,16 @@ export function eigenResidual(matrix: Matrix2x2, eigenvalue: number, eigenvector
 
 // 実固有値 lambda に対応する固有ベクトルを (A - λI)v = 0 を解いて求める。
 // b が非ゼロなら 1 行目 (a-λ)x + by = 0 から v=(b, λ-a) が解。
-// b がゼロで c が非ゼロなら 2 行目から v=(λ-d, c) が解。
-// 両方ゼロ(対角行列)の場合、固有ベクトルは標準基底 (1,0)・(0,1) のいずれかになる。
-// このとき「どちらの基底か」を再計算した lambda と a を比較して決めると、
-// sqrt((a-d)²) が浮動小数点の丸めで |a-d| と1ビット単位で一致しない極端なケースで
-// 誤った基底を選びうる。代わりに、行列の原本成分 a・d の直接比較(isLowerRoot と
-// 組み合わせる)という丸めを経由しない情報だけで決める。
-// isLowerRoot: 呼び出し元が (trace - sqrtDiscriminant)/2 (小さい方の根) を渡すときは
-// true、(trace + sqrtDiscriminant)/2 (大きい方の根) を渡すときは false。
-// 重解(discriminant===0)から呼ばれる場合は b・c のどちらかが非ゼロであることが
-// 呼び出し元で保証されているため、この分岐には到達しない(値は使われない)。
-function eigenvectorFor(matrix: Matrix2x2, lambda: number, isLowerRoot: boolean): Vector2 {
+// b がゼロなら(呼び出し元の保証により c は非ゼロ)2 行目から v=(λ-d, c) が解。
+// 対角行列(b===0 かつ c===0)は computeEigenSystem が discriminant を経由せず
+// 別途処理するため、この関数は呼ばれない(b・c の少なくとも一方が非ゼロであることが
+// 呼び出し元で保証されている)。
+function eigenvectorFor(matrix: Matrix2x2, lambda: number): Vector2 {
 	const [[a, b], [c, d]] = matrix;
 	if (b !== 0) {
 		return safeNormalize([b, lambda - a]);
 	}
-	if (c !== 0) {
-		return safeNormalize([lambda - d, c]);
-	}
-	const aIsSmallerOrEqual = a <= d;
-	if (isLowerRoot) return aIsSmallerOrEqual ? [1, 0] : [0, 1];
-	return aIsSmallerOrEqual ? [0, 1] : [1, 0];
+	return safeNormalize([lambda - d, c]);
 }
 
 export interface EigenSystemResult {
@@ -178,6 +167,41 @@ export function computeEigenSystem(matrix: Matrix2x2): EigenSystemResult {
 	// (回帰テスト: eigen.test.ts の「大トレース」ケース)。
 	const discriminant = (a - d) * (a - d) + 4 * b * c;
 
+	// 対角行列(b===0 かつ c===0)は判別式を経由せず a===d を直接判定する。
+	// 実数の数学では discriminant=(a−d)²=0 ⟺ a===d が成り立つが、IEEE754 では
+	// a・d の差が極端に小さいとき(例: diag(0, 1e-200)、差 1e-200 の2乗 1e-400 は
+	// 最小正規化数を大きく下回りアンダーフローして厳密に 0 になる)、a≠d なのに
+	// discriminant===0 になってしまう。判別式の符号だけを見て分類すると、この場合に
+	// 相異なる実固有値を持つ行列を誤って重解(repeated-full)と判定してしまう
+	// (回帰テスト: diag(0, 1e-200), diag(Number.MIN_VALUE, 0))。a・d 自体は
+	// アンダーフローの影響を受けない丸めなしの値なので、直接比較すれば安全。
+	if (b === 0 && c === 0) {
+		if (a === d) {
+			return {
+				trace,
+				determinant,
+				discriminant,
+				realEigenvalues: [a],
+				eigenvectors: [
+					[1, 0],
+					[0, 1],
+				],
+				complexEigenvalue: null,
+			};
+		}
+		return {
+			trace,
+			determinant,
+			discriminant,
+			realEigenvalues: [a, d],
+			eigenvectors: [
+				[1, 0],
+				[0, 1],
+			],
+			complexEigenvalue: null,
+		};
+	}
+
 	// 分類は判別式の符号をそのまま使う(epsilon 幅を設けない)。computeEigenSystem は
 	// 「数学的結果を丸めない」契約(MATH_CONVENTIONS §10)のため、丸め判定
 	// (approximatelyZero)を分類の閾値そのものに使うと契約と矛盾する。加えて判別式は
@@ -197,31 +221,15 @@ export function computeEigenSystem(matrix: Matrix2x2): EigenSystemResult {
 	}
 
 	if (discriminant === 0) {
+		// b・c の少なくとも一方が非ゼロ(対角行列は上で処理済み)なので、
+		// 固有空間は必ず 1 次元(Jordan 型、defective)になる。
 		const lambda = trace / 2;
-		// discriminant===0 の中で b===0 かつ c===0 なら、(a−d)²+4bc=(a−d)²=0 から
-		// a===d が数学的に導かれる(スカラー行列)。下位分類も上位分類と同じく
-		// exact zero で判定し、approximatelyZero の絶対誤差フロア(entryScale<1 のとき
-		// 非ゼロの成分まで「無視できる」と誤判定しうる、MATH_CONVENTIONS §2)による
-		// 誤分類を避ける(回帰テスト: [[0,0],[1e-12,0]] は repeated-defective であるべき)。
-		if (b === 0 && c === 0) {
-			return {
-				trace,
-				determinant,
-				discriminant,
-				realEigenvalues: [lambda],
-				eigenvectors: [
-					[1, 0],
-					[0, 1],
-				],
-				complexEigenvalue: null,
-			};
-		}
 		return {
 			trace,
 			determinant,
 			discriminant,
 			realEigenvalues: [lambda],
-			eigenvectors: [eigenvectorFor(matrix, lambda, true)],
+			eigenvectors: [eigenvectorFor(matrix, lambda)],
 			complexEigenvalue: null,
 		};
 	}
@@ -234,7 +242,7 @@ export function computeEigenSystem(matrix: Matrix2x2): EigenSystemResult {
 		determinant,
 		discriminant,
 		realEigenvalues: [lambda1, lambda2],
-		eigenvectors: [eigenvectorFor(matrix, lambda1, true), eigenvectorFor(matrix, lambda2, false)],
+		eigenvectors: [eigenvectorFor(matrix, lambda1), eigenvectorFor(matrix, lambda2)],
 		complexEigenvalue: null,
 	};
 }
