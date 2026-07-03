@@ -11,6 +11,7 @@
     "preview": "astro preview",
     "typecheck": "astro check",
     "lint": "eslint .",
+    "test:e2e": "playwright test",
     "astro": "astro"
   },
   "dependencies": {
@@ -19,7 +20,10 @@
   "private": true,
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^22.20.0",
     "eslint": "^10.6.0",
     "eslint-plugin-astro": "^1.7.0",
     "globals": "^17.7.0",

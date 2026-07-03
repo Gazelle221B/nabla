@@ -2,6 +2,11 @@
 dist/
 .astro/
 
+# Playwright
+playwright-report/
+test-results/
+blob-report/
+
 # dependencies
 node_modules/
 
