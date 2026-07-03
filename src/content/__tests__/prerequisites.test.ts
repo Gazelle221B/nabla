@@ -12,8 +12,10 @@ const rawLessons = import.meta.glob('../lessons/**/*.mdx', {
 }) as Record<string, string>;
 
 function lessonIdFromPath(path: string): string {
-	// 例: /.../src/content/lessons/geometry/pythagorean-theorem.mdx → geometry/pythagorean-theorem
-	return path.replace(/^.*\/content\/lessons\//, '').replace(/\.mdx$/, '');
+	// import.meta.glob のキーはこのテストファイルからの相対パス
+	// (例: ../lessons/geometry/pythagorean-theorem.mdx)。Astro の entry.id と同じ
+	// 名前空間 (geometry/pythagorean-theorem) になるよう先頭 ../lessons/ と拡張子を除く。
+	return path.replace(/^\.\.\/lessons\//, '').replace(/\.mdx$/, '');
 }
 
 function frontmatter(raw: string): Record<string, unknown> {
@@ -29,6 +31,12 @@ const entries = Object.entries(rawLessons).map(([path, raw]) => ({
 describe('lessons コンテンツグラフ (C-2)', () => {
 	it('少なくとも 1 つの lesson が存在する', () => {
 		expect(entries.length).toBeGreaterThan(0);
+	});
+
+	it('導出 ID は Astro の entry.id 名前空間と一致する (glob キー形式ズレの検出)', () => {
+		// この既知 ID が含まれない = 導出ロジックが Astro の entry.id とズレている証拠。
+		const ids = new Set(entries.map((e) => e.id));
+		expect(ids.has('geometry/pythagorean-theorem')).toBe(true);
 	});
 
 	it('prerequisites はすべて実在する lesson ID を指す (リンク切れ禁止)', () => {
