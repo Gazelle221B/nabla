@@ -32,7 +32,7 @@ vi.mock('../../scenes/mafs/PythagorasScene.js', () => ({
 import { InteractiveExperiment } from '../InteractiveExperiment.js';
 
 function residualRowValue(): string {
-	const row = screen.getByRole('row', { name: /残差/ });
+	const row = screen.getByRole('row', { name: /差/ });
 	return within(row).getAllByRole('cell')[0].textContent ?? '';
 }
 
