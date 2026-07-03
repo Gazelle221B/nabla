@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { squaredDistance, pythagoreanResidual, type Point2 } from '../../lib/math/pythagoras.js';
 import { approximatelyZero } from '../../lib/math/compare.js';
 import { PythagorasScene } from '../scenes/mafs/PythagorasScene.js';
@@ -38,10 +38,47 @@ export function InteractiveExperiment() {
 	const [prediction, setPrediction] = useState<Prediction | null>(null);
 	const [submitted, setSubmitted] = useState(false);
 
-	// 状態の正規化 (clamp) はここに集約する。ドラッグ・スライダー・数値入力すべてが
-	// この 2 つのハンドラを通るため、入力経路によらず単一の真実の状態になる。
+	// 数値入力の編集途中の文字列 (例: "1." や "" )を保持する表示用 state。数値 (SSOT) とは分離し、
+	// 確定時 (blur / Enter) にのみ clamp して数値 state へ反映する。これにより入力途中の破壊
+	// (空文字が即 1 に戻る等) を防ぐ。ドラッグ・スライダー・リセットで legA/legB が外部から
+	// 変わったときは下の useEffect で表示文字列を同期する。
+	const [inputA, setInputA] = useState(String(INITIAL_A));
+	const [inputB, setInputB] = useState(String(INITIAL_B));
+
+	// 状態の正規化 (clamp) はここに集約する。ドラッグ・スライダーはこのハンドラを通るため、
+	// 入力経路によらず単一の真実の状態になる。
 	const handleLegA = (value: number) => setLegA(clampLeg(value));
 	const handleLegB = (value: number) => setLegB(clampLeg(value));
+
+	// 数値入力の確定: 有限値なら clamp して反映、非有限 (空・"." 等) なら現在値へ戻す。
+	const commitInputA = () => {
+		const parsed = Number(inputA);
+		const next = Number.isFinite(parsed) && inputA.trim() !== '' ? clampLeg(parsed) : legA;
+		setLegA(next);
+		setInputA(String(round2(next)));
+	};
+	const commitInputB = () => {
+		const parsed = Number(inputB);
+		const next = Number.isFinite(parsed) && inputB.trim() !== '' ? clampLeg(parsed) : legB;
+		setLegB(next);
+		setInputB(String(round2(next)));
+	};
+
+	// legA/legB が外部要因 (ドラッグ・スライダー・リセット) で変わったら表示文字列を同期する。
+	// 編集途中 (onChange で inputA だけ変えている間) は legA が変わらないため発火せず、入力は壊れない。
+	useEffect(() => {
+		setInputA(String(round2(legA)));
+	}, [legA]);
+	useEffect(() => {
+		setInputB(String(round2(legB)));
+	}, [legB]);
+
+	// 予想確定でボタンが消えるとフォーカスが body へ落ちるため、新出現する操作 UI (a のスライダー)
+	// へフォーカスを移す (キーボード利用者が操作を継続できるように)。
+	const legASliderRef = useRef<HTMLInputElement>(null);
+	useEffect(() => {
+		if (submitted) legASliderRef.current?.focus();
+	}, [submitted]);
 
 	const reset = () => {
 		setLegA(INITIAL_A);
@@ -137,29 +174,40 @@ export function InteractiveExperiment() {
 					    (docs/DESIGN.md §非機能要件: 可動点には代替入力を併設) */}
 					<div className={styles.controls}>
 						<div className={styles.control}>
-							<label htmlFor="leg-a-number">辺 a の長さ</label>
+							<label id="leg-a-label" htmlFor="leg-a-number">
+								辺 a の長さ
+							</label>
 							<input
 								id="leg-a-slider"
+								ref={legASliderRef}
 								type="range"
 								min={MIN_LEG}
 								max={MAX_LEG}
 								step={STEP}
 								value={legA}
-								aria-label="辺 a の長さ (スライダー)"
+								aria-labelledby="leg-a-label"
 								onChange={(e) => handleLegA(Number(e.target.value))}
 							/>
+							{/* type=text + inputMode=decimal: type=number は "1." 等の入力途中を
+							    ブラウザが空へ正規化するため。値域は確定時に clamp で担保する。
+							    矢印キーによる増減はスライダー・可動点が担う。 */}
 							<input
 								id="leg-a-number"
-								type="number"
-								min={MIN_LEG}
-								max={MAX_LEG}
-								step={STEP}
-								value={round2(legA)}
-								onChange={(e) => handleLegA(Number(e.target.value))}
+								type="text"
+								inputMode="decimal"
+								aria-describedby="leg-range-hint"
+								value={inputA}
+								onChange={(e) => setInputA(e.target.value)}
+								onBlur={commitInputA}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter') commitInputA();
+								}}
 							/>
 						</div>
 						<div className={styles.control}>
-							<label htmlFor="leg-b-number">辺 b の長さ</label>
+							<label id="leg-b-label" htmlFor="leg-b-number">
+								辺 b の長さ
+							</label>
 							<input
 								id="leg-b-slider"
 								type="range"
@@ -167,22 +215,28 @@ export function InteractiveExperiment() {
 								max={MAX_LEG}
 								step={STEP}
 								value={legB}
-								aria-label="辺 b の長さ (スライダー)"
+								aria-labelledby="leg-b-label"
 								onChange={(e) => handleLegB(Number(e.target.value))}
 							/>
 							<input
 								id="leg-b-number"
-								type="number"
-								min={MIN_LEG}
-								max={MAX_LEG}
-								step={STEP}
-								value={round2(legB)}
-								onChange={(e) => handleLegB(Number(e.target.value))}
+								type="text"
+								inputMode="decimal"
+								aria-describedby="leg-range-hint"
+								value={inputB}
+								onChange={(e) => setInputB(e.target.value)}
+								onBlur={commitInputB}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter') commitInputB();
+								}}
 							/>
 						</div>
 						<button type="button" className={styles.secondaryButton} onClick={reset}>
 							リセット
 						</button>
+						<p id="leg-range-hint" className={styles.rangeHint}>
+							各辺は 1〜5 の範囲で指定できます。
+						</p>
 					</div>
 
 					{/* Observation: 残差のライブ表示。丸め前の内部値で判定し、表示のみ丸める */}

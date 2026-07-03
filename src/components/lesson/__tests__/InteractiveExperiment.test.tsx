@@ -73,16 +73,42 @@ describe('InteractiveExperiment (T3-1)', () => {
 		await user.click(screen.getByRole('button', { name: '予想を確定して実験する' }));
 	}
 
-	it('数値入力 → 状態 → シーン へ同期する (input が単一状態を更新)', async () => {
+	it('予想確定後、フォーカスが新出現する a スライダーへ移る (body に落ちない)', async () => {
+		const user = userEvent.setup();
+		render(<InteractiveExperiment />);
+		await enterExperiment(user);
+		expect(screen.getByRole('slider', { name: '辺 a の長さ' })).toHaveFocus();
+	});
+
+	it('数値入力 → 確定 (blur) → 状態 → シーン へ同期する (input が単一状態を更新)', async () => {
 		const user = userEvent.setup();
 		render(<InteractiveExperiment />);
 		await enterExperiment(user);
 
-		// controlled number input は 1 ステップで変更する (逐次 type は clamp と干渉するため)
-		const numberA = screen.getByRole('spinbutton', { name: '辺 a の長さ' });
+		// 数値 state は確定 (blur/Enter) 時にのみ更新される
+		const numberA = screen.getByRole('textbox', { name: '辺 a の長さ' });
 		fireEvent.change(numberA, { target: { value: '5' } });
+		fireEvent.blur(numberA);
 
 		expect(screen.getByTestId('scene-legA')).toHaveTextContent('5');
+	});
+
+	it('編集途中の文字列は破壊されず、確定まで数値 state は変わらない', async () => {
+		const user = userEvent.setup();
+		render(<InteractiveExperiment />);
+		await enterExperiment(user);
+
+		const numberA = screen.getByRole('textbox', { name: '辺 a の長さ' }) as HTMLInputElement;
+		// "1." のような入力途中の状態が保持される (即 clamp で潰されない)
+		fireEvent.change(numberA, { target: { value: '1.' } });
+		expect(numberA.value).toBe('1.');
+		expect(screen.getByTestId('scene-legA')).toHaveTextContent('3'); // 確定前は 3 のまま
+
+		// 空にして blur すると 1 へ暴走せず直前の確定値へ戻る
+		fireEvent.change(numberA, { target: { value: '' } });
+		fireEvent.blur(numberA);
+		expect(screen.getByTestId('scene-legA')).toHaveTextContent('3');
+		expect(numberA.value).toBe('3');
 	});
 
 	it('ドラッグ (scene→state) が数値入力へ反映される (単一状態の証明)', async () => {
@@ -93,7 +119,7 @@ describe('InteractiveExperiment (T3-1)', () => {
 		// スタブのドラッグは 6 を渡す → clamp で最大 5 に正規化される
 		await user.click(screen.getByTestId('drag-a-6'));
 
-		const numberA = screen.getByRole('spinbutton', { name: '辺 a の長さ' }) as HTMLInputElement;
+		const numberA = screen.getByRole('textbox', { name: '辺 a の長さ' }) as HTMLInputElement;
 		expect(numberA.value).toBe('5');
 		expect(screen.getByTestId('scene-legA')).toHaveTextContent('5');
 	});
@@ -113,8 +139,9 @@ describe('InteractiveExperiment (T3-1)', () => {
 		render(<InteractiveExperiment />);
 		await enterExperiment(user);
 
-		const numberB = screen.getByRole('spinbutton', { name: '辺 b の長さ' });
+		const numberB = screen.getByRole('textbox', { name: '辺 b の長さ' });
 		fireEvent.change(numberB, { target: { value: '2' } });
+		fireEvent.blur(numberB);
 		expect(screen.getByTestId('scene-legB')).toHaveTextContent('2');
 
 		await user.click(screen.getByRole('button', { name: 'リセット' }));

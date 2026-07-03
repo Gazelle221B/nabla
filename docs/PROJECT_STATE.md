@@ -38,7 +38,13 @@
 
 ## レビューの直近結果
 
-- **T3-1 (ブランチ `agent/t3-1-impl`)**: 実装者による自己検証のみ完了(`typecheck`/`build`/`test` フレッシュ緑、36テスト)。**独立レビュー(REVIEWER)+ QA(QA_MEMORY)は未実施** — オーケストレーターが別系統エージェントへ委任する。ブラウザでの手動操作確認(コンソール未処理例外0)は Chrome 拡張未接続のため未実施(環境制約。ビルド後の静的 HTML でハイドレーション用 JS/CSS がサブパス `/nabla/` 配信・noscript フォールバック出力を確認済み)。
+- **T3-1 (ブランチ `agent/t3-1-impl`、PR #4)**: 独立レビュー **codex=CONCERNS / antigravity=CONCERNS**(数学的正しさ・学習設計・noscript・ADR-002 は QA 側で明示 PASS)。統合指摘5件を1ラウンドで修正済み:
+  1. 数値入力の編集途中破壊 → 表示用ローカル文字列 state + 確定(blur/Enter)時 clamp、`type=text`+`inputMode=decimal`(type=number のブラウザ正規化回避)。
+  2. 予想確定時のフォーカス喪失 → `useRef` で a スライダーへ明示フォーカス移動。
+  3. `compare.ts`: `Math.max(1, scale)` → `Math.max(1, Math.abs(scale))`(負スケール対応)、テストも仕様更新。
+  4. CSS `.noscript p` → `.noscript`(セレクタ不一致修正)。
+  5. スライダーに `aria-labelledby`、数値入力に範囲ヒントの `aria-describedby` 付与。
+  修正後 `typecheck`/`build`/`test` フレッシュ緑(39テスト)。ブラウザ実機確認(コンソール未処理例外0)は Chrome 拡張未接続のため未実施 → PR#3 マージ後の E2E スモーク(/lessons ページ追加)で担保する方針(team-lead 合意)。
 - **T1-2 & T2-1 (PR #1 / ブランチ `agent/t1-2-t2-1-impl`、マージ済み)**:
   - `REVIEWER` (Codex / GPT-5.5 xhigh、`codex exec`直接実行・セッションログで実行検証済み): **PASS** — Critical/High 0件。2パス実行(read-only静的レビュー→workspace-writeでfresh test/typecheck/build取得)。詳細: `docs/REVIEW_REPORT.md`
   - `QA_MEMORY` (Antigravity / Gemini 3.5 Flash (High)、`agy --print`直接実行): **PASS** — 受け入れ条件はスコープ内PASS/スコープ外WAIVED、数学的誤りなし。詳細: `docs/QA_REPORT.md`
@@ -73,3 +79,4 @@
 | 2026-07-02 | QA_MEMORY(Gemini) | T1-2+T2-1 (PR #1) のQAレビュー完了。QA_REPORT.md を作成し、品質ゲート判定を PASS とする。 |
 | 2026-07-02 | ARCHITECT(Claude Code) | ゲートのプロセス監査: ラッパー経由の初回レビュー/QA試行を無効と判定し破棄(Codex未実行・agy実行失敗)。codex exec(GPT-5.5 xhigh)とagy(Gemini 3.5 Flash High)を直接実行し、両ゲート正規PASS。REVIEW_REPORT.md作成、QA_REPORT.md誤字修正、人間判断待ちにPR #1マージ承認を登録 |
 | 2026-07-04 | IMPLEMENTER(Claude Code) | T3-1完了: `InteractiveExperiment`(予想ゲート/制約付き可動点/スライダー+数値入力+矢印キー/残差ライブ表示/リセット/noscriptフォールバック)+ `PythagorasScene`(Mafs)+ `lib/math/compare.ts`。Mafs 0.21.0 採用(ADR-002)、LICENSES.md 同期。`typecheck`/`build`/`test`(36件)フレッシュ緑。ブランチ `agent/t3-1-impl` |
+| 2026-07-04 | IMPLEMENTER(Claude Code) | T3-1 レビュー(codex/antigravity=CONCERNS)の統合指摘5件を修正: 数値入力の編集途中保持(text+inputMode+確定時clamp)/確定時フォーカス移動/`compare.ts` の `Math.abs(scale)`/CSS `.noscript` 修正/スライダー `aria-labelledby`。テスト39件緑 |

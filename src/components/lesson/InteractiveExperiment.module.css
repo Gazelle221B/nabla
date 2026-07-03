@@ -12,7 +12,7 @@
 	line-height: 1.7;
 }
 
-.noscript p {
+.noscript {
 	padding: 0.75rem 1rem;
 	border-left: 3px solid var(--nabla-warning, #e0a94b);
 	background: rgba(224, 169, 75, 0.1);
@@ -64,9 +64,16 @@
 	gap: 0.35rem;
 }
 
-.control input[type='number'] {
+.control input[type='text'] {
 	width: 6rem;
 	padding: 0.3rem 0.4rem;
+}
+
+.rangeHint {
+	flex-basis: 100%;
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--nabla-text-secondary, #a7adc0);
 }
 
 .observation {
