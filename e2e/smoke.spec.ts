@@ -104,3 +104,81 @@ test.describe('三平方の定理ページ (InteractiveExperiment)', () => {
 		await expect(residualRow).toContainText('≈ 0');
 	});
 });
+
+// M2: DerivativeExperiment(微分係数と接線)の実ブラウザ検証。ユニットテストは Mafs を
+// スタブ化しているため、実際のハイドレーション・Mafs 描画・キーボード操作をここで担保する。
+const DERIVATIVE_PATH = './lessons/derivative-tangent-line/';
+
+test.describe('微分係数と接線ページ (DerivativeExperiment)', () => {
+	test('コンソール未処理例外・console.error が発生しない (ハイドレーション含む)', async ({ page }) => {
+		const pageErrors: Error[] = [];
+		const consoleErrors: string[] = [];
+		page.on('pageerror', (error) => pageErrors.push(error));
+		page.on('console', (msg) => {
+			if (msg.type() === 'error') consoleErrors.push(msg.text());
+		});
+
+		await page.goto(DERIVATIVE_PATH);
+		await page.waitForLoadState('networkidle');
+		await expect(page.getByRole('heading', { name: '実験: 割線を接線に近づける' })).toBeVisible();
+
+		expect(pageErrors).toEqual([]);
+		expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
+	});
+
+	test('axe: Critical/Seriousの違反が0件', async ({ page }) => {
+		await page.goto(DERIVATIVE_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const results = await new AxeBuilder({ page }).analyze();
+		const criticalOrSerious = results.violations.filter(
+			(violation) => violation.impact === 'critical' || violation.impact === 'serious',
+		);
+
+		expect(criticalOrSerious, JSON.stringify(criticalOrSerious, null, 2)).toEqual([]);
+	});
+
+	test('予想確定 → h スライダー操作 → 割線の傾きが微分係数に近づく基本フローが機能する', async ({
+		page,
+	}) => {
+		// このページは記事本文(導入・形式的定義・誤解の説明)が長く、client:visible の島は
+		// 標準的なビューポートでは初期表示位置の外にある。client:visible は
+		// IntersectionObserver で交差を検出してから JS のフェッチ・ハイドレーションを
+		// 遅延実行するため、scrollIntoViewIfNeeded() で要素をビューポート端ぎりぎりに
+		// 合わせると交差率が閾値付近になり検出が不安定になった(同一条件で成功/30秒失敗を
+		// 繰り返すフレークを観測)。ビューポート自体を縦に十分広げ、記事全体を初期表示に
+		// 収めることでスクロール操作自体を不要にし、レースを構造的に無くす。
+		await page.setViewportSize({ width: 1280, height: 4000 });
+		await page.goto(DERIVATIVE_PATH);
+		await page.waitForLoadState('networkidle');
+
+		// 操作前は観察パネルが出ていない (予想ゲート)
+		await expect(page.getByRole('heading', { name: '観察' })).toHaveCount(0);
+
+		// 予想を選んで確定する。ハイドレーション完了を待つ固定 sleep の代わりに、
+		// 「クリック → ボタンが有効になったか確認」を丸ごとリトライする
+		// (Playwright 推奨パターン)。check() は既にチェック済みなら何もしないため、
+		// リスナー未接続のままネイティブ DOM だけ checked になった場合にリトライが
+		// 空振りし続ける。click() は state に関わらず毎回クリックイベントを発火するので
+		// リトライに使う。
+		const predictionRadio = page.getByRole('radio', { name: '微分係数(接線の傾き)に近づく' });
+		const submitButton = page.getByRole('button', { name: '予想を確定して実験する' });
+		await expect(async () => {
+			await predictionRadio.click();
+			await expect(submitButton).toBeEnabled({ timeout: 1000 });
+		}).toPass({ timeout: 10000 });
+		await submitButton.click();
+
+		// 観察パネルが現れ、初期値 (a=1, h=1) で割線の傾き=3、微分係数=2
+		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
+		const secantRow = page.getByRole('row', { name: /^割線の傾き/ });
+		await expect(secantRow.getByRole('cell')).toHaveText('3');
+
+		// h のスライダーをキーボード (Home=最小 0.05) で操作 → 割線の傾きが微分係数 (2) に近づく
+		const sliderH = page.getByRole('slider', { name: 'h(a からの距離)' });
+		await sliderH.focus();
+		await sliderH.press('Home');
+
+		await expect(secantRow.getByRole('cell')).toHaveText('2.05');
+	});
+});
