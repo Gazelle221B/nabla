@@ -42,7 +42,7 @@ npm run dev           # http://localhost:4321/nabla/
 npm run build          # ./dist/ へビルド(base: /nabla を反映)
 npm run preview        # ビルド結果をローカルで確認
 # 品質ゲート(Step 2〜5で順次追加。導入時にこのセクションを同期更新する)
-npm run test            # vitest run。T2-1で導入済み(lib/math の不変条件テスト含む)。0 errors確認済み
+npm run test            # vitest run。T2-1で導入済み(lib/math の不変条件テスト含む)。全テストPASS確認済み
 npm run typecheck       # astro check(tsconfig strict)。0 errors確認済み
 npm run lint            # eslint .(flat config, T5-1で導入)。0 errors確認済み
 npm run test:e2e        # playwright test。既存ページのスモーク+axe(@axe-core/playwright)をCritical/Serious 0件で検証(T5-1)

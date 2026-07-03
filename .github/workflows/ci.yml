@@ -55,5 +55,10 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
-          path: playwright-report/
+          # test-results/ にはtrace等の失敗解析情報が入る。html reporterが
+          # 生成しないケースがあっても失敗させないよう if-no-files-found: ignore。
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
           retention-days: 7

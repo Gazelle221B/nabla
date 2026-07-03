@@ -43,6 +43,14 @@ export default defineConfig(
 		},
 	},
 	{
-		ignores: ['dist/**', '.astro/**', 'node_modules/**'],
+		ignores: [
+			'dist/**',
+			'.astro/**',
+			'node_modules/**',
+			// Playwright実行時に生成される成果物(.gitignore済み)。lintの探索対象からも除外する。
+			'playwright-report/**',
+			'test-results/**',
+			'blob-report/**',
+		],
 	},
 );
