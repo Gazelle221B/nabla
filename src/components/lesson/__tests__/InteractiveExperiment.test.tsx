@@ -77,7 +77,7 @@ describe('InteractiveExperiment (T3-1)', () => {
 		const user = userEvent.setup();
 		render(<InteractiveExperiment />);
 		await enterExperiment(user);
-		expect(screen.getByRole('slider', { name: '辺 a の長さ' })).toHaveFocus();
+		expect(screen.getByRole('slider', { name: '辺 a の長さ(スライダー)' })).toHaveFocus();
 	});
 
 	it('数値入力 → 確定 (blur) → 状態 → シーン へ同期する (input が単一状態を更新)', async () => {

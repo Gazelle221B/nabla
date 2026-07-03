@@ -174,9 +174,9 @@ export function InteractiveExperiment() {
 					    (docs/DESIGN.md §非機能要件: 可動点には代替入力を併設) */}
 					<div className={styles.controls}>
 						<div className={styles.control}>
-							<label id="leg-a-label" htmlFor="leg-a-number">
-								辺 a の長さ
-							</label>
+							<label htmlFor="leg-a-number">辺 a の長さ</label>
+							{/* スライダーと数値入力は同じ量を操作するが、支援技術が区別できるよう
+							    アクセシブルネームを分ける (スライダー側に接尾辞を付ける)。 */}
 							<input
 								id="leg-a-slider"
 								ref={legASliderRef}
@@ -185,7 +185,7 @@ export function InteractiveExperiment() {
 								max={MAX_LEG}
 								step={STEP}
 								value={legA}
-								aria-labelledby="leg-a-label"
+								aria-label="辺 a の長さ(スライダー)"
 								onChange={(e) => handleLegA(Number(e.target.value))}
 							/>
 							{/* type=text + inputMode=decimal: type=number は "1." 等の入力途中を
@@ -205,9 +205,7 @@ export function InteractiveExperiment() {
 							/>
 						</div>
 						<div className={styles.control}>
-							<label id="leg-b-label" htmlFor="leg-b-number">
-								辺 b の長さ
-							</label>
+							<label htmlFor="leg-b-number">辺 b の長さ</label>
 							<input
 								id="leg-b-slider"
 								type="range"
@@ -215,7 +213,7 @@ export function InteractiveExperiment() {
 								max={MAX_LEG}
 								step={STEP}
 								value={legB}
-								aria-labelledby="leg-b-label"
+								aria-label="辺 b の長さ(スライダー)"
 								onChange={(e) => handleLegB(Number(e.target.value))}
 							/>
 							<input
