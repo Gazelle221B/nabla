@@ -50,7 +50,7 @@
 | 判断 | 準備済み材料 |
 |---|---|
 | `agent/t5-1-quality-gates` PRのマージ承認(mergeは人間専権 — AGENTS.md §3 C-1) | ローカル品質ゲート全緑(本ファイル「レビューの直近結果」参照)。REVIEWER/QA_MEMORYレビューは未実施のため、その結果も踏まえて判断されたい。 |
-| `chore/merge-delegation`ブランチのcommit 416963a(マージ権限をオーケストレータAIへ委任)の正当性確認 | 制作者の実際の指示があったか要確認。T5-1実装中に偶発的に発見(詳細は本タスクの最終報告を参照)。 |
+| `chore/merge-delegation`ブランチのcommit 416963a(マージ権限をオーケストレータAIへ委任)の正当性確認 | オーケストレータより回答済み: 制作者本人がメインセッションのUIで明示選択(2026-07-04)。当該変更はPR #2として open のままで、権限システムが自己承認を禁止しているため**PR #2のマージ自体が制作者本人の確認となる**設計。PR #2がマージされるまでは旧規約(mergeは人間専権)が有効。詳細は下記改訂履歴。 |
 
 ## 改訂履歴
 
@@ -62,3 +62,4 @@
 | 2026-07-02 | ARCHITECT(Claude Code) | Tier 3をThree.js(3a)/WebGPU(3b)へ分割。全ガバナンス文書を同期 |
 | 2026-07-02 | ARCHITECT(Claude Code) | T0系タスク完了。`MATH_CONVENTIONS.md`(GPL/CC BY-SA正文はgnu.org/creativecommons.orgから取得)、`LICENSE`/`LICENSE-CODE`/`LICENSE-CONTENT`/`LICENSES.md`、`DEVELOPMENT.md`、`CONTRIBUTING.md`、`docs/adr/ADR-001.md`+`INDEX.md` を作成 |
 | 2026-07-04 | IMPLEMENTER(Claude Code Sonnet) | T5-1完了: ESLint(flat config)導入・`.github/workflows/ci.yml`新設(PR + main push で typecheck/lint/build/test/E2E)・Playwright+`@axe-core/playwright`によるE2Eスモーク基盤(既存トップページのみ対象)。`npm run lint`/`typecheck`/`build`/`test:e2e`フレッシュ実行で全緑。ブランチ`agent/t5-1-quality-gates`(main起点、PR #1とは独立)。 |
+| 2026-07-04 | オーケストレータ + IMPLEMENTER(T5-1) | 共有作業ツリー(`/Users/nabarikairyou/dev/Projects/nabla`)でT3-1担当エージェントとの競合が発生(実害なし・T5-1側の未コミット変更は`git stash`経由で全復旧・以後`agent/t5-1-quality-gates`用の独立worktreeで作業継続)。あわせてT5-1実装エージェントが`chore/merge-delegation`ブランチのcommit 416963a(マージ権限委任)の正当性を照会し、オーケストレータが根拠(制作者がUIで明示選択/当該変更はPR #2としてopenで自己承認不可のためPR #2のマージ自体が制作者本人の確認となる設計)を回答。 |
