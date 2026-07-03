@@ -21,9 +21,16 @@ describe('approximatelyZero', () => {
 		expect(approximatelyZero(1e-2, 1e6)).toBe(false);
 	});
 
-	it('Math.max(1, scale) の下限: scale が 0 でも許容誤差は EPSILON を下回らない', () => {
+	it('Math.max(1, |scale|) の下限: scale が 0 でも許容誤差は EPSILON を下回らない', () => {
 		expect(approximatelyZero(5e-10, 0)).toBe(true);
-		expect(approximatelyZero(5e-10, -1000)).toBe(true);
+	});
+
+	it('負の scale は大きさ (絶対値) で扱う: -1e6 と 1e6 は同じ許容誤差', () => {
+		// 閾値 = 1e-9 * |±1e6| = 1e-3。1e-4 は通り、1e-2 は通らない (符号によらず一致)。
+		expect(approximatelyZero(1e-4, -1e6)).toBe(true);
+		expect(approximatelyZero(1e-4, 1e6)).toBe(true);
+		expect(approximatelyZero(1e-2, -1e6)).toBe(false);
+		expect(approximatelyZero(1e-2, 1e6)).toBe(false);
 	});
 
 	it('NaN 値は偽 (誤って真を返さない)', () => {
