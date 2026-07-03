@@ -37,7 +37,7 @@
 | 2 | `npm run test` / `npm run build` / `npm run typecheck` のいずれかが赤 | 品質ゲート破れ | §4 を緑にするまで他作業を止める。原因が自分の変更でなければ `git log` で特定し PROJECT_STATE に記録 |
 | 3 | レビュー待ちの PR がある | レビュー段階 | `REVIEWER` スロットに独立レビューを委任 (§3)。実装者には投げない |
 | 4 | レビュー PASS かつ QA 未実施 | QA 段階 | `QA_MEMORY` スロットに受け入れ検証を委任 (§3) |
-| 5 | レビュー+QA PASS かつ完了 PR 未作成 | 完了直前 | DoD 更新 → 完了 PR 作成 (`gh pr create`)。**merge はしない** (§5 人間ゲート) |
+| 5 | レビュー+QA PASS かつ完了 PR 未作成 | 完了直前 | DoD 更新 → 完了 PR 作成 (`gh pr create`)。**実装エージェントは merge しない**(merge はレビュー+QA PASS 後、Copilot レビュー依頼を経てオーケストレータが実施 — AGENTS.md §8) |
 | 6 | 完了 PR マージ済み かつ 次フェーズ Go 未宣言 | 次フェーズ判断待ち | **停止して人間を待つ** (§5)。判断材料を `PROJECT_STATE`「人間判断待ち」に準備済みにする |
 | 7 | 人間が次フェーズ Go を PROJECT_STATE に記録済み | 次フェーズ着手可 | 最新の保護ブランチから `agent/<next-task>-impl` を切り、計画書の次タスクから §3 委任サイクルで実装 |
 | 8 | 上記いずれも非該当 | 平常運用 | §6 日次/定常運用ループ + ドキュメントのドリフト点検 |
@@ -128,7 +128,7 @@ npx axe <url>         # アクセシビリティ — Critical/Serious 0件
 
 → 全文: [governance/ESCALATION.md](../governance/ESCALATION.md)
 
-決定木がゲートを指したら停止し、`PROJECT_STATE`「人間判断待ち」に判断材料を添えて記録する。**AI が絶対に単独で行わない 4 行為**: ①保護ブランチへの merge/直 push ②コスト上限超過の呼び出し変更 ③フェーズ境界の越境 ④契約・課金・人間の意思決定そのもの。
+決定木がゲートを指したら停止し、`PROJECT_STATE`「人間判断待ち」に判断材料を添えて記録する。**AI が絶対に単独で行わない 4 行為**: ①保護ブランチへの直 push(merge は条件充足時オーケストレータのみ可 — AGENTS.md §8) ②コスト上限超過の呼び出し変更 ③フェーズ境界の越境 ④契約・課金・人間の意思決定そのもの。
 
 ---
 
@@ -148,7 +148,7 @@ npx axe <url>         # アクセシビリティ — Critical/Serious 0件
 |---|---|---|
 | (未構築) `.github/workflows/deploy.yml` | mainへのpushでAstroビルド→GitHub Pagesへ自動デプロイ(T1-1完了後) | `gh run list` |
 
-> 人間ゲート (§5) を踏むタスクは「下書き・PR 作成まで」に留め、merge は人間に残す。
+> 人間ゲート (§5) を踏むタスクは「下書き・PR 作成まで」に留め、merge はオーケストレータが規約条件(AGENTS.md §8)充足後に実施する。
 
 ---
 
