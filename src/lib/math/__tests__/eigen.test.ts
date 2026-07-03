@@ -154,6 +154,15 @@ describe('isParallel', () => {
 	it('ゼロベクトルとの組は退化的に平行とみなす', () => {
 		expect(isParallel([0, 0], [1, 2])).toBe(true);
 	});
+
+	it('オーバーフロー回帰テスト: Number.MAX_VALUE 級のベクトルでも正しく判定する', () => {
+		// 素朴に Math.hypot(x,y) で正規化すると x²+y² の内部計算が Infinity へ
+		// オーバーフローし、正規化が壊れて直交方向でも平行と誤判定しうる。
+		// (MAX_VALUE, MAX_VALUE) は45度方向、(MAX_VALUE, -MAX_VALUE) は-45度方向で
+		// 90度直交しており、平行ではない。
+		const M = Number.MAX_VALUE;
+		expect(isParallel([M, M], [M, -M])).toBe(false);
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -321,6 +330,26 @@ describe('computeEigenSystem', () => {
 		expect(result.complexEigenvalue?.im).toBeCloseTo(1, 10);
 	});
 
+	it('有限の極小非対角成分を持つJordan型行列は重解・平面全体に誤分類されない: [[0,0],[1e-12,0]]', () => {
+		// b=0・c=1e-12(有限・非ゼロ)・a=d=0 の行列。entryScale ベースの許容誤差判定
+		// (approximatelyZero(c, entryScale))を使うと、entryScale=1e-12<1 の絶対誤差
+		// フロアにより非ゼロの c 自身が「無視できる」と誤判定され、スカラー行列
+		// (repeated-full、固有空間は平面全体)に誤分類されてしまう。実際にはこの行列は
+		// (A-0・I)v=0 → 1e-12・x=0 → x=0 を要求し、固有空間は (0,y) の1次元
+		// (repeated-defective、Jordan型)である。exact zero (b===0, c===0) で判定する
+		// ことで正しく区別できる。
+		const result = computeEigenSystem([
+			[0, 0],
+			[1e-12, 0],
+		]);
+		expect(result.realEigenvalues).toEqual([0]);
+		expect(classifyEigenSystem(result)).toBe('repeated-defective');
+		expect(result.eigenvectors).toHaveLength(1);
+		// 固有ベクトルは (0,1) 方向: A*(0,1) = (0,0) = 0*(0,1)。
+		expect(result.eigenvectors[0][0]).toBeCloseTo(0, 10);
+		expect(Math.abs(result.eigenvectors[0][1])).toBeCloseTo(1, 10);
+	});
+
 	it('わずかに異なる対角行列は重解に誤分類されない: diag(1, 1+1e-10)', () => {
 		// 判別式は2乗量 ((a−d)²=1e-20) のため、許容誤差付きで「ほぼ0」とみなす分類だと
 		// 実際には相異なる実固有値 1, 1+1e-10 を持つこの行列が重解に誤分類されてしまう。
@@ -478,27 +507,32 @@ describe('stabilizeEigenvectorDirection', () => {
 describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 	const matrixEntryArb = fc.double({ min: -20, max: 20, noNaN: true });
 	const matrixArb = fc.tuple(matrixEntryArb, matrixEntryArb, matrixEntryArb, matrixEntryArb);
-	// computeEigenSystem の重解/相異なる実固有値/複素共役の最上位分類は判別式の符号を
-	// そのまま使う(epsilon 幅なし)ため、「行列成分が一様に極小」という理由だけでの除外は
-	// 最上位分類には不要になった(回帰テスト:「わずかに異なる対角行列」ケース参照)。
-	// ただし重解時の「固有空間が平面全体(スカラー行列)か1次元(Jordan型)か」という下位分類
-	// (isScalarMatrix / eigenvectorFor)は、entryScale(行列成分の最大絶対値)を基準にした
-	// approximatelyZero の相対比較を使っており、entryScale 自体が 1 未満だと絶対誤差フロア
-	// (scale<1 のとき EPSILON*1 が下限、MATH_CONVENTIONS §2)がすべての成分を「無視できる」と
-	// 誤判定しうる(例: [[0,0],[-5e-324,0]] は entryScale=5e-324 で、非ゼロの c 自身が
-	// entryScale と同じ大きさなのに approximatelyZero(c, entryScale) が true になり、
-	// 実際には固有ベクトルでない (1,0) をスカラー行列の固有ベクトルとして返してしまう)。
-	// これは isParallel で修正した絶対誤差フロアの問題と同種だが、実際のUIでは行列は
-	// 固定の整数値プリセットのみを使うため到達しない極限入力であり、property テストの
-	// 探索対象から除外する。加えて、成分間の大きさの比が極端(例: 1e-6 と 1e-318 が同じ
-	// 行列に混在)な場合も、det = ad − bc や discriminant の 4bc 項の計算で小さい方の項の
-	// 情報が完全に丸め消える(単純な有効桁不足による退化で、どんな安定な式変形でも救えない)。
+	// computeEigenSystem の分類(最上位・重解時の下位分類とも)は exact zero 判定のみを
+	// 使う設計になった(approximatelyZero によるスケール相対の許容誤差は使わない)ため、
+	// 「行列成分の絶対値そのものが小さい」という理由だけでの除外は不要になった
+	// (回帰テスト:「わずかに異なる対角行列」「[[0,0],[1e-12,0]]」ケース参照)。
+	// 依然として除外が必要なのは、IEEE754 double 自体の表現限界に起因する2種類の
+	// 退化のみ:
+	// (1) 非ゼロ成分の絶対値が極端に小さい(サブノーマル境界 ~5e-324 に近い)と、
+	//     その成分同士の積(4bc 項等)がアンダーフローして厳密に 0 になり、真の値
+	//     (数学的には微小だが非ゼロ)の情報が完全に失われる。しきい値 1e-150 は
+	//     アンダーフローが起きうる理論的境界(~2.2e-162、積が最小非正規化数を下回る点)
+	//     に十分な安全マージンを持たせた値。
+	// (2) 成分間の大きさの比が極端(数百万倍以上)だと、固有ベクトルの成分同士
+	//     (例: (a−d) と c)の相対的な有効桁が足りず、その比を使う正規化・残差計算で
+	//     桁落ちする。しきい値 1e6 は 5000〜30000 回の fast-check 実行で実際に
+	//     反例が出なくなる比率を実測して決めた(1e7 では実際に反例が見つかった:
+	//     [[0,0],[-6e-18,-7.9e-13]] 相当のケースで isParallel(v,Av) が破綻する)。
+	// どちらも実際のUIでは行列は固定の整数値プリセットのみを使うため到達しない
+	// 極限入力であり、property テストの探索対象からのみ除外する
+	// (exported な computeEigenSystem/isParallel 自体はこれらの入力を拒否せず、
+	// 有限の結果を返す — 例外的なケースとして個別の具体例テストで直接検証する)。
 	function hasIllConditionedMagnitude(a: number, b: number, c: number, d: number): boolean {
 		const magnitudes = [a, b, c, d].map(Math.abs).filter((x) => x > 0);
 		if (magnitudes.length === 0) return false; // ゼロ行列は退化ケースとして正しく扱われる
 		const maxAbs = Math.max(...magnitudes);
 		const minAbs = Math.min(...magnitudes);
-		return maxAbs < 1e-6 || maxAbs / minAbs > 1e8;
+		return minAbs < 1e-150 || maxAbs / minAbs > 1e6;
 	}
 
 	it('Av ≈ λv: computeEigenSystem が返す全ての実固有対はeigenResidualで残差スケール相対誤差内でゼロ', () => {

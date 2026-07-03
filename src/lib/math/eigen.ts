@@ -61,26 +61,39 @@ export function unitVectorFromAngle(angleRadians: number): Vector2 {
 	return [Math.cos(angleRadians), Math.sin(angleRadians)];
 }
 
+// ベクトルを単位ベクトルへ正規化する。素朴に Math.hypot(x,y) で割ると、成分が
+// Number.MAX_VALUE 級のとき x²+y² の内部計算が Infinity へオーバーフローしうる
+// (例: [MAX_VALUE, MAX_VALUE] は Math.hypot が Infinity を返し、正規化が [0,0] や
+// [NaN,NaN] に壊れる)。先に成分の最大絶対値で割ってから正規化すると、割った後の
+// 成分は必ず [-1,1] に収まるためオーバーフローしない。
+function safeNormalize(v: Vector2): Vector2 {
+	const maxAbs = Math.max(Math.abs(v[0]), Math.abs(v[1]));
+	if (maxAbs === 0) return v;
+	const sx = v[0] / maxAbs;
+	const sy = v[1] / maxAbs;
+	const norm = Math.hypot(sx, sy);
+	return [sx / norm, sy / norm];
+}
+
 /**
  * v と w が(同じ向きまたは正反対の向きに)平行かどうかを判定する。
  *
- * v・w を先に単位ベクトルへ正規化してから外積を比較する。正規化前の外積 v×w に対して
- * scale=|v||w| のスケール相対誤差を使うと、v・w がどちらも小さい場合(例: [1e-6,0] と
- * [0,1e-6]、これは直交している)に scale=|v||w|=1e-12 が approximatelyZero の絶対誤差
- * フロア(scale<1 のとき EPSILON*1 が下限になる、MATH_CONVENTIONS §2)より小さくなり、
- * 本来の外積の値(1e-12、まさに直交を示す最大値)がフロアに埋もれて「平行」と誤判定
- * されてしまう。正規化後は |単位v|=|単位w|=1 で外積の scale が常に 1 になるため、
- * ベクトルの大きさに関係なく向きだけを比較できる。
+ * v・w を先に単位ベクトルへ正規化してから外積を比較する(safeNormalize、オーバーフロー
+ * 耐性あり)。正規化前の外積 v×w に対して scale=|v||w| のスケール相対誤差を使うと、
+ * v・w がどちらも小さい場合(例: [1e-6,0] と [0,1e-6]、これは直交している)に
+ * scale=|v||w|=1e-12 が approximatelyZero の絶対誤差フロア(scale<1 のとき EPSILON*1 が
+ * 下限になる、MATH_CONVENTIONS §2)より小さくなり、本来の外積の値(1e-12、まさに直交を
+ * 示す最大値)がフロアに埋もれて「平行」と誤判定されてしまう。正規化後は
+ * |単位v|=|単位w|=1 で外積の scale が常に 1 になるため、ベクトルの大きさに関係なく
+ * 向きだけを比較できる。
  * どちらかがゼロベクトルの場合は退化的に平行とみなす(向きが定義できないため)。
  */
 export function isParallel(v: Vector2, w: Vector2): boolean {
 	assertFiniteVector(v, 'v');
 	assertFiniteVector(w, 'w');
-	const normV = Math.hypot(v[0], v[1]);
-	const normW = Math.hypot(w[0], w[1]);
-	if (normV === 0 || normW === 0) return true;
-	const unitV: Vector2 = [v[0] / normV, v[1] / normV];
-	const unitW: Vector2 = [w[0] / normW, w[1] / normW];
+	if ((v[0] === 0 && v[1] === 0) || (w[0] === 0 && w[1] === 0)) return true;
+	const unitV = safeNormalize(v);
+	const unitW = safeNormalize(w);
 	return approximatelyZero(crossProduct2(unitV, unitW), 1);
 }
 
@@ -99,25 +112,29 @@ export function eigenResidual(matrix: Matrix2x2, eigenvalue: number, eigenvector
 	return dx * dx + dy * dy;
 }
 
-function normalize(v: Vector2): Vector2 {
-	const norm = Math.hypot(v[0], v[1]);
-	return norm === 0 ? v : [v[0] / norm, v[1] / norm];
-}
-
 // 実固有値 lambda に対応する固有ベクトルを (A - λI)v = 0 を解いて求める。
-// b が無視できないなら 1 行目 (a-λ)x + by = 0 から v=(b, λ-a) が解。
-// b が無視できて c が無視できないなら 2 行目から v=(λ-d, c) が解。
-// 両方無視できる(対角行列)場合は、λ が a に近ければ (1,0)、d に近ければ (0,1)。
-// entryScale は行列成分と同じ次元(長さ1乗)のスケールを渡す。
-function eigenvectorFor(matrix: Matrix2x2, lambda: number, entryScale: number): Vector2 {
+// b が非ゼロなら 1 行目 (a-λ)x + by = 0 から v=(b, λ-a) が解。
+// b がゼロで c が非ゼロなら 2 行目から v=(λ-d, c) が解。
+// 両方ゼロ(対角行列)の場合、固有ベクトルは標準基底 (1,0)・(0,1) のいずれかになる。
+// このとき「どちらの基底か」を再計算した lambda と a を比較して決めると、
+// sqrt((a-d)²) が浮動小数点の丸めで |a-d| と1ビット単位で一致しない極端なケースで
+// 誤った基底を選びうる。代わりに、行列の原本成分 a・d の直接比較(isLowerRoot と
+// 組み合わせる)という丸めを経由しない情報だけで決める。
+// isLowerRoot: 呼び出し元が (trace - sqrtDiscriminant)/2 (小さい方の根) を渡すときは
+// true、(trace + sqrtDiscriminant)/2 (大きい方の根) を渡すときは false。
+// 重解(discriminant===0)から呼ばれる場合は b・c のどちらかが非ゼロであることが
+// 呼び出し元で保証されているため、この分岐には到達しない(値は使われない)。
+function eigenvectorFor(matrix: Matrix2x2, lambda: number, isLowerRoot: boolean): Vector2 {
 	const [[a, b], [c, d]] = matrix;
-	if (!approximatelyZero(b, entryScale)) {
-		return normalize([b, lambda - a]);
+	if (b !== 0) {
+		return safeNormalize([b, lambda - a]);
 	}
-	if (!approximatelyZero(c, entryScale)) {
-		return normalize([lambda - d, c]);
+	if (c !== 0) {
+		return safeNormalize([lambda - d, c]);
 	}
-	return approximatelyZero(lambda - a, entryScale) ? [1, 0] : [0, 1];
+	const aIsSmallerOrEqual = a <= d;
+	if (isLowerRoot) return aIsSmallerOrEqual ? [1, 0] : [0, 1];
+	return aIsSmallerOrEqual ? [0, 1] : [1, 0];
 }
 
 export interface EigenSystemResult {
@@ -160,8 +177,6 @@ export function computeEigenSystem(matrix: Matrix2x2): EigenSystemResult {
 	// 数学的に等価な (a−d)² + 4bc へ書き換えることで、この巨大な相殺項自体を作らない
 	// (回帰テスト: eigen.test.ts の「大トレース」ケース)。
 	const discriminant = (a - d) * (a - d) + 4 * b * c;
-	// 行列成分の比較(b≈0 等)には行列成分と同じ次元(長さ1乗)のスケールを使う。
-	const entryScale = Math.max(Math.abs(a), Math.abs(b), Math.abs(c), Math.abs(d));
 
 	// 分類は判別式の符号をそのまま使う(epsilon 幅を設けない)。computeEigenSystem は
 	// 「数学的結果を丸めない」契約(MATH_CONVENTIONS §10)のため、丸め判定
@@ -183,12 +198,12 @@ export function computeEigenSystem(matrix: Matrix2x2): EigenSystemResult {
 
 	if (discriminant === 0) {
 		const lambda = trace / 2;
-		const isScalarMatrix =
-			approximatelyZero(b, entryScale) &&
-			approximatelyZero(c, entryScale) &&
-			approximatelyZero(a - lambda, entryScale) &&
-			approximatelyZero(d - lambda, entryScale);
-		if (isScalarMatrix) {
+		// discriminant===0 の中で b===0 かつ c===0 なら、(a−d)²+4bc=(a−d)²=0 から
+		// a===d が数学的に導かれる(スカラー行列)。下位分類も上位分類と同じく
+		// exact zero で判定し、approximatelyZero の絶対誤差フロア(entryScale<1 のとき
+		// 非ゼロの成分まで「無視できる」と誤判定しうる、MATH_CONVENTIONS §2)による
+		// 誤分類を避ける(回帰テスト: [[0,0],[1e-12,0]] は repeated-defective であるべき)。
+		if (b === 0 && c === 0) {
 			return {
 				trace,
 				determinant,
@@ -206,7 +221,7 @@ export function computeEigenSystem(matrix: Matrix2x2): EigenSystemResult {
 			determinant,
 			discriminant,
 			realEigenvalues: [lambda],
-			eigenvectors: [eigenvectorFor(matrix, lambda, entryScale)],
+			eigenvectors: [eigenvectorFor(matrix, lambda, true)],
 			complexEigenvalue: null,
 		};
 	}
@@ -219,10 +234,7 @@ export function computeEigenSystem(matrix: Matrix2x2): EigenSystemResult {
 		determinant,
 		discriminant,
 		realEigenvalues: [lambda1, lambda2],
-		eigenvectors: [
-			eigenvectorFor(matrix, lambda1, entryScale),
-			eigenvectorFor(matrix, lambda2, entryScale),
-		],
+		eigenvectors: [eigenvectorFor(matrix, lambda1, true), eigenvectorFor(matrix, lambda2, false)],
 		complexEigenvalue: null,
 	};
 }
