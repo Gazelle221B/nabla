@@ -23,10 +23,18 @@ function frontmatter(raw: string): Record<string, unknown> {
 	return match ? ((parseYaml(match[1]) ?? {}) as Record<string, unknown>) : {};
 }
 
+// prerequisites は frontmatter 由来なので型は信用できない。string[] と決め打ちキャストすると
+// 誤って文字列を書いた場合に for-of が文字単位で走り検出が壊れるため、生値を保持して検証する。
 const entries = Object.entries(rawLessons).map(([path, raw]) => ({
 	id: lessonIdFromPath(path),
-	prerequisites: (frontmatter(raw).prerequisites as string[] | undefined) ?? [],
+	rawPrerequisites: frontmatter(raw).prerequisites,
 }));
+
+// 検証済みの prerequisites 配列を返す。配列でも undefined でもない値は空扱いにし、
+// 別テスト(下記)で不正 frontmatter として明示的に失敗させる。
+function prerequisitesOf(entry: (typeof entries)[number]): string[] {
+	return Array.isArray(entry.rawPrerequisites) ? (entry.rawPrerequisites as string[]) : [];
+}
 
 describe('lessons コンテンツグラフ (C-2)', () => {
 	it('少なくとも 1 つの lesson が存在する', () => {
@@ -39,11 +47,19 @@ describe('lessons コンテンツグラフ (C-2)', () => {
 		expect(ids.has('geometry/pythagorean-theorem')).toBe(true);
 	});
 
+	it('prerequisites は配列である (不正 frontmatter の検出)', () => {
+		// undefined(未指定)は許容。文字列など配列以外は不正として失敗させる。
+		const nonArray = entries
+			.filter((e) => e.rawPrerequisites !== undefined && !Array.isArray(e.rawPrerequisites))
+			.map((e) => `${e.id}: ${JSON.stringify(e.rawPrerequisites)}`);
+		expect(nonArray, `prerequisites が配列でない lesson: ${nonArray.join(', ')}`).toEqual([]);
+	});
+
 	it('prerequisites はすべて実在する lesson ID を指す (リンク切れ禁止)', () => {
 		const ids = new Set(entries.map((e) => e.id));
 		const brokenLinks: string[] = [];
 		for (const entry of entries) {
-			for (const prereq of entry.prerequisites) {
+			for (const prereq of prerequisitesOf(entry)) {
 				if (!ids.has(prereq)) brokenLinks.push(`${entry.id} → ${prereq}`);
 			}
 		}
@@ -51,7 +67,7 @@ describe('lessons コンテンツグラフ (C-2)', () => {
 	});
 
 	it('lesson は自分自身を前提にしない (循環の最小形)', () => {
-		const selfRefs = entries.filter((e) => e.prerequisites.includes(e.id)).map((e) => e.id);
+		const selfRefs = entries.filter((e) => prerequisitesOf(e).includes(e.id)).map((e) => e.id);
 		expect(selfRefs).toEqual([]);
 	});
 });
