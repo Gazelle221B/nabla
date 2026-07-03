@@ -76,33 +76,30 @@ test.describe('三平方の定理ページ (InteractiveExperiment)', () => {
 		expect(criticalOrSerious, JSON.stringify(criticalOrSerious, null, 2)).toEqual([]);
 	});
 
-	test('予想確定 → スライダー操作 → 残差表示の基本フローが機能する', async ({ page }) => {
+	test('予想確定 → スライダー操作 → 差の表示の基本フローが機能する', async ({ page }) => {
+		// この島は client:visible。記事下方にあり通常ビューポートでは初期表示外で、
+		// Playwright のスクロールだけでは IntersectionObserver が確実には発火しない。
+		// ビューポートを縦に大きくして初期表示に含め、ロード時にハイドレーションを促す。
+		await page.setViewportSize({ width: 1280, height: 2400 });
 		await page.goto(PYTHAGORAS_PATH);
 		await page.waitForLoadState('networkidle');
 
 		// 操作前は観察パネルが出ていない (予想ゲート)
 		await expect(page.getByRole('heading', { name: '観察' })).toHaveCount(0);
 
-		// この島は client:visible。記事本文の下方にあり初期ビューポート外なので、
-		// 明示的にスクロールしてハイドレーションを促す。
-		const confirmButton = page.getByRole('button', { name: '予想を確定して実験する' });
-		await confirmButton.scrollIntoViewIfNeeded();
+		// ハイドレーション完了を示す data-hydrated を確定的に待ってから操作する
+		// (完了前に操作すると DOM だけ変わり React 状態へ届かないため)。
+		await page.locator('section[data-hydrated="true"]').waitFor();
 
-		// ハイドレーション完了前に予想を選ぶと React 側の状態に反映されず確定ボタンが
-		// 無効のままになるため、「予想選択 → ボタンが活性化」が成立するまで再試行する。
-		await expect(async () => {
-			await page.getByRole('radio', { name: /常に成り立つ/ }).check();
-			await expect(confirmButton).toBeEnabled({ timeout: 1000 });
-		}).toPass({ timeout: 15000 });
+		await page.getByRole('radio', { name: /常に成り立つ/ }).check();
+		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
 
-		await confirmButton.click();
-
-		// 観察パネルが現れ、初期の 3-4-5 直角三角形で残差 ≈ 0
+		// 観察パネルが現れ、初期の 3-4-5 直角三角形で差 ≈ 0
 		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
-		const residualRow = page.getByRole('row', { name: /残差/ });
-		await expect(residualRow).toContainText('≈ 0');
+		const diffRow = page.getByRole('row', { name: /差/ });
+		await expect(diffRow).toContainText('≈ 0');
 
-		// 辺 a のスライダーをキーボード (End=最大 5) で操作 → a² が 25 に更新、残差は ≈ 0 のまま
+		// 辺 a のスライダーをキーボード (End=最大 5) で操作 → a² が 25 に更新、差は ≈ 0 のまま
 		const sliderA = page.getByRole('slider', { name: '辺 a の長さ(スライダー)' });
 		await sliderA.focus();
 		await sliderA.press('End');
@@ -111,6 +108,6 @@ test.describe('三平方の定理ページ (InteractiveExperiment)', () => {
 			.getByRole('row')
 			.filter({ has: page.getByRole('rowheader', { name: 'a²', exact: true }) });
 		await expect(a2Row.getByRole('cell')).toHaveText('25');
-		await expect(residualRow).toContainText('≈ 0');
+		await expect(diffRow).toContainText('≈ 0');
 	});
 });
