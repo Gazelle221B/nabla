@@ -142,12 +142,8 @@ test.describe('固有ベクトルページ (EigenvectorExperiment)', () => {
 
 	test('予想確定 → 角度操作 → 固有ベクトル方向で揃うことの基本フローが機能する', async ({ page }) => {
 		// このページは記事本文(導入・形式的定義・誤解の説明)が長く、client:visible の島は
-		// 標準的なビューポートでは初期表示位置の外にある。client:visible は
-		// IntersectionObserver で交差を検出してから JS のフェッチ・ハイドレーションを
-		// 遅延実行するため、scrollIntoViewIfNeeded() で要素をビューポート端ぎりぎりに
-		// 合わせると交差率が閾値付近になり検出が不安定になる(M2/PR #6 で観測・対処済みの
-		// フレーク)。ビューポート自体を縦に十分広げ、記事全体を初期表示に収めることで
-		// スクロール操作自体を不要にし、レースを構造的に無くす。
+		// 標準的なビューポートでは初期表示位置の外にある。ビューポートを縦に十分広げて記事
+		// 全体を初期表示に収めることでスクロール操作自体を不要にする。
 		await page.setViewportSize({ width: 1280, height: 4000 });
 		await page.goto(EIGENVECTORS_PATH);
 		await page.waitForLoadState('networkidle');
@@ -155,15 +151,20 @@ test.describe('固有ベクトルページ (EigenvectorExperiment)', () => {
 		// 操作前は観察パネルが出ていない (予想ゲート)
 		await expect(page.getByRole('heading', { name: '観察' })).toHaveCount(0);
 
-		// 予想を選んで確定する。ハイドレーション完了を待つ固定 sleep の代わりに、
-		// 「クリック → ボタンが有効になったか確認」を丸ごとリトライする(M2/PR #6 と同じ
-		// パターン)。click() は state に関わらず毎回クリックイベントを発火するのでリトライに使う。
-		const predictionRadio = page.getByRole('radio', { name: /特定の向きの v でだけ/ });
+		// 予想を選んで確定する。client:visible の島はハイドレーション未接続の間にクリックが
+		// 失われうるが、ラジオボタンは「既にチェック済みの選択肢」への再クリックでは
+		// change が再発火しないネイティブ仕様のため、同じ選択肢を click() でリトライしても
+		// 一度取りこぼすと恒久的に空振りする(M2/PR #6 で特定)。別の選択肢(decoy)→目的の
+		// 選択肢、を1セットにしてクリックすることで、リトライのたびに必ず状態遷移が起こり
+		// change が確実に発火するようにする。
+		const decoyRadio = page.getByRole('radio', { name: /v をどの向きにしても、Av が v と同じ向きになることはない/ });
+		const targetRadio = page.getByRole('radio', { name: /特定の向きの v でだけ/ });
 		const submitButton = page.getByRole('button', { name: '予想を確定して実験する' });
 		await expect(async () => {
-			await predictionRadio.click();
+			await decoyRadio.click();
+			await targetRadio.click();
 			await expect(submitButton).toBeEnabled({ timeout: 1000 });
-		}).toPass({ timeout: 10000 });
+		}).toPass({ timeout: 20000 });
 		await submitButton.click();
 		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
 
