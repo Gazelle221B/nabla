@@ -51,7 +51,7 @@
 | 判断 | 準備済み材料 |
 |---|---|
 | `agent/t5-1-quality-gates`(PR #3)のマージ承認(mergeは人間専権 — AGENTS.md §3 C-1) | ローカル品質ゲート全緑(本ファイル「レビューの直近結果」参照)。REVIEWER/QA_MEMORYレビューは未実施のため、その結果も踏まえて判断されたい。 |
-| `chore/merge-delegation`ブランチのcommit 416963a(マージ権限をオーケストレータAIへ委任)の正当性確認 | オーケストレータより回答済み: 制作者本人がメインセッションのUIで明示選択(2026-07-04)。当該変更はPR #2として open のままで、権限システムが自己承認を禁止しているため**PR #2のマージ自体が制作者本人の確認となる**設計。PR #2がマージされるまでは旧規約(mergeは人間専権)が有効。 |
+| ~~`chore/merge-delegation`ブランチのcommit 416963a(マージ権限をオーケストレータAIへ委任)の正当性確認~~ | **解消済み**: PR #2がmainへマージされ、新規約(mergeはレビューPASS+QA PASS+Copilotレビュー依頼済みを条件にオーケストレータAIが実施可)が正式に発効(AGENTS.md C-1/§8)。ただしT5-1(本PR #3)は着手時点の指示「マージはしない(人間専権)」に引き続き従う。 |
 
 ## 改訂履歴
 
@@ -69,3 +69,5 @@
 | 2026-07-04 | IMPLEMENTER(Claude Code Sonnet) | T5-1完了: ESLint(flat config)導入・`.github/workflows/ci.yml`新設(PR + main push で typecheck/lint/build/test/E2E)・Playwright+`@axe-core/playwright`によるE2Eスモーク基盤(既存トップページのみ対象)。`npm run lint`/`typecheck`/`build`/`test:e2e`フレッシュ実行で全緑。ブランチ`agent/t5-1-quality-gates`(PR #3)。 |
 | 2026-07-04 | オーケストレータ + IMPLEMENTER(T5-1) | 共有作業ツリー(`/Users/nabarikairyou/dev/Projects/nabla`)でT3-1担当エージェントとの競合が発生(実害なし・T5-1側の未コミット変更は`git stash`経由で全復旧・以後`agent/t5-1-quality-gates`用の独立worktreeで作業継続)。あわせてT5-1実装エージェントが`chore/merge-delegation`ブランチのcommit 416963a(マージ権限委任)の正当性を照会し、オーケストレータが根拠(制作者がUIで明示選択/当該変更はPR #2としてopenで自己承認不可のためPR #2のマージ自体が制作者本人の確認となる設計)を回答。 |
 | 2026-07-04 | IMPLEMENTER(Claude Code Sonnet) | PR #1のmainマージに伴い、PR #3(`agent/t5-1-quality-gates`)をorigin/mainとmergeしてリベース。package.json/package-lock.jsonの競合(PR #1のreact/mdx/katex/vitest系とT5-1のeslint/playwright/axe系)を両立する形で解消。フレッシュ実行(typecheck/lint/build/test/test:e2e)で全緑を再確認。 |
+| 2026-07-04 | HUMAN + Claude Code(オーケストレータ) | マージ権限を委任: レビューPASS+QA PASS+Copilotレビュー依頼済みを条件にオーケストレータAIがマージ可(制作者は事後監査)。AGENTS.md C-1/§8・DEVELOPMENT.md §6・CONSTITUTION.md・ORCHESTRATION_RUNBOOK(+template) を整合更新(Copilotレビュー指摘対応、PR #2としてmainへマージ済み)。 |
+| 2026-07-04 | IMPLEMENTER(Claude Code Sonnet) | PR #2のmainマージに伴い、PR #3(`agent/t5-1-quality-gates`)を再度origin/mainとmergeしてリベース。AGENTS.md/DEVELOPMENT.mdはmain側(PR #2で更新済みのマージ権限委任規約)をそのまま採用。 |
