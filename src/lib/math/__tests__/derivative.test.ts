@@ -59,6 +59,19 @@ describe('differenceQuotient', () => {
 		expect(() => differenceQuotient(SQUARE, 1, Infinity)).toThrow(RangeError);
 	});
 
+	it('x は有限で f(x) も有限だが f(x+h) がオーバーフローする → メッセージは "x" ではなく "x + h" を指す', () => {
+		// x=1e150 は x 自身も f(x)=x^2=1e300 も有限。h=2e154 も有限で x+h=2.0001e154 も有限
+		// (加算はオーバーフローしない)。しかし f(x+h)=(x+h)^2 は double の範囲を超え Infinity
+		// になる。悪いのは x ではなく x+h (とその評価値) なので、エラーメッセージがそれを
+		// 正しく示すことを確認する (Copilot レビュー指摘: evaluateAt に label 引数がない
+		// 旧実装では常に "x" と表示され、実際には問題ない x を誤って指し示していた)。
+		const x = 1e150;
+		const h = 2e154;
+		expect(Number.isFinite(x)).toBe(true);
+		expect(Number.isFinite(x + h)).toBe(true);
+		expect(() => differenceQuotient(SQUARE, x, h)).toThrow(/x \+ h/);
+	});
+
 	it('property: f(x)=x^2 の差分商は解析的に 2x+h に厳密一致する', () => {
 		// (x+h)^2 - x^2 = 2xh + h^2 なので ((x+h)^2 - x^2)/h = 2x + h。
 		// これは derivative.ts の内部実装を経由しない独立した代数的事実。

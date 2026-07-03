@@ -30,10 +30,13 @@ function assertFiniteNumber(value: number, name: string): void {
 	}
 }
 
-function evaluateAt(fn: DifferentiableFunction, x: number): number {
-	assertFiniteNumber(x, 'x');
+// label は呼び出し側の式 (例: 'x + h') をエラーメッセージに反映するためのもの。
+// 既定の 'x' 固定だと、differenceQuotient(fn, x, h) 内で x+h が非有限になったケースでも
+// 「x が悪い」という誤解を招くメッセージになってしまうため、呼び出し側が渡せるようにする。
+function evaluateAt(fn: DifferentiableFunction, x: number, label = 'x'): number {
+	assertFiniteNumber(x, label);
 	const y = fn.evaluate(x);
-	assertFiniteNumber(y, 'fn.evaluate(x)');
+	assertFiniteNumber(y, `fn.evaluate(${label})`);
 	return y;
 }
 
@@ -49,8 +52,8 @@ export function differenceQuotient(fn: DifferentiableFunction, x: number, h: num
 	if (approximatelyZero(h, 1)) {
 		throw new RangeError(`h must be non-zero (got h=${h})`);
 	}
-	const y0 = evaluateAt(fn, x);
-	const y1 = evaluateAt(fn, x + h);
+	const y0 = evaluateAt(fn, x, 'x');
+	const y1 = evaluateAt(fn, x + h, 'x + h');
 	return (y1 - y0) / h;
 }
 
@@ -80,7 +83,7 @@ export function secantLine(fn: DifferentiableFunction, x0: number, x1: number): 
 	if (approximatelyZero(x1 - x0, 1)) {
 		throw new RangeError(`x0 and x1 must differ (got x0=${x0}, x1=${x1})`);
 	}
-	const y0 = evaluateAt(fn, x0);
+	const y0 = evaluateAt(fn, x0, 'x0');
 	const slope = differenceQuotient(fn, x0, x1 - x0);
 	return { slope, intercept: y0 - slope * x0 };
 }
