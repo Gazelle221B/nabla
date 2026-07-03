@@ -10,14 +10,24 @@
     "build": "astro build",
     "preview": "astro preview",
     "typecheck": "astro check",
+    "test": "vitest run",
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^7.0.4"
+    "@astrojs/mdx": "^7.0.1",
+    "@astrojs/react": "^6.0.0",
+    "astro": "^7.0.4",
+    "katex": "^0.17.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
   },
   "private": true,
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
-    "typescript": "^6.0.3"
+    "fast-check": "^4.8.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
   }
 }
