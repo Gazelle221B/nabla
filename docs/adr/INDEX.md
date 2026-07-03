@@ -5,6 +5,7 @@
 | ID | タイトル | ステータス | 概要 |
 |---|---|---|---|
 | [ADR-001](ADR-001.md) | 図解レンダリング基盤の技術選定(Tier 3a=Three.js / Tier 3b=WebGPU) | Accepted | レンダリング技術を4階層(Mafs/SVG既定 → Pixi.js/WebGPU高密度2D → Three.js標準3D → WebGPUシェーダー品質3D)に確定。WebGPU必須・フォールバックなしはTier 3bのみに限定 |
+| [ADR-002](ADR-002.md) | Tier 1 図解ライブラリに Mafs を採用 | Accepted(人間承認待ち) | T3-1 実装に伴い `mafs@^0.21.0`(MIT)を Tier 1 の可動点・座標系・数式ラベルに採用。数学モデルと描画の分離は維持 |
 
 ## ADRの起票規約
 
