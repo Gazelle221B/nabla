@@ -33,8 +33,12 @@ describe('approximatelyZero', () => {
 		expect(approximatelyZero(1e-2, 1e6)).toBe(false);
 	});
 
-	it('NaN 値は偽 (誤って真を返さない)', () => {
-		expect(approximatelyZero(NaN, 1)).toBe(false);
+	it('非有限入力 → RangeError (サイレントに扱わない, MATH_CONVENTIONS §3)', () => {
+		expect(() => approximatelyZero(NaN, 1)).toThrow(RangeError);
+		expect(() => approximatelyZero(Infinity, 1)).toThrow(RangeError);
+		expect(() => approximatelyZero(-Infinity, 1)).toThrow(RangeError);
+		expect(() => approximatelyZero(0, NaN)).toThrow(RangeError);
+		expect(() => approximatelyZero(0, Infinity)).toThrow(RangeError);
 	});
 
 	it('property: |value| <= EPSILON なら scale によらず真', () => {

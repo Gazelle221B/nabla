@@ -76,3 +76,4 @@
 | 2026-07-04 | IMPLEMENTER(Claude Code) | T3-1完了: `InteractiveExperiment`(予想ゲート/制約付き可動点/スライダー+数値入力+矢印キー/残差ライブ表示/リセット/noscriptフォールバック)+ `PythagorasScene`(Mafs)+ `lib/math/compare.ts`。Mafs 0.21.0 採用(ADR-002)、LICENSES.md 同期。ブランチ `agent/t3-1-impl`(PR #4) |
 | 2026-07-04 | IMPLEMENTER(Claude Code) | T3-1 レビュー(codex/antigravity=CONCERNS)の統合指摘5件を修正: 数値入力の編集途中保持/確定時フォーカス移動/`compare.ts` の `Math.abs(scale)`/CSS `.noscript`/スライダー `aria-labelledby`。テスト39件緑 |
 | 2026-07-04 | IMPLEMENTER(Claude Code) | T3-1: origin/main(PR #3 マージ後)を追従 merge(vitest.config は jsdom+setupFiles と exclude:e2e を統合、package.json devDeps は両立)。E2E スモークを /lessons/pythagorean-theorem へ拡張(コンソール例外0・axe・予想→操作→残差フロー)。全ゲートフレッシュ再確認。 |
+| 2026-07-04 | IMPLEMENTER(Claude Code) | T3-1 Copilot 指摘対応(6件): `compare.ts` を非有限入力で RangeError(MATH_CONVENTIONS §3、テスト更新)/ E2E の「コンソール未処理例外0」を console.error 収集+アサートに格上げ(2件)/ ADR-002・INDEX のステータスを「Accepted(PR #4 マージで確定)」に統一。全ゲート(typecheck/lint/build/test 39件/test:e2e 6件)フレッシュ緑。 |

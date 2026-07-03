@@ -8,5 +8,12 @@
 export const EPSILON = 1e-9;
 
 export function approximatelyZero(value: number, scale: number): boolean {
+	// MATH_CONVENTIONS.md §3: 非有限入力はサイレントに扱わず事前条件違反として例外にする
+	// (pythagoreanResidual と同じ流儀)。NaN を偽として飲み込むと誤判定を隠すため。
+	if (!Number.isFinite(value) || !Number.isFinite(scale)) {
+		throw new RangeError(
+			`approximatelyZero requires finite value and scale, got value=${value}, scale=${scale}`,
+		);
+	}
 	return Math.abs(value) <= EPSILON * Math.max(1, Math.abs(scale));
 }

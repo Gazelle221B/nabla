@@ -9,9 +9,15 @@ test.describe('トップページ', () => {
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('nabla(∇)');
 	});
 
-	test('コンソール未処理例外が発生しない', async ({ page }) => {
+	test('コンソール未処理例外・console.error が発生しない', async ({ page }) => {
 		const pageErrors: Error[] = [];
+		const consoleErrors: string[] = [];
 		page.on('pageerror', (error) => pageErrors.push(error));
+		// pageerror(未処理例外)だけでなく console.error も収集し、DoD の
+		// 「コンソール未処理例外0」を表現どおり厳密に担保する。
+		page.on('console', (msg) => {
+			if (msg.type() === 'error') consoleErrors.push(msg.text());
+		});
 
 		await page.goto('./');
 		// React Islandsのハイドレーション等、初期描画後の非同期処理が例外を
@@ -19,6 +25,7 @@ test.describe('トップページ', () => {
 		await page.waitForLoadState('networkidle');
 
 		expect(pageErrors).toEqual([]);
+		expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
 	});
 
 	test('axe: Critical/Seriousの違反が0件', async ({ page }) => {
@@ -40,9 +47,13 @@ test.describe('トップページ', () => {
 const PYTHAGORAS_PATH = './lessons/pythagorean-theorem/';
 
 test.describe('三平方の定理ページ (InteractiveExperiment)', () => {
-	test('コンソール未処理例外が発生しない (ハイドレーション含む)', async ({ page }) => {
+	test('コンソール未処理例外・console.error が発生しない (ハイドレーション含む)', async ({ page }) => {
 		const pageErrors: Error[] = [];
+		const consoleErrors: string[] = [];
 		page.on('pageerror', (error) => pageErrors.push(error));
+		page.on('console', (msg) => {
+			if (msg.type() === 'error') consoleErrors.push(msg.text());
+		});
 
 		await page.goto(PYTHAGORAS_PATH);
 		// Island のハイドレーションと Mafs のマウント後まで待つ。
@@ -50,6 +61,7 @@ test.describe('三平方の定理ページ (InteractiveExperiment)', () => {
 		await expect(page.getByRole('heading', { name: '実験: 直角三角形の辺を動かす' })).toBeVisible();
 
 		expect(pageErrors).toEqual([]);
+		expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
 	});
 
 	test('axe: Critical/Seriousの違反が0件', async ({ page }) => {
