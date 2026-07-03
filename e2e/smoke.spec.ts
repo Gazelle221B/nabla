@@ -1,6 +1,25 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+// ラジオボタンは同一選択肢の再クリックでは change が再発火しない(HTML 仕様)。
+// client:visible 島のハイドレーション未接続時に初回クリックが失われると、同じラジオへの
+// リトライは恒久的に空振りする。別選択肢(decoy)→目的選択肢の順にクリックして目的ラジオの
+// change を確実に発火させ、確定ボタンが活性化するまで再試行する(m2 レーンと同方式)。
+async function selectPredictionRobustly(
+	page: import('@playwright/test').Page,
+	targetLabel: string,
+	decoyLabel: string,
+): Promise<void> {
+	const decoyRadio = page.getByRole('radio', { name: decoyLabel });
+	const targetRadio = page.getByRole('radio', { name: targetLabel });
+	const submitButton = page.getByRole('button', { name: '予想を確定して実験する' });
+	await expect(async () => {
+		await decoyRadio.click();
+		await targetRadio.click();
+		await expect(submitButton).toBeEnabled({ timeout: 1000 });
+	}).toPass({ timeout: 20000 });
+}
+
 // スモーク: 到達性・基本表示・axe Critical/Serious 0件・コンソール未処理例外0件を確認する。
 // 対象: トップページ(T5-1)と、三平方の定理の対話ページ(T3-1)。
 test.describe('トップページ', () => {
@@ -91,7 +110,9 @@ test.describe('三平方の定理ページ (InteractiveExperiment)', () => {
 		// (完了前に操作すると DOM だけ変わり React 状態へ届かないため)。
 		await page.locator('section[data-hydrated="true"]').waitFor();
 
-		await page.getByRole('radio', { name: /常に成り立つ/ }).check();
+		// data-hydrated 待ちで理論上は足りるが、ラジオの change 再発火問題への防御として
+		// 別選択肢を経由して目的の予想を選ぶ(selectPredictionRobustly のコメント参照)。
+		await selectPredictionRobustly(page, '常に成り立つ (関係は保たれる)', '三角形の形によって変わる');
 		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
 
 		// 観察パネルが現れ、初期の 3-4-5 直角三角形で差 ≈ 0
