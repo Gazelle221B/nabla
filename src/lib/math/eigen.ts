@@ -62,16 +62,26 @@ export function unitVectorFromAngle(angleRadians: number): Vector2 {
 }
 
 /**
- * v と w が(同じ向きまたは正反対の向きに)平行かどうかをスケール相対誤差で判定する。
- * 外積 v×w は |v||w| と同じ次元(長さの2乗)を持つため、scale には |v||w| を用いる
- * (MATH_CONVENTIONS §2 のスケール相対誤差と次元を一致させる)。
- * どちらかがゼロベクトルの場合は退化的に平行とみなす(外積が常に0のため)。
+ * v と w が(同じ向きまたは正反対の向きに)平行かどうかを判定する。
+ *
+ * v・w を先に単位ベクトルへ正規化してから外積を比較する。正規化前の外積 v×w に対して
+ * scale=|v||w| のスケール相対誤差を使うと、v・w がどちらも小さい場合(例: [1e-6,0] と
+ * [0,1e-6]、これは直交している)に scale=|v||w|=1e-12 が approximatelyZero の絶対誤差
+ * フロア(scale<1 のとき EPSILON*1 が下限になる、MATH_CONVENTIONS §2)より小さくなり、
+ * 本来の外積の値(1e-12、まさに直交を示す最大値)がフロアに埋もれて「平行」と誤判定
+ * されてしまう。正規化後は |単位v|=|単位w|=1 で外積の scale が常に 1 になるため、
+ * ベクトルの大きさに関係なく向きだけを比較できる。
+ * どちらかがゼロベクトルの場合は退化的に平行とみなす(向きが定義できないため)。
  */
 export function isParallel(v: Vector2, w: Vector2): boolean {
-	const cross = crossProduct2(v, w);
+	assertFiniteVector(v, 'v');
+	assertFiniteVector(w, 'w');
 	const normV = Math.hypot(v[0], v[1]);
 	const normW = Math.hypot(w[0], w[1]);
-	return approximatelyZero(cross, normV * normW);
+	if (normV === 0 || normW === 0) return true;
+	const unitV: Vector2 = [v[0] / normV, v[1] / normV];
+	const unitW: Vector2 = [w[0] / normW, w[1] / normW];
+	return approximatelyZero(crossProduct2(unitV, unitW), 1);
 }
 
 /**
@@ -143,13 +153,24 @@ export function computeEigenSystem(matrix: Matrix2x2): EigenSystemResult {
 	const [[a, b], [c, d]] = matrix;
 	const trace = a + d;
 	const determinant = a * d - b * c;
-	const discriminant = trace * trace - 4 * determinant;
-	// discriminant は tr²・det と同じ次元(長さの2乗)。両項の大きさの和をスケールにする。
-	const discriminantScale = trace * trace + 4 * Math.abs(determinant);
+	// 数値安定化: 判別式は数学的には tr² − 4·det と等しいが、この形のまま計算すると
+	// トレースが大きい行列で catastrophic cancellation を起こす(例: [[1e8,1],[-1,1e8]] は
+	// 実際には複素固有値 1e8±i を持つが、tr²≈4e16 と 4·det≈4e16 がほぼ同じ大きさで
+	// 打ち消し合い、丸め誤差が判別式の符号そのものを狂わせて重解や実固有値に誤判定しうる)。
+	// 数学的に等価な (a−d)² + 4bc へ書き換えることで、この巨大な相殺項自体を作らない
+	// (回帰テスト: eigen.test.ts の「大トレース」ケース)。
+	const discriminant = (a - d) * (a - d) + 4 * b * c;
 	// 行列成分の比較(b≈0 等)には行列成分と同じ次元(長さ1乗)のスケールを使う。
 	const entryScale = Math.max(Math.abs(a), Math.abs(b), Math.abs(c), Math.abs(d));
 
-	if (discriminant < 0 && !approximatelyZero(discriminant, discriminantScale)) {
+	// 分類は判別式の符号をそのまま使う(epsilon 幅を設けない)。computeEigenSystem は
+	// 「数学的結果を丸めない」契約(MATH_CONVENTIONS §10)のため、丸め判定
+	// (approximatelyZero)を分類の閾値そのものに使うと契約と矛盾する。加えて判別式は
+	// 2乗量であり、わずかな成分差 (a−d) に対して許容誤差付きで「ほぼ0」とみなすと、
+	// その2乗である判別式は同じ許容誤差のもとではるかに小さい桁で「ほぼ0」と誤判定
+	// されてしまう(例: diag(1, 1+1e-10) は実際には相異なる実固有値 1, 1+1e-10 を
+	// 持つが、判別式 1e-20 は行列スケールに対する相対誤差のもとでは重解に見えてしまう)。
+	if (discriminant < 0) {
 		return {
 			trace,
 			determinant,
@@ -160,7 +181,7 @@ export function computeEigenSystem(matrix: Matrix2x2): EigenSystemResult {
 		};
 	}
 
-	if (approximatelyZero(discriminant, discriminantScale)) {
+	if (discriminant === 0) {
 		const lambda = trace / 2;
 		const isScalarMatrix =
 			approximatelyZero(b, entryScale) &&

@@ -70,7 +70,13 @@ export function EigenvectorExperiment() {
 
 	const commitInputAngle = () => {
 		const parsed = Number(inputAngle);
-		const next = Number.isFinite(parsed) && inputAngle.trim() !== '' ? normalizeAngleDeg(parsed) : angleDeg;
+		// スライダーの step (ANGLE_STEP=1度刻み) と数値入力の精度を揃える。丸めないと
+		// 「44.7」等の小数入力後にスライダーへ触れた瞬間に整数へスナップし、表示値が
+		// 予告なく変わってしまう(2つの入力経路が異なる精度を持つ不整合)。
+		const next =
+			Number.isFinite(parsed) && inputAngle.trim() !== ''
+				? normalizeAngleDeg(Math.round(parsed / ANGLE_STEP) * ANGLE_STEP)
+				: angleDeg;
 		setAngleDeg(next);
 		setInputAngle(String(round2(next)));
 	};

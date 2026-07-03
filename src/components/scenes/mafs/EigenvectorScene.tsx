@@ -34,8 +34,9 @@ export interface EigenvectorSceneProps {
 	onVChange: (point: V2) => void;
 }
 
-// 可動点を単位円上へ拘束する制約関数。原点(ゼロベクトル)にドラッグされた場合は
-// 直前の向きを失わないよう (1, 0) にフォールバックする。
+// 可動点を単位円上へ拘束する制約関数。この関数はクロージャ状態を持たない純粋関数のため
+// 「直前の向き」を記憶できない。原点(ゼロベクトル、角度が数学的に定義できない一点)へ
+// ドラッグされた場合は、NaN(0/0)を生まないよう固定の既定角度 (1, 0) へ丸める。
 const constrainToUnitCircle: ConstraintFunction = ([x, y]) => {
 	const norm = Math.hypot(x, y);
 	if (norm === 0) return [1, 0];

@@ -295,16 +295,44 @@ describe('computeEigenSystem', () => {
 		}
 	});
 
-	it('ほぼ重解(discriminantが極小): 例外を投げず有効な分類を返す', () => {
-		// trace=2, det=1+1e-12 → discriminant = 4-4(1+1e-12) = -4e-12 (ほぼ0)
+	it('判別式がわずかに負(重解に近いが実際は複素共役): [[1,1],[-1e-12,1]]', () => {
+		// a=d=1 (a−d=0)、判別式 = (a−d)² + 4bc = 4・1・(−1e-12) = −4e-12 < 0。
+		// 「ほぼ重解」に見えるが実際には複素共役であり、実固有値を持つ分類を許容しては
+		// ならない(誤分類の固定化を防ぐレビュー指摘の回帰テスト)。
 		const result = computeEigenSystem([
 			[1, 1],
 			[-1e-12, 1],
 		]);
-		expect(['distinct-real', 'repeated-full', 'repeated-defective']).toContain(
-			classifyEigenSystem(result),
-		);
+		expect(classifyEigenSystem(result)).toBe('complex-conjugate');
 		expect(Number.isFinite(result.trace)).toBe(true);
+	});
+
+	it('大トレース近傍の catastrophic cancellation 回帰テスト: [[1e8,1],[-1,1e8]] は複素共役 (固有値 1e8±i)', () => {
+		// tr²−4·det の素朴な計算では tr²≈4e16 と 4·det≈4e16 がほぼ相殺し、丸め誤差で
+		// 符号を誤りうる(重解や実固有値に誤分類されうる)。(a−d)²+4bc = 0 + 4・1・(−1) = −4
+		// という安定な形で計算すれば相殺自体が起きず、正しく複素共役と判定できる。
+		const result = computeEigenSystem([
+			[1e8, 1],
+			[-1, 1e8],
+		]);
+		expect(classifyEigenSystem(result)).toBe('complex-conjugate');
+		expect(result.complexEigenvalue).not.toBeNull();
+		expect(result.complexEigenvalue?.re).toBeCloseTo(1e8, 6);
+		expect(result.complexEigenvalue?.im).toBeCloseTo(1, 10);
+	});
+
+	it('わずかに異なる対角行列は重解に誤分類されない: diag(1, 1+1e-10)', () => {
+		// 判別式は2乗量 ((a−d)²=1e-20) のため、許容誤差付きで「ほぼ0」とみなす分類だと
+		// 実際には相異なる実固有値 1, 1+1e-10 を持つこの行列が重解に誤分類されてしまう。
+		// 判別式の符号をそのまま使う(epsilon 幅を設けない)ことで正しく区別できる。
+		const result = computeEigenSystem([
+			[1, 0],
+			[0, 1 + 1e-10],
+		]);
+		expect(classifyEigenSystem(result)).toBe('distinct-real');
+		const sorted = [...result.realEigenvalues].sort((x, y) => x - y);
+		expect(sorted[0]).toBeCloseTo(1, 10);
+		expect(sorted[1]).toBeCloseTo(1 + 1e-10, 10);
 	});
 
 	it('NaN 成分 → RangeError', () => {
@@ -450,16 +478,21 @@ describe('stabilizeEigenvectorDirection', () => {
 describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 	const matrixEntryArb = fc.double({ min: -20, max: 20, noNaN: true });
 	const matrixArb = fc.tuple(matrixEntryArb, matrixEntryArb, matrixEntryArb, matrixEntryArb);
-	// 行列成分が極端に小さいと、approximatelyZero の絶対誤差フロー(scale が 1 未満のとき
-	// EPSILON*1 が下限になる、MATH_CONVENTIONS §2)により判別式が本来非ゼロでも「ほぼゼロ」と
-	// 判定される退化域に入る(pythagoras.test.ts が極小値を `min: 0.01` 等の下限で除外している
-	// のと同じ配慮)。generator 側の `.filter()` はリジェクションサンプリングの再試行コストが
-	// 大きいため、property 側での早期リターンで除外する。極小行列の挙動は個別の例示テスト
-	// (「ほぼ重解」ケース)で別途カバーする。
-	// 上と同じ配慮に加えて、成分間の大きさの比が極端(例: 1e-6 と 1e-318 が同じ行列に混在)だと
-	// det = ad − bc の計算で小さい方の項が完全に丸め消え(catastrophic cancellation)、
-	// 個々の成分は「極小」ではなくても判別式の符号が壊れる退化域に入る。
-	// 最大・最小(非ゼロ)成分の比が極端な行列はテスト対象から除外する。
+	// computeEigenSystem の重解/相異なる実固有値/複素共役の最上位分類は判別式の符号を
+	// そのまま使う(epsilon 幅なし)ため、「行列成分が一様に極小」という理由だけでの除外は
+	// 最上位分類には不要になった(回帰テスト:「わずかに異なる対角行列」ケース参照)。
+	// ただし重解時の「固有空間が平面全体(スカラー行列)か1次元(Jordan型)か」という下位分類
+	// (isScalarMatrix / eigenvectorFor)は、entryScale(行列成分の最大絶対値)を基準にした
+	// approximatelyZero の相対比較を使っており、entryScale 自体が 1 未満だと絶対誤差フロア
+	// (scale<1 のとき EPSILON*1 が下限、MATH_CONVENTIONS §2)がすべての成分を「無視できる」と
+	// 誤判定しうる(例: [[0,0],[-5e-324,0]] は entryScale=5e-324 で、非ゼロの c 自身が
+	// entryScale と同じ大きさなのに approximatelyZero(c, entryScale) が true になり、
+	// 実際には固有ベクトルでない (1,0) をスカラー行列の固有ベクトルとして返してしまう)。
+	// これは isParallel で修正した絶対誤差フロアの問題と同種だが、実際のUIでは行列は
+	// 固定の整数値プリセットのみを使うため到達しない極限入力であり、property テストの
+	// 探索対象から除外する。加えて、成分間の大きさの比が極端(例: 1e-6 と 1e-318 が同じ
+	// 行列に混在)な場合も、det = ad − bc や discriminant の 4bc 項の計算で小さい方の項の
+	// 情報が完全に丸め消える(単純な有効桁不足による退化で、どんな安定な式変形でも救えない)。
 	function hasIllConditionedMagnitude(a: number, b: number, c: number, d: number): boolean {
 		const magnitudes = [a, b, c, d].map(Math.abs).filter((x) => x > 0);
 		if (magnitudes.length === 0) return false; // ゼロ行列は退化ケースとして正しく扱われる

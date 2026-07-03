@@ -177,6 +177,14 @@ test.describe('固有ベクトルページ (EigenvectorExperiment)', () => {
 		const residualRow = page.getByRole('row', { name: /残差/ });
 		await expect(residualRow).toContainText('≈ 0');
 
+		// 角度スライダーをキーボード(矢印キー)で操作しても状態が更新される
+		// (ドラッグ以外の代替操作、docs/DESIGN.md §非機能要件)。45度から1度動かすと
+		// 固有ベクトルの向きから外れ、「揃いました」表示が消える。
+		const sliderAngle = page.getByRole('slider', { name: 'v の向き(度)' });
+		await sliderAngle.focus();
+		await sliderAngle.press('ArrowRight');
+		await expect(page.getByText(/揃いました/)).toHaveCount(0);
+
 		// 回転行列プリセットに切り替えると、どの角度でも揃わない(誤解例)。
 		await page.getByRole('radio', { name: /回転行列/ }).check();
 		await expect(page.getByText(/一度も揃うことがありません/)).toBeVisible();
