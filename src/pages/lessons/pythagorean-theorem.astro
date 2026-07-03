@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { InteractiveExperiment } from '../../components/lesson/InteractiveExperiment.tsx';
+
+// T3-1 の InteractiveExperiment を実際にマウントして動作確認するためのページ。
+// 記事本文としての体裁 (平易な説明・形式化・誤解・転用問題・サンドボックス) は T4-1 で
+// content collection の MDX として仕上げる。ここは島の動作 (ビルド・ハイドレーション・
+// サブパス配信) を検証する最小ハーネス。
+---
+
+<BaseLayout title="三平方の定理 — 動かして確かめる">
+	<main style="max-width: 48rem; margin: 0 auto; padding: 1.5rem;">
+		<h1>三平方の定理</h1>
+		<p>
+			直角三角形では、直角をはさむ 2 辺の長さを a, b、斜辺の長さを c とすると
+			<strong>a² + b² = c²</strong> が成り立ちます。下の図で辺の長さを変えながら、
+			この関係が本当に「いつでも」成り立つのかを自分で確かめてみましょう。
+		</p>
+
+		<InteractiveExperiment client:visible />
+	</main>
+</BaseLayout>
