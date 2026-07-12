@@ -1,12 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { evaluate, yIntercept, slopeBetween, xRoot, type Point2 } from '../linearFunction.js';
-
-const EPSILON = 1e-9;
-
-function approximatelyZero(value: number, scale: number): boolean {
-	return Math.abs(value) <= EPSILON * Math.max(1, Math.abs(scale));
-}
+// 許容誤差判定は本番実装(compare.ts)を再利用する。テスト内で再実装すると EPSILON や
+// スケール相対誤差の式が乖離しても境界テストが気づけない(独立レビュー GrokBuild T1)。
+import { EPSILON, approximatelyZero } from '../compare.js';
 
 describe('evaluate', () => {
 	it('y=2x+1, x=0: 1 (既知の整数値で検証)', () => {
@@ -32,6 +29,14 @@ describe('evaluate', () => {
 
 	it('Infinity な x → RangeError', () => {
 		expect(() => evaluate(2, 1, Infinity)).toThrow(RangeError);
+	});
+
+	it('NaN な b → RangeError (3引数それぞれを独立に検査している, GrokBuild T3)', () => {
+		expect(() => evaluate(2, NaN, 0)).toThrow(RangeError);
+	});
+
+	it('Infinity な a → RangeError', () => {
+		expect(() => evaluate(Infinity, 1, 0)).toThrow(RangeError);
 	});
 
 	it('property: すべての直線は (0, b) を通る (自己確認でない: evaluate は a*x+b を計算するだけで、この事実を直接コード化していない)', () => {

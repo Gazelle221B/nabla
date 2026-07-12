@@ -338,9 +338,14 @@ test.describe('一次関数とグラフページ (LinearFunctionExperiment)', ()
 			if (msg.type() === 'error') consoleErrors.push(msg.text());
 		});
 
+		// 島は client:visible で記事下方にあるため、ビューポートを縦に広げて初期表示に含め、
+		// data-hydrated を待つ。こうしないとハイドレーション自体が起きず「例外0」が空振りで
+		// 通ってしまう(独立レビュー GrokBuild U1)。
+		await page.setViewportSize({ width: 1280, height: 2400 });
 		await page.goto(LINEAR_FUNCTION_PATH);
 		await page.waitForLoadState('networkidle');
 		await expect(page.getByRole('heading', { name: '実験: 傾き a と切片 b を動かす' })).toBeVisible();
+		await page.locator('section[data-hydrated="true"]').waitFor();
 
 		expect(pageErrors).toEqual([]);
 		expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
