@@ -109,7 +109,7 @@ describe('property: ピタゴラス恒等式 sin²+cos²≈1 (a)', () => {
 });
 
 describe('property: tangent(theta) ≈ sine(theta)/cosine(theta) (c)', () => {
-	it('cos がほぼ0でない範囲で、tangent は sine/cosine の独立計算と一致する (自己確認的でない: tangent の内部実装を直接読まず、sine/cosine という別の公開関数の組み合わせと突き合わせる)', () => {
+	it('cos がほぼ0でない範囲で、tangent は独立実装の Math.tan と一致する (自己確認的でない: tangent は内部で sine/cosine と同じ Math.sin/Math.cos の除算を行うため、テストで sin/cos を割り直すのは同語反復になる。別コードパスである Math.tan と突き合わせ、除算そのものの誤り〔分子分母の取り違え等〕を捕捉する — GrokBuild C-7)', () => {
 		fc.assert(
 			fc.property(
 				fc
@@ -117,9 +117,9 @@ describe('property: tangent(theta) ≈ sine(theta)/cosine(theta) (c)', () => {
 					.filter((theta) => !approximatelyZero(Math.cos(theta), 1)),
 				(theta) => {
 					const fromTangent = tangent(theta);
-					const fromRatio = sine(theta) / cosine(theta);
-					const scale = Math.max(1, Math.abs(fromTangent), Math.abs(fromRatio));
-					return approximatelyZero(fromTangent - fromRatio, scale);
+					const reference = Math.tan(theta);
+					const scale = Math.max(1, Math.abs(fromTangent), Math.abs(reference));
+					return approximatelyZero(fromTangent - reference, scale);
 				},
 			),
 			{ seed: 42, numRuns: 200 },
@@ -128,6 +128,9 @@ describe('property: tangent(theta) ≈ sine(theta)/cosine(theta) (c)', () => {
 });
 
 describe('property: 周期性 (d)', () => {
+	// 注(Antigravity 指摘): 2 * Math.PI は厳密な 2π ではなく浮動小数点近似なので、大きな theta
+	// では丸め誤差がわずかに累積する。この不変条件は approximatelyZero にスケール
+	// (Math.max(1, |値|)) を与えて相対誤差で許容している。
 	it('sine(theta+2π) ≈ sine(theta)', () => {
 		fc.assert(
 			fc.property(fc.double({ min: -50, max: 50, noNaN: true }), (theta) => {
@@ -169,8 +172,9 @@ describe('tangent: cos≈0 での RangeError (f)', () => {
 		expect(() => tangent(thetaAtBoundary)).toThrow(RangeError);
 	});
 
-	it('境界のすぐ外側 (cos=2*EPSILON) なら RangeError にならない', () => {
+	it('境界のすぐ外側 (cos=2*EPSILON) なら RangeError にならず、有限の大きな値を返す (GrokBuild nit: Infinity を返す回帰も捕捉する)', () => {
 		const thetaJustOutside = Math.acos(2 * EPSILON);
 		expect(() => tangent(thetaJustOutside)).not.toThrow();
+		expect(Number.isFinite(tangent(thetaJustOutside))).toBe(true);
 	});
 });

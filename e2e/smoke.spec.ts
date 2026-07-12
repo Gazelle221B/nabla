@@ -515,20 +515,34 @@ test.describe('三角比と単位円ページ (TrigonometryExperiment)', () => {
 		expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
 	});
 
-	test('axe: Critical/Seriousの違反が0件', async ({ page }) => {
+	test('axe: Critical/Seriousの違反が0件(予想ゲート時 + 操作UI表示後の両方)', async ({ page }) => {
 		await page.setViewportSize({ width: 1280, height: 2400 });
 		await page.goto(TRIGONOMETRIC_RATIOS_PATH);
 		await page.waitForLoadState('networkidle');
-		// ハイドレーション完了後の操作 UI(radio/slider 等)まで含めて axe 検査する
-		// (未接続 DOM だけを検査して穴が残るのを防ぐ、GrokBuild C2)。
 		await page.locator('section[data-hydrated="true"]').waitFor();
 
-		const results = await new AxeBuilder({ page }).analyze();
-		const criticalOrSerious = results.violations.filter(
-			(violation) => violation.impact === 'critical' || violation.impact === 'serious',
+		// (1) 予想ゲート表示時点の a11y。
+		const gate = await new AxeBuilder({ page }).analyze();
+		const gateBad = gate.violations.filter(
+			(v) => v.impact === 'critical' || v.impact === 'serious',
 		);
+		expect(gateBad, JSON.stringify(gateBad, null, 2)).toEqual([]);
 
-		expect(criticalOrSerious, JSON.stringify(criticalOrSerious, null, 2)).toEqual([]);
+		// (2) スライダー/数値入力/観察テーブルは予想確定後にのみマウントされるため、確定前 axe
+		// だけでは操作 UI の a11y が担保されない(GrokBuild 指摘)。確定して操作 UI を出してから再検査。
+		await selectPredictionRobustly(
+			page,
+			'cos θ は 1 から 0 へ向かって減っていく',
+			'cos θ は 0 から 1 へ向かって増えていく',
+		);
+		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
+		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
+
+		const operating = await new AxeBuilder({ page }).analyze();
+		const operatingBad = operating.violations.filter(
+			(v) => v.impact === 'critical' || v.impact === 'serious',
+		);
+		expect(operatingBad, JSON.stringify(operatingBad, null, 2)).toEqual([]);
 	});
 
 	test('予想確定 → 角度 θ の操作 → 観察表示の基本フローが機能する', async ({ page }) => {
