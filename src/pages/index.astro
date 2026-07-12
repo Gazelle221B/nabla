@@ -11,13 +11,24 @@ const stageRank: Record<string, number> = {
 };
 
 const lessons = (await getCollection('lessons'))
-	.map((entry) => ({
-		// URL は [slug].astro と同じ規約(サブジェクト階層を除いたファイル名スラッグ)。
-		slug: entry.id.split('/').pop()!,
-		title: entry.data.title,
-		description: entry.data.description,
-		rank: stageRank[entry.data.curriculum.stage] ?? 99,
-	}))
+	.map((entry) => {
+		const stage = entry.data.curriculum.stage;
+		const rank = stageRank[stage];
+		// 未知の stage を黙って末尾へ送らず fail-loud にする([slug].astro の slug 衝突検知と同じ思想)。
+		// 新しい学習段階を追加したら stageRank も更新する、という不変条件をビルド時に強制する。
+		if (rank === undefined) {
+			throw new Error(
+				`未知の curriculum.stage: "${stage}"(${entry.id})。src/pages/index.astro の stageRank に並び順を追加してください。`,
+			);
+		}
+		return {
+			// URL は [slug].astro と同じ規約(サブジェクト階層を除いたファイル名スラッグ)。
+			slug: entry.id.split('/').pop()!,
+			title: entry.data.title,
+			description: entry.data.description,
+			rank,
+		};
+	})
 	.sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title, 'ja'));
 
 const base = import.meta.env.BASE_URL;
@@ -90,10 +101,17 @@ const base = import.meta.env.BASE_URL;
 		text-decoration: none;
 		color: inherit;
 	}
-	.lesson-list a:hover,
+	.lesson-list a:hover {
+		border-color: #e0a94b;
+		background: rgba(224, 169, 75, 0.08);
+	}
+	/* キーボード操作のフォーカスは色変化に加えて明示 outline を出す(border 色差だけに頼らない)。
+	   対話 UI(InteractiveExperiment)のフォーカス表現と粒度を揃える。 */
 	.lesson-list a:focus-visible {
 		border-color: #e0a94b;
 		background: rgba(224, 169, 75, 0.08);
+		outline: 2px solid #1f6feb;
+		outline-offset: 2px;
 	}
 	.lesson-title {
 		display: block;
