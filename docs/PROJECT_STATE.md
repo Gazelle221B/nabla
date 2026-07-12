@@ -16,7 +16,7 @@
 
 ## 作業中ブランチ
 
-なし(MVP 1 の全実装ブランチはマージ済み)。本更新は完了記録のため `agent/mvp1-complete-docs`(docs のみ)。次スコープ着手時は最新 main(`90e64fe` 以降)から新ブランチを切り直す。
+`agent/m4-linear-function-impl`(隔離 worktree、M4 第1波「一次関数とグラフ」)。IMPLEMENTER 実装完了・全ゲート緑、独立レビュー(別系統)・QA_MEMORY(数学/学習設計)は未実施。オーケストレータの統合待ち。
 
 ## 直近の設計判断
 
@@ -95,3 +95,5 @@
 | 2026-07-12 | ORCHESTRATOR(Claude Code Fable 5) | Lighthouse Accessibility を全ページ実測(記事3本=100、トップ=94)。トップ唯一の減点 `landmark-one-main` を PR #8 で是正: `src/pages/index.astro` に `<main>` を追加(BaseLayout ではなく index 側に置き記事側 `<main>` と二重化させない)、`lang=\"en\"`→`\"ja\"`、公開3単元を content collection から動的に一覧リンク(到達性確保、C-4 スコープ内)。全ゲート+Lighthouse 全4ページ 100 をフレッシュ確認。独立レビューは Codex(GPT 上限で失敗)→ GrokBuild へフォールバック、Copilot レビューを PR #8 にリクエスト。 |
 | 2026-07-12 | ORCHESTRATOR(Claude Code Fable 5) | PR #8 統合: 独立レビュー GrokBuild=CONCERNS(ブロッカーなし)の有効指摘に対応(未知 stage を fail-loud 化・:focus-visible に outline 追加。DOCTYPE は Astro 自動注入で非該当)。CI(quality-gates)pass・Copilot はリクエスト済み(依頼側 quota で自動レビュー不可)。C-1/§8 の委任に基づきオーケストレータがマージ(main `90e64fe`)。マージ後 CI・Deploy とも success、本番 GitHub Pages で Lighthouse a11y 全4ページ 100・公開 URL 200 を実測確認。**これをもって MVP 1 完了**。 |
 | 2026-07-12 | ARCHITECT(Claude Code オーケストレータ) | 制作者「他の単元も全て作成」指示を受け、ポスト MVP 1 の全単元展開を策定。`docs/ROADMAP.md`(ビジョングラフ + M4〜M7 Tier 1・MVP 2/3 で Tier 2/3、3〜5単元/波)+ ADR-003(Tier 1 波状拡張、全単元一括生成は REQUIREMENTS §Current scope 違反として却下)を作成。M4 第1波 = `linear-function`→`quadratic-function`→`trigonometric-ratios`。実装は Sonnet 委譲、レビュー別系統、数学 QA=Antigravity で「この調子」実行。 |
+| 2026-07-12 | IMPLEMENTER(Claude Code Sonnet、隔離 worktree) | M4 第1波「一次関数とグラフ」実装完了(ブランチ `agent/m4-linear-function-impl`)。既存 MVP 1 の三平方の定理一式を厳密なテンプレートとして踏襲: `lib/math/linearFunction.ts`(`evaluate`/`yIntercept`/`slopeBetween`/`xRoot`、非有限入力は RangeError)+ Vitest/fast-check 不変条件テスト33件(自己確認的でない: (0,b) を通る・傾き不変性・平行移動/スケール性質・xRoot の根の正しさ・y=2x+1 の既知例・a=0 退化ケース)+ `LinearFunctionScene`(Mafs、傾き点(1,a+b)と切片点(0,b)の2つの可動点)+ `LinearFunctionExperiment`(予想ゲート「a の符号を反転すると直線はどう変わるか」+ a・b それぞれにスライダー+数値入力+矢印キー+リセット、代表的誤解「b を変えると傾きも変わる」)+ 記事 `src/content/lessons/algebra/linear-function.mdx`(中学2年、`prerequisites: []`)。設計判断: `xRoot` は a=0 で RangeError とし、b=0(無数の根)と b≠0(根なし)をメッセージで区別(derivative.ts の `differenceQuotient`/`secantLine` と同じ「ゼロ除算になりうる箇所は専用分岐」方針、MATH_CONVENTIONS §3)。全ゲート(typecheck 0/34 files・lint clean・test 186件・build 6p、`/lessons/linear-function/` 生成確認・home が content collection から自動一覧化を build 出力で確認・test:e2e 16件)をフレッシュ実行し初回で全緑(反復不要)。独立レビュー(別系統)・QA_MEMORY(数学/学習設計)は未実施、オーケストレータの統合待ち。push/PR/マージはしていない。 |
+| 2026-07-12 | ORCHESTRATOR(Claude Code Fable 5) | 一次関数単元(PR #11)の独立検証: CI(quality-gates)pass。REVIEWER=GrokBuild grok-4.5=CONCERNS(ブロッカーなし、bridge検証済)、QA_MEMORY=Antigravity/Gemini=CONCERNS(数学的誤りゼロ、教育精度3点、bridge検証済)。両者の有効指摘を1ラウンドで反映: 誤解の反証を b 相殺の形へ厳密化 / 学習目標の「水平(a=0)」を定義 a≠0 と整合 / 「x切片・根」→「x軸との交点」(中学範囲)/ テストの approximatelyZero を compare.ts から import / 非有限テスト2件追加(NaN b・Infinity a)/ e2e console-error テストに data-hydrated 待ち追加。全ゲート(typecheck 0/34・lint・test 188・build 6p・e2e 16)フレッシュ緑。Copilot リクエスト済み。 |
