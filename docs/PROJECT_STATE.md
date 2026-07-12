@@ -5,7 +5,7 @@
 
 ## 現在のフェーズ
 
-**MVP 1 実装完了。M1(三平方の定理)・M2(微分係数と接線)・M3(2×2行列と固有ベクトル)の全 PR(#1〜#7)が main にマージ済み。統合後 main HEAD で全品質ゲートをフレッシュ再検証し、DoD の全項目(Lighthouse Accessibility 全ページ 100 を含む)を実測で充足確認。** 最後の仕上げとして、公開済み3記事へのホーム導線追加とトップページ a11y 是正を PR #8 で対応中(レビュー通過後マージで MVP 1 完了)。
+**★ MVP 1 完了(2026-07-12)。** M1(三平方の定理)・M2(微分係数と接線)・M3(2×2行列と固有ベクトル)の全 PR(#1〜#7)+ 最終仕上げ PR #8(ホーム導線+トップ a11y 是正)を main へマージ済み(main `90e64fe`)。統合後 main で全品質ゲートをフレッシュ検証し回帰ゼロ、DoD の全項目を**本番デプロイ実物で実測充足**(Lighthouse Accessibility 全4ページ 100・公開 URL 200・JS 無効可読)。3記事すべてが「教材/操作/技術」DoD を満たし、MVP 1 完了条件(IMPLEMENTATION_PLAN §完了の定義)を充足。
 
 - **統合検証(2026-07-12、統合 main 93600d4 上でフレッシュ実行)**: `typecheck` 0 errors(29 files)/ `lint` clean / `test`(Vitest+fast-check)**140 件全緑**(8 ファイル)/ `build` 5 ページ / `test:e2e`(Playwright+axe)**13 件全緑**(3記事すべてで axe Critical/Serious 0・コンソール例外 0・予想→操作→観測フロー)。M1/M2/M3 の統合による回帰ゼロ。
 - **Lighthouse Accessibility 実測(2026-07-12)**: 3記事ページ = 100、トップページ = 94(唯一の減点 `landmark-one-main`)。PR #8 で `<main>` 追加により **全4ページ 100** を達成。DoD「Lighthouse Accessibility 原則100」を推論ではなく実測で closure。
@@ -16,7 +16,7 @@
 
 ## 作業中ブランチ
 
-`agent/homepage-nav-a11y-impl`(PR #8: ホーム導線+トップ a11y 是正)。最新 main(93600d4)から分岐。M1〜M3 の各実装ブランチ(`agent/t1-2-t2-1-impl`, `agent/t5-1-quality-gates`, `agent/t3-1-impl`, `agent/t4-1-impl`, `agent/m2-impl`, `agent/m3-impl`)はすべてマージ済みで以後使用しない。
+なし(MVP 1 の全実装ブランチはマージ済み)。本更新は完了記録のため `agent/mvp1-complete-docs`(docs のみ)。次スコープ着手時は最新 main(`90e64fe` 以降)から新ブランチを切り直す。
 
 ## 直近の設計判断
 
@@ -48,12 +48,12 @@
 
 ## 次に実行すべきアクション
 
-**MVP 1 の実装・検証は完了。残りは PR #8 の統合のみ。** 次は以下:
+**MVP 1 は完了。以降は別スコープ(憲法 C-4 の現フェーズ外)であり、着手には HUMAN の Go が必要。**
 
-1. PR #8 の CI(quality-gates)緑 + 独立 Codex レビュー + Copilot レビューを確認し、指摘(あれば Critical 級)を解消。
-2. オーケストレーターが PR #8 を main へマージ → これをもって **MVP 1 完了**(3記事すべてが「教材/操作/技術」DoD を充足、Lighthouse a11y 全4ページ 100)。
-3. マージ後デプロイ(GitHub Pages)が success かつ公開 URL が 200 を返すことを確認。
-4. (MVP 1 完了後・別スコープ)M2/M3 の公開ベータ運用に向けた HUMAN レビュー、商標検索、教育効果検証の被験者確保は憲法 C-4 のスコープ外として別途計画する。
+1. (HUMAN)MVP 1 完了の事後監査 — PR #8 の差分・裁定コメント・全ゲート証跡を GitHub 上で確認(必要なら revert)。
+2. (HUMAN 判断)公開ベータの一般告知、商標「nabla / ナブラ」検索・正式命名確定(AGENTS.md §1)。
+3. (HUMAN 主導)教育効果検証の被験者確保(北極星指標の測定)。MVP 1 では「未検証の公開ベータ」と明示済み。
+4. (次マイルストーン計画時)新単元の追加や Tier 2/3 レンダラー導入は、それぞれ ADR + 人間 Go を経て別フェーズとして着手する。
 
 ## 人間判断待ちの事項
 
@@ -93,3 +93,4 @@
 | 2026-07-12 | ORCHESTRATOR(Claude Code Fable 5) | ローカルが 2026-07-02 の古いスナップショットだったため origin/main(93600d4、PR #1〜#7 全マージ済み)へ同期。廃棄済みの ESLint 手動ブランチ(PR #3 で置換)を stash 退避のうえ整理。 |
 | 2026-07-12 | ORCHESTRATOR(Claude Code Fable 5) | MVP 1 統合検証: 統合 main HEAD で全ゲートをフレッシュ実行し回帰ゼロを確認(typecheck 0/29 files・lint・test 140 件・build 5p・test:e2e 13 件、axe Critical/Serious 0・コンソール例外 0)。GitHub Pages 実配信(トップ+3記事 200、KaTeX 数式+noscript を server HTML で確認)。CI/Deploy とも main で success。 |
 | 2026-07-12 | ORCHESTRATOR(Claude Code Fable 5) | Lighthouse Accessibility を全ページ実測(記事3本=100、トップ=94)。トップ唯一の減点 `landmark-one-main` を PR #8 で是正: `src/pages/index.astro` に `<main>` を追加(BaseLayout ではなく index 側に置き記事側 `<main>` と二重化させない)、`lang=\"en\"`→`\"ja\"`、公開3単元を content collection から動的に一覧リンク(到達性確保、C-4 スコープ内)。全ゲート+Lighthouse 全4ページ 100 をフレッシュ確認。独立レビューは Codex(GPT 上限で失敗)→ GrokBuild へフォールバック、Copilot レビューを PR #8 にリクエスト。 |
+| 2026-07-12 | ORCHESTRATOR(Claude Code Fable 5) | PR #8 統合: 独立レビュー GrokBuild=CONCERNS(ブロッカーなし)の有効指摘に対応(未知 stage を fail-loud 化・:focus-visible に outline 追加。DOCTYPE は Astro 自動注入で非該当)。CI(quality-gates)pass・Copilot はリクエスト済み(依頼側 quota で自動レビュー不可)。C-1/§8 の委任に基づきオーケストレータがマージ(main `90e64fe`)。マージ後 CI・Deploy とも success、本番 GitHub Pages で Lighthouse a11y 全4ページ 100・公開 URL 200 を実測確認。**これをもって MVP 1 完了**。 |
