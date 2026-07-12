@@ -1,19 +1,127 @@
 ---
+import { getCollection } from 'astro:content';
 
+// 公開済みの単元を content collection から動的に取得して一覧化する。
+// 記事を増やしても index.astro を編集せずに導線へ反映されるようにする(手動リストとの二重管理を避ける)。
+// 並び順は学習段階(中学 → 高校 → 大学教養)。同段階内はタイトルの自然順。
+const stageRank: Record<string, number> = {
+	'junior-high': 0,
+	'high-school': 1,
+	'university-general': 2,
+};
+
+const lessons = (await getCollection('lessons'))
+	.map((entry) => {
+		const stage = entry.data.curriculum.stage;
+		const rank = stageRank[stage];
+		// 未知の stage を黙って末尾へ送らず fail-loud にする([slug].astro の slug 衝突検知と同じ思想)。
+		// 新しい学習段階を追加したら stageRank も更新する、という不変条件をビルド時に強制する。
+		if (rank === undefined) {
+			throw new Error(
+				`未知の curriculum.stage: "${stage}"(${entry.id})。src/pages/index.astro の stageRank に並び順を追加してください。`,
+			);
+		}
+		return {
+			// URL は [slug].astro と同じ規約(サブジェクト階層を除いたファイル名スラッグ)。
+			slug: entry.id.split('/').pop()!,
+			title: entry.data.title,
+			description: entry.data.description,
+			rank,
+		};
+	})
+	.sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title, 'ja'));
+
+const base = import.meta.env.BASE_URL;
 ---
 
-<html lang="en">
+<html lang="ja">
 	<head>
 		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
-		<link rel="icon" href={`${import.meta.env.BASE_URL}favicon.ico`} />
-		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
+		<link rel="icon" href={`${base}favicon.ico`} />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="generator" content={Astro.generator} />
 		<title>nabla(∇)</title>
 	</head>
 	<body>
-		<h1>nabla(∇)</h1>
-		<p>予想して、動かして、発見する。</p>
-		<p>準備中 — MVP 1(三平方の定理・微分係数と接線・固有ベクトル)を制作中です。</p>
+		<main>
+			<h1>nabla(∇)</h1>
+			<p class="tagline">予想して、動かして、発見する。</p>
+			<p class="intro">
+				日本の学習指導要領に沿って、中学数学から大学教養数学までを、動画ではなく
+				ブラウザ上のインタラクティブな図解で学べる独学者向け教材サイトです
+				(インタラクティブ教材の設計仮説を実装した公開ベータ)。
+			</p>
+
+			<nav aria-labelledby="lessons-heading">
+				<h2 id="lessons-heading">公開中の単元</h2>
+				<ul class="lesson-list">
+					{
+						lessons.map((lesson) => (
+							<li>
+								<a href={`${base}lessons/${lesson.slug}/`}>
+									<span class="lesson-title">{lesson.title}</span>
+									<span class="lesson-desc">{lesson.description}</span>
+								</a>
+							</li>
+						))
+					}
+				</ul>
+			</nav>
+		</main>
 	</body>
 </html>
+
+<style>
+	main {
+		max-width: 44rem;
+		margin: 0 auto;
+		padding: 2rem 1.25rem 4rem;
+		line-height: 1.8;
+	}
+	.tagline {
+		font-size: 1.15rem;
+		font-weight: 600;
+	}
+	.intro {
+		color: #444;
+	}
+	.lesson-list {
+		list-style: none;
+		padding: 0;
+		margin: 1rem 0 0;
+		display: grid;
+		gap: 0.75rem;
+	}
+	.lesson-list a {
+		display: block;
+		padding: 0.9rem 1.1rem;
+		border: 1px solid #d5d8e0;
+		border-radius: 10px;
+		text-decoration: none;
+		color: inherit;
+	}
+	.lesson-list a:hover {
+		border-color: #e0a94b;
+		background: rgba(224, 169, 75, 0.08);
+	}
+	/* キーボード操作のフォーカスは色変化に加えて明示 outline を出す(border 色差だけに頼らない)。
+	   対話 UI(InteractiveExperiment)のフォーカス表現と粒度を揃える。 */
+	.lesson-list a:focus-visible {
+		border-color: #e0a94b;
+		background: rgba(224, 169, 75, 0.08);
+		outline: 2px solid #1f6feb;
+		outline-offset: 2px;
+	}
+	.lesson-title {
+		display: block;
+		font-weight: 600;
+		font-size: 1.05rem;
+	}
+	.lesson-desc {
+		display: block;
+		font-size: 0.9rem;
+		color: #555;
+		margin-top: 0.15rem;
+	}
+</style>
