@@ -35,6 +35,11 @@ export function evaluate(a: number, p: number, q: number, x: number): number {
  * 頂点の座標 (p, q)。この関数は a を引数に取る(evaluate/axisOfSymmetry とインターフェースを
  * 揃えるため)が、頂点の座標自体は a の値に関与しない。a は非有限値を静かに通さないための
  * 検証にのみ使う(yIntercept が a を検証にのみ使うのと同じ理由、linearFunction.ts 参照)。
+ *
+ * 数学的注記(QA_MEMORY 指摘): a=0 では二次関数は定数関数 y=q(水平線)に退化し、幾何学的な
+ * 「頂点」は存在しない。ここで例外を投げず a≠0 での頂点式 (p, q) をそのまま返すのは、スライダー等
+ * のパラメータ遷移の連続性(工学的妥当性、MATH_CONVENTIONS §4)を優先した設計判断である。数学的な
+ * 頂点の存在は a≠0 でのみ保証される。呼び出し側は a=0 を二次関数として扱わないこと。
  */
 export function vertex(a: number, p: number, q: number): Point2 {
 	assertFiniteNumber(a, 'a');
@@ -45,6 +50,8 @@ export function vertex(a: number, p: number, q: number): Point2 {
 
 /**
  * 対称軸(x = p)。vertex と同様、a は検証にのみ使い計算には関与しない。
+ * 数学的注記: a=0(定数関数)では対称軸は一意に定まらない(任意の垂直線が対称軸になる)。
+ * vertex と同じく遷移連続性のため x=p を返すが、一意性は a≠0 でのみ保証される。
  */
 export function axisOfSymmetry(a: number, p: number, q: number): number {
 	assertFiniteNumber(a, 'a');

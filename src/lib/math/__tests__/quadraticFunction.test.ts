@@ -162,15 +162,25 @@ describe('vertex / axisOfSymmetry', () => {
 		});
 	}
 
-	it('property: vertex(a,p,q) は [axisOfSymmetry(a,p,q), evaluate(a,p,q,p)] に一致する(3つの独立した定義の整合性)', () => {
+	it('property: 頂点の y は頂点 x での関数値に一致し、対称軸の両側で関数値が等しい(evaluate 経由の計算で検証。入力エコーでない: vy を q+1 等に、軸を誤った値にすると破綻する — GrokBuild C1/C-7)', () => {
 		fc.assert(
 			fc.property(
-				fc.double({ min: -1e4, max: 1e4, noNaN: true }),
-				fc.double({ min: -1e4, max: 1e4, noNaN: true }),
-				fc.double({ min: -1e4, max: 1e4, noNaN: true }),
-				(a, p, q) => {
+				fc.double({ min: -1e2, max: 1e2, noNaN: true }),
+				fc.double({ min: -1e2, max: 1e2, noNaN: true }),
+				fc.double({ min: -1e2, max: 1e2, noNaN: true }),
+				fc.double({ min: 0.1, max: 1e2, noNaN: true }),
+				(a, p, q, t) => {
 					const [vx, vy] = vertex(a, p, q);
-					return vx === axisOfSymmetry(a, p, q) && vx === p && vy === q;
+					const axis = axisOfSymmetry(a, p, q);
+					// 頂点の y は、頂点の x における関数値そのもの(vertex が y を誤って返せば破綻)。
+					const yAtVertex = evaluate(a, p, q, vx);
+					// 対称軸の両側で関数値が等しい(axisOfSymmetry が誤った軸を返せば破綻)。
+					const left = evaluate(a, p, q, axis - t);
+					const right = evaluate(a, p, q, axis + t);
+					const scale = Math.max(1, Math.abs(vy), Math.abs(left));
+					return (
+						approximatelyZero(vy - yAtVertex, scale) && approximatelyZero(left - right, scale)
+					);
 				},
 			),
 			{ seed: 42, numRuns: 200 },

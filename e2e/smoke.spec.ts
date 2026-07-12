@@ -435,6 +435,9 @@ test.describe('二次関数とグラフページ (QuadraticFunctionExperiment)',
 		await page.setViewportSize({ width: 1280, height: 2400 });
 		await page.goto(QUADRATIC_FUNCTION_PATH);
 		await page.waitForLoadState('networkidle');
+		// ハイドレーション完了後の操作 UI(radio/slider 等)まで含めて axe 検査する
+		// (未接続 DOM だけを検査して穴が残るのを防ぐ、GrokBuild C2)。
+		await page.locator('section[data-hydrated="true"]').waitFor();
 
 		const results = await new AxeBuilder({ page }).analyze();
 		const criticalOrSerious = results.violations.filter(
