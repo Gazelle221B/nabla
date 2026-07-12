@@ -109,6 +109,13 @@ export function SimilarityExperiment() {
 	// (TrigonometryExperiment の tanUndefined と同じ「安全に表示する」方針)。
 	const isDegenerate = approximatelyZero(k, 1);
 
+	// 観察ステータスの「一致」を断言せず、実測比が理論値と合うかを実行時に検証する
+	// (GrokBuild C1: TrigonometryExperiment が恒等式を判定してから表示するのと同じ誠実さ)。
+	// 辺の比は |k|(距離は非負)、面積比は k²。実測比がずれたら「一致」ではなく警告を出す。
+	const ratiosHold =
+		approximatelyZero(sideRatio - Math.abs(k), Math.max(1, Math.abs(k))) &&
+		approximatelyZero(areaRatio - k * k, Math.max(1, k * k));
+
 	const predictionCorrect = prediction === 'quadruple';
 
 	return (
@@ -255,10 +262,12 @@ export function SimilarityExperiment() {
 								</tr>
 							</tbody>
 						</table>
-						<p className={isDegenerate ? styles.statusBroken : styles.statusHeld}>
+						<p className={isDegenerate || !ratiosHold ? styles.statusBroken : styles.statusHeld}>
 							{isDegenerate
 								? 'k = 0 のため、拡大後の三角形は相似の中心 O の1点に退化しています(辺の長さ・面積ともに0)。'
-								: `辺の比は k(=${round2(k)})に、面積比は k²(=${round2(k * k)})に一致しています。`}
+								: ratiosHold
+									? `辺の比は k(=${round2(k)})に、面積比は k²(=${round2(k * k)})に一致しています。`
+									: '計算された辺の比・面積比が理論値(k・k²)と一致しません。数学モデルに問題がある可能性があります。'}
 						</p>
 					</div>
 

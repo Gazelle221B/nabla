@@ -689,5 +689,11 @@ test.describe('相似と拡大縮小ページ (SimilarityExperiment)', () => {
 		await expect(kRow.getByRole('cell')).toHaveText('3');
 		await expect(sideRatioRow.getByRole('cell')).toHaveText('3');
 		await expect(areaRatioRow.getByRole('cell')).toHaveText('9');
+
+		// 矢印キー(ArrowLeft)単独でも 1 ステップ操作でき、k・辺の比・面積比が更新される
+		// (End だけでなく矢印キーの動作も担保する、GrokBuild C3)。
+		await sliderK.press('ArrowLeft');
+		await expect(kRow.getByRole('cell')).not.toHaveText('3');
+		await expect(areaRatioRow.getByRole('cell')).not.toHaveText('9');
 	});
 });
