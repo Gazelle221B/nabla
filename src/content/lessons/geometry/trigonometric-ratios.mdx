@@ -1,0 +1,100 @@
+---
+title: 三角比と単位円
+description: 直角三角形の辺の比として導入した三角比(sin, cos, tan)を、半径1の単位円上の点の座標として一般化する対話的教材。単位円上の角度θを動かしながら「予想して・確かめて・発見する」。
+learningGoals:
+  - 単位円(原点中心・半径1の円)上で角度θに対応する点の座標が (cos θ, sin θ) であり、常に sin²θ + cos²θ = 1 が成り立つことを、自分の言葉で説明できる。
+  - tan θ = sin θ / cos θ が cos θ = 0 となる角度(θ = 90°, 270° など)では定義されないことを、単位円上の点の動きと結びつけて説明できる。
+prerequisites: [geometry/pythagorean-theorem]
+curriculum:
+  type: mext
+  jurisdiction: jp
+  stage: high-school
+  guidelineYear: 2018
+  subject: mathematics
+  units: [trigonometric-ratios]
+lastReviewed: 2026-07-12
+references:
+  - { title: 高等学校学習指導要領(2018年告示)解説 数学編, type: curriculum, locator: 数学I 図形と計量 / 数学II 三角関数 }
+contentReview:
+  mathematicalStatus: self-reviewed
+  educationalStatus: unvalidated
+---
+
+import { TrigonometryExperiment } from '../../../components/lesson/TrigonometryExperiment.tsx';
+
+直角三角形の辺の比から出発して、角度をどれだけ大きくしても使える一般的な定義へ広げていきましょう。鍵になるのは、三平方の定理が支える**単位円**(原点を中心とする半径 $1$ の円)という考え方です。
+
+## 直角三角形の比から単位円へ
+
+鋭角 $\theta$ を持つ直角三角形で、斜辺の長さを $1$ とすると、
+
+$$
+\cos\theta = \frac{\text{隣辺の長さ}}{\text{斜辺の長さ}}, \qquad \sin\theta = \frac{\text{対辺の長さ}}{\text{斜辺の長さ}}
+$$
+
+と定義できます(斜辺が $1$ なので、分母を省いて隣辺・対辺の長さそのものと考えられます)。この直角三角形を、原点を中心とする半径 $1$ の円(**単位円**)の中に置いてみましょう。原点から円周上の点までの線分を斜辺とみなすと、その点の $x$ 座標がちょうど $\cos\theta$、$y$ 座標がちょうど $\sin\theta$ になります。つまり、
+
+$$
+(\cos\theta,\ \sin\theta)
+$$
+
+が、単位円上で $x$ 軸正方向から反時計回りに角度 $\theta$ だけ進んだ点の座標です。この定義は $\theta$ が鋭角(0°〜90°)を超えても、そのままどんな角度にも意味を持ちます——直角三角形の辺の比という描像を、円周上の点の座標という描像に一般化したことになります。
+
+三平方の定理より、原点から円周上の点までの距離は常に半径 $1$ なので、次の関係(**ピタゴラスの恒等式**)が任意の $\theta$ で成り立ちます。
+
+$$
+\sin^2\theta + \cos^2\theta = 1
+$$
+
+## まず予想してみよう
+
+下の図では、単位円上の点を角度 $\theta$ で自由に動かせます。**操作する前に予想してください**——$\theta$ を $0°$ から $90°$ へ動かすと、$\cos\theta$ はどのように変化するでしょうか?
+
+予想を選んでから、実際に $\theta$ を動かして、$\sin\theta$・$\cos\theta$・$\tan\theta$・$\sin^2\theta + \cos^2\theta$ がどう変化するかを観察してみましょう。
+
+<TrigonometryExperiment client:visible />
+
+<noscript>
+（この対話図は JavaScript が必要です。無効の場合は図が表示されないので、要点を前提にこのまま読み進めてください——単位円上で角度 $\theta$ に対応する点の座標は $(\cos\theta, \sin\theta)$ であり、常に $\sin^2\theta + \cos^2\theta = 1$ が成り立ちます。$\theta$ を $0°$ から $90°$ へ動かすと、$\cos\theta$ は $1$ から $0$ へ、$\sin\theta$ は $0$ から $1$ へ変化します。）
+</noscript>
+
+## よくある誤解: 「tan θ はどんな角度に対しても定義される」
+
+**「$\tan\theta = \dfrac{\sin\theta}{\cos\theta}$ は、どんな角度 $\theta$ に対しても値を持つ」——これは誤りです。** $\cos\theta = 0$ となる角度($\theta = 90°,\ 270°$ など)では、$\tan\theta$ は定義できません。
+
+単位円で確かめてみましょう。$\theta = 90°$ のとき、単位円上の点は $(\cos 90°, \sin 90°) = (0, 1)$ です。$\tan\theta$ の定義 $\sin\theta / \cos\theta$ にこの値を当てはめると $1 / 0$ となり、$0$ で割ることになってしまいます。幾何学的に言えば、$\theta = 90°$ で原点と点を結ぶ直線は $y$ 軸と平行(真上向き)になり、「傾き」という考え方そのものが意味を持たなくなります——$\tan\theta$ は直線の傾きに対応する量なので、この角度では存在しないのです。$\theta = 270°$ でも同様に点は $(0, -1)$ となり、直線は同じく $y$ 軸に平行になります。
+
+一方、$\sin\theta$・$\cos\theta$ はどんな角度に対しても定義され、値は常に $-1$ 以上 $1$ 以下です(単位円上の点の座標である以上、円の半径 $1$ を超えることはありません)。定義できないのは $\tan\theta$ だけであることに注意してください。
+
+## 形式的な定義
+
+角度 $\theta$(ラジアン)に対して、単位円上で $x$ 軸正方向から反時計回りに角度 $\theta$ だけ進んだ点を $(\cos\theta, \sin\theta)$ と定めます。
+
+$$
+\cos\theta,\quad \sin\theta,\quad \tan\theta = \frac{\sin\theta}{\cos\theta}\ (\cos\theta \neq 0\text{ のとき})
+$$
+
+このとき、次の関係が任意の $\theta$ で成り立ちます。
+
+$$
+\sin^2\theta + \cos^2\theta = 1
+$$
+
+これは単位円の半径が $1$ であることの直接の帰結です(原点から円周上の点までの距離を三平方の定理で計算すると、$\sqrt{\cos^2\theta + \sin^2\theta} = 1$ となります)。この恒等式は、$\sin\theta$ や $\cos\theta$ の片方の値から、もう片方を(符号の曖昧さを除いて)求めるのにも使えます。
+
+## 使ってみよう(転用問題)
+
+上の単位円の考え方を使って、次の問題を解いてみましょう。
+
+1. $\theta = 180°$ のとき、単位円上の点の座標 $(\cos 180°, \sin 180°)$ を答えてください。
+2. ある角度 $\theta$($0° < \theta < 90°$)で $\sin\theta = \dfrac{3}{5}$ のとき、ピタゴラス恒等式を使って $\cos\theta$ を求めてください。
+3. $\theta = 180°$ で $\tan\theta$ が定義できるかどうかを、単位円上の点から判断してください。
+
+<details>
+<summary>答えと考え方</summary>
+
+1. $\theta = 180°$ は単位円上で $x$ 軸負方向の点なので $(\cos 180°, \sin 180°) = (-1, 0)$。
+2. $\sin^2\theta + \cos^2\theta = 1$ より $\cos^2\theta = 1 - \left(\dfrac{3}{5}\right)^2 = 1 - \dfrac{9}{25} = \dfrac{16}{25}$。$0° < \theta < 90°$ では $\cos\theta > 0$ なので $\cos\theta = \dfrac{4}{5}$。
+3. $\theta = 180°$ の点は $(-1, 0)$ で $\cos 180° = -1 \neq 0$ なので、$\tan 180° = \dfrac{\sin 180°}{\cos 180°} = \dfrac{0}{-1} = 0$ と定義できます。
+
+</details>
