@@ -102,7 +102,8 @@ docs/                                     # 本ガバナンス一式(Conclave)+ 
 | 経緯・全体像 | docs/PROJECT_PLAN.md | 2本の企画会話ログの統合物語・合意経緯・対立点の解消記録 |
 | 要件 | docs/REQUIREMENTS.md | 問題定義の起点 |
 | 設計 | docs/DESIGN.md | **単一の真実の源** |
-| 実装計画 | docs/IMPLEMENTATION_PLAN.md | タスク分解・マイルストーン |
+| 実装計画 | docs/IMPLEMENTATION_PLAN.md | タスク分解・マイルストーン(MVP 1) |
+| ロードマップ | docs/ROADMAP.md | ポスト MVP 1 の全単元展開(ビジョングラフ + M4〜、3〜5単元/波、ADR-003) |
 | 運用書 | docs/conclave/runbook/ORCHESTRATION_RUNBOOK.md | ★ 自律オーケストレーション手順。交代したAIはまずここ |
 | 引き継ぎ | docs/HANDOFF.md | 時点スナップショット |
 | 状態 | docs/PROJECT_STATE.md | ★ 真の記憶 |
