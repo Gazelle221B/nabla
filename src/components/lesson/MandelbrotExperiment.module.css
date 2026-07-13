@@ -194,3 +194,11 @@
 		animation: none !important;
 	}
 }
+
+/* プローブの試行例ガイド(QA 指摘の反映)。ダーク背景のため text-secondary を使う
+   (#666 はコントラスト 2.92 で axe serious——サイト共通のミュート色変数に従う)。 */
+.probeHint {
+	font-size: 0.85rem;
+	color: var(--nabla-text-secondary, #a7adc0);
+	margin-top: 0.25rem;
+}

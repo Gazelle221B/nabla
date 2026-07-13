@@ -45,7 +45,11 @@ const INITIAL_VIEW: MandelbrotView = { centerX: -0.5, centerY: 0, halfWidth: 1.5
 // 10^13 倍(halfWidth ≈ 1.5e-13)では dx = 2*1.5e-13/640 ≈ 4.7e-16 ≈ 2.1 ULP まで迫っており、
 // これを上限として採用する(この上限は「絵が破綻し始める」実務的な安全側の閾値であり、
 // 理論上の限界ちょうどではない——若干手前で止めることで見た目の破綻を避ける)。
-const MAX_ZOOM_EXPONENT = 13;
+// ズームインの上限は 10^6 倍。理論上は倍精度の ULP 限界(~10^13 倍)まで座標計算は
+// 可能だが、maxIter の上限(500)の反復予算では 10^6 倍を超える境界深部の構造を解像
+// できず「黒つぶれ」する(QA 指摘: 上限だけ深くても『複雑さが現れ続ける』の観察が
+// 成立しない)。観察が成立する範囲に上限を合わせ、上限到達時は理由を明示する。
+const MAX_ZOOM_EXPONENT = 6;
 const MIN_HALF_WIDTH = INITIAL_VIEW.halfWidth / 10 ** MAX_ZOOM_EXPONENT;
 // ズームアウトの上限。初期表示の16倍まで(妥当な範囲に留め、際限なく縮小できないようにする)。
 const MAX_HALF_WIDTH = INITIAL_VIEW.halfWidth * 16;
@@ -211,7 +215,7 @@ export function MandelbrotExperiment() {
 				<p>
 					下の図は、座標 (x, y) を「2乗して c を足す」という同じ規則で何度も動かしたとき、
 					その軌道が無限に遠くへ逃げ出すか、それとも有界な範囲に留まり続けるかで塗り分けたものです
-					(黒い部分が「留まる」領域=マンデルブロ集合)。<strong>操作する前に予想してください:</strong>
+					(黒い部分は「この最大反復回数までは逃げ出さなかった」点——留まり続ける点の近似的な見取り図です)。<strong>操作する前に予想してください:</strong>
 					この図形の縁を拡大していくと、最後には何が見えてくると思いますか?
 				</p>
 				<fieldset className={styles.predictionFieldset} disabled={submitted}>
@@ -283,8 +287,10 @@ export function MandelbrotExperiment() {
 
 						{zoomLimitReached && (
 							<p className={styles.limitNote} role="note">
-								これ以上は浮動小数点の精度限界です(隣接ピクセルの座標間隔が数値表現の最小単位(ULP)に
-								迫り、これ以上拡大しても新しい情報が得られず絵が破綻します)。
+								この実験アプリの拡大の上限です。数学的にはこの先も無限に構造が続きますが、境界の
+								深部を描くにはこの単元の最大反復回数(500)では足りず、未脱出の黒に塗りつぶされて
+								観察になりません(さらに約10¹³倍では倍精度浮動小数点の精度限界にも達します)。
+								計算資源の限界であって、図形が終わったわけではありません。
 							</p>
 						)}
 
@@ -347,6 +353,13 @@ export function MandelbrotExperiment() {
 							/>
 						</div>
 					</div>
+					{/* QA 指摘の反映: 初期プローブ (0,0) はカージオイド深部で動きがないため、
+					    境界の面白さへ誘導する具体例を提示する(値の正しさは転用問題でも扱う)。 */}
+					<p className={styles.probeHint} role="note">
+						試してみる値の例: (1, 0) は3回で脱出、(−1, 0) は周期2で留まる(閉形式でも内部と
+						判定)、(−2, 0) はぎりぎり境界上、(−2.0001, 0) は1回で脱出。境界の鋭敏さは
+						(−0.75, 0.05) や (0.25, 0.01) など縁のすぐそばで観察できます。
+					</p>
 
 					{/* Observation: 現在値のライブ表示。値の列は常に実値を表示し(検証フラグは下の
 					    ステータス文専用)、MATH_CONVENTIONS §1 の丸め分離の趣旨に沿う。 */}
@@ -372,7 +385,7 @@ export function MandelbrotExperiment() {
 								<tr>
 									<th scope="row">プローブ座標 (cx, cy)</th>
 									<td>
-										({round2(probeCx)}, {round2(probeCy)})
+										({formatCenterCoordinate(probeCx, view.halfWidth)}, {formatCenterCoordinate(probeCy, view.halfWidth)})
 									</td>
 								</tr>
 								<tr>

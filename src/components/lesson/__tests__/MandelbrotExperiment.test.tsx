@@ -84,7 +84,7 @@ describe('MandelbrotExperiment (MVP 2)', () => {
 		fireEvent.change(probeCx, { target: { value: '1' } });
 		fireEvent.blur(probeCx);
 
-		expect(rowCells(/^プローブ座標/)).toEqual(['(1, 0)']);
+		expect(rowCells(/^プローブ座標/)).toEqual(['(1.000, 0.000)']) // GrokBuild 指摘反映: プローブ表示はズーム連動桁(初期ズームでは3桁);
 		expect(rowCells(/^プローブの escapeTime/)).toEqual(['3(この回数で脱出)']);
 		expect(rowCells(/^プローブは主カージオイド内部か/)).toEqual(['いいえ']);
 		expect(rowCells(/^プローブは周期2バルブ内部か/)).toEqual(['いいえ']);
@@ -129,7 +129,7 @@ describe('MandelbrotExperiment (MVP 2)', () => {
 
 		await user.click(screen.getByRole('button', { name: 'リセット' }));
 		expect(rowCells(/^拡大率/)).toEqual(['1倍(10^0.0)']);
-		expect(rowCells(/^プローブ座標/)).toEqual(['(0, 0)']);
+		expect(rowCells(/^プローブ座標/)).toEqual(['(0.000, 0.000)']);
 	});
 
 	it('最大反復回数の数値入力 → 確定(blur) → 観察表とSceneへ同期する', async () => {

@@ -23,7 +23,9 @@ const DEFAULT_HEIGHT = 480;
 
 /**
  * escapeTime(整数、0〜maxIter)を RGB へ変換する(装飾のみ、数学的な意味は「脱出の速さ」)。
- * 集合の内部(escapeTime===maxIter)は黒。それ以外は脱出が早いほど暗く、遅いほど明るい
+ * escapeTime===maxIter(この最大反復回数までは脱出しなかった点——集合内部の近似であり
+ * 帰属の証明ではない。境界付近では maxIter を上げると色付きに変わりうる)は黒。
+ * それ以外は脱出が早いほど暗く、遅いほど明るい
  * 単純なグラデーション(ADR-004 のベンチ実装と同じ形の変換——計測済みの負荷特性を保つ)。
  */
 function escapeTimeToColor(iter: number, maxIter: number): readonly [number, number, number] {
@@ -108,7 +110,7 @@ export function MandelbrotScene({
 						: ''}
 			</p>
 			<p className={styles.legend}>
-				色は「脱出の速さ」を表す装飾です(黒=集合の内部、明るいほど速く脱出)。数値による確認は下の観察表を参照してください。
+				色は「脱出の速さ」を表す装飾です(黒=この最大反復回数までは脱出しなかった点、明るいほど速く脱出)。数値による確認は下の観察表を参照してください。
 			</p>
 		</div>
 	);

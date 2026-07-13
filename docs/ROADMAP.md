@@ -65,10 +65,12 @@
 - ✅ `permutation-combination` 場合の数(順列・組合せ)(高校数A)— 実装 slug は `combinatorics`(PR #28、M8b)
 - ✅ `data-analysis` データの分析(平均・分散・相関)(高校数I)— prereq: [](PR #29、M8b)
 - ✅ `probability-distribution` 確率分布と期待値(高校数B)— prereq: [simple-probability](PR #30、M8b)
-- ⬜ `normal-distribution-clt` 正規分布・中心極限定理(大学教養)— prereq: [probability-distribution]。**Tier 2(MVP 2)へ送致済み**(大量試行の描画密度が Tier 1/SVG の限界を超えるため)
+- ✅ `normal-distribution-clt` 正規分布・中心極限定理(大学教養)— prereq: [probability-distribution](PR #38、MVP 2・初の Tier 2/Pixi.js 単元)
 
 ### discrete-math(離散数学、主に大学・後期波)
-- ⬜ `graph-theory-intro` グラフ理論入門 / `recurrence` 漸化式と計算量 など(バックログ)
+- ✅ `graph-theory-intro` グラフ理論入門 — 一筆書きとオイラー路(PR #33、M8d)
+- ✅ `recurrence` 漸化式と計算量(PR #34、M8d)
+- ✅ `fractal-mandelbrot` フラクタル — マンデルブロ集合(PR #39、MVP 2・Canvas2D)
 
 ## 4. 次アクション
 
