@@ -1,0 +1,21 @@
+---
+import ThreeVanillaScene from '../components/three-vanilla/ThreeVanillaScene';
+import ThreeR3FScene from '../components/three-r3f/ThreeR3FScene';
+---
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <title>Three.js spike</title>
+  </head>
+  <body>
+    <h1>ADR-005 spike: Astro Islands + Three.js 統合方式比較</h1>
+    <section>
+      <h2>案A: vanilla Three.js(useEffect管理)</h2>
+      <ThreeVanillaScene client:visible />
+    </section>
+    <section>
+      <h2>案B: @react-three/fiber</h2>
+      <ThreeR3FScene client:visible />
+    </section>
+  </body>
+</html>
