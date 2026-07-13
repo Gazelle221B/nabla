@@ -51,6 +51,11 @@ export default defineConfig(
 			'playwright-report/**',
 			'test-results/**',
 			'blob-report/**',
+			// ADR の再現用ベンチマーク資産(ブラウザ直書き JS・サイトのビルド/配信対象外)。
+			// プロダクションコードの lint 規約(TS/モジュール前提)の対象にしない(ADR-004)。
+			'docs/adr/assets/**',
+			// 並行実装用の隔離 worktree(存在する場合)。本体の lint 対象にしない。
+			'.claude/**',
 		],
 	},
 );
