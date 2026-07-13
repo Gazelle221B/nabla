@@ -249,3 +249,45 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 		);
 	});
 });
+
+// 独立レビュー GrokBuild C1 で追加: 算術系の不変条件は列挙を伴わないため、
+// n≤6(列挙突合の共通レンジ)に閉じる理由がない。MAX_SAFE_N=18 の全域で
+// 「n≤18 なら厳密等価」というモデルの主張そのものを自動検証する。
+describe('invariants (追加: 算術系を n≤18 全域で検証、fast-check seed 42)', () => {
+	const fullNrArb = fc.integer({ min: 0, max: 18 }).chain((n) =>
+		fc.integer({ min: 0, max: n }).map((r) => [n, r] as const),
+	);
+
+	it('property: nPr === nCr × r! が n≤18 の全域で厳密等価', () => {
+		fc.assert(
+			fc.property(fullNrArb, ([n, r]) => permutations(n, r) === combinations(n, r) * factorial(r)),
+			{ seed: 42, numRuns: 300 },
+		);
+	});
+
+	it('property: 対称性 nCr === nC(n−r) が n≤18 の全域で厳密等価', () => {
+		fc.assert(
+			fc.property(fullNrArb, ([n, r]) => combinations(n, r) === combinations(n, n - r)),
+			{ seed: 42, numRuns: 300 },
+		);
+	});
+
+	it('property: パスカルの規則が n≤18 の全域で厳密等価 (n≥1, 1≤r≤n−1)', () => {
+		fc.assert(
+			fc.property(
+				fc.integer({ min: 2, max: 18 }).chain((n) =>
+					fc.integer({ min: 1, max: n - 1 }).map((r) => [n, r] as const),
+				),
+				([n, r]) =>
+					combinations(n, r) === combinations(n - 1, r - 1) + combinations(n - 1, r),
+			),
+			{ seed: 42, numRuns: 300 },
+		);
+	});
+
+	it('黄金値: 上限付近の大きな値も厳密一致 (18C9=48620, 18P10=18!/8!)', () => {
+		expect(combinations(18, 9)).toBe(48620);
+		expect(permutations(18, 10)).toBe(combinations(18, 10) * factorial(10));
+		expect(permutations(18, 18)).toBe(factorial(18));
+	});
+});

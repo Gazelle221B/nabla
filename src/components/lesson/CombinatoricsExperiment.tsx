@@ -123,13 +123,17 @@ export function CombinatoricsExperiment() {
 	const items: string[] = ITEM_LABELS.slice(0, n) as unknown as string[];
 
 	// 数学モデルによる計算。lib/math/combinatorics.ts の純粋関数をそのまま再利用する
-	// (重複実装しない、タスク厳守事項)。n の全域(2〜6)・r の全域(1〜n)のいずれでも
-	// 例外を起こさない(UI 構造で r≤n・r≥1 を保証しているため)。
-	const nPr = permutations(n, r);
-	const nCr = combinations(n, r);
-	const rFactorial = factorial(r);
-	const enumeratedPermutations = enumeratePermutations(items, r);
-	const enumeratedCombinations = enumerateCombinations(items, r);
+	// (重複実装しない、タスク厳守事項)。n↓時の r 再クランプは handleNChange 内で
+	// setN と setR を同一ハンドラで発行しており、React 18 のバッチングにより r>n の
+	// 中間レンダーは発生しない。それでも将来の非バッチ経路(外部 state 連携等)に備え、
+	// 計算直前にも防御的に r を [1, n] へクランプする(独立レビュー GrokBuild の H1 懸念を
+	// 構造的に封じる belt-and-suspenders。RangeError が render に漏れる経路を残さない)。
+	const safeR = Math.min(Math.max(1, r), n);
+	const nPr = permutations(n, safeR);
+	const nCr = combinations(n, safeR);
+	const rFactorial = factorial(safeR);
+	const enumeratedPermutations = enumeratePermutations(items, safeR);
+	const enumeratedCombinations = enumerateCombinations(items, safeR);
 
 	// 実行時検証: 列挙(実際に数え上げた個数)と公式(積・階乗の閉じた式)は完全に別実装
 	// (lib/math/combinatorics.ts のコメント参照)。ここでその2経路を突き合わせ、断言せず
