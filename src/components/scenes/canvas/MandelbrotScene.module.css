@@ -1,0 +1,31 @@
+/* MandelbrotScene のレイアウト。既存単元と同じ色トークン(MATH_CONVENTIONS.md §9)を踏襲する。
+   canvas 自体は装飾(aria-hidden)であり数学的な意味を色に持たせているだけなので、
+   トークンは使わず単純な枠線のみで囲む。 */
+
+.sceneWrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.canvas {
+	display: block;
+	max-width: 100%;
+	height: auto;
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 8px;
+	background: #000;
+}
+
+.status {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--nabla-text-secondary, #a7adc0);
+	min-height: 1.2em;
+}
+
+.legend {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--nabla-text-secondary, #a7adc0);
+}
