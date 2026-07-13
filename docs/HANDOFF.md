@@ -1,15 +1,17 @@
-# 引き継ぎ書 (HANDOFF) — `2026-07-12` 更新
+# 引き継ぎ書 (HANDOFF) — `2026-07-14` 更新
 
 > **これは時点スナップショットである** (いずれ陳腐化する)。恒久的な運用手順は [ORCHESTRATION_RUNBOOK](conclave/runbook/ORCHESTRATION_RUNBOOK.template.md)、真の進捗記憶は [PROJECT_STATE](PROJECT_STATE.md)。
 > 用途: オーケストレーター交代時に「今どこで・次に何をすべきか」を 5 分で把握する。
 
 ## 1. 30 秒サマリー
 
-**★ MVP 1 完了(2026-07-12)。** 三平方の定理・微分係数と接線・2×2行列と固有ベクトルの3記事すべてが「教材/操作/技術」DoD を満たす。M1/M2/M3(PR #1〜#7)+ 最終仕上げ PR #8(ホーム導線+トップ a11y 是正)を main へマージ済み。本番 GitHub Pages で全 DoD を実測充足(Lighthouse a11y 全4ページ 100・公開 URL 200・JS 無効可読)。以降は MVP 1 スコープ外(§3 参照)で HUMAN の Go が必要。
+**★ 当初構想の全マイルストーン完走(2026-07-14)。** MVP 1(3単元)→ M4〜M7(12単元)→ M8(Tier 1 バックログ全消化、10単元)→ MVP 2(Tier 2: フーリエ〔計測により Tier 1 維持〕・LLN/CLT〔Pixi.js〕・フラクタル〔Canvas2D〕)→ MVP 3(Tier 3a: 一次変換3×3・回転と基底変換・曲面と偏微分・ドメインカラーリング〔ShaderMaterial〕)。**公開33単元**(https://gazelle221b.github.io/nabla/)。PR #1〜#44、全て「実装=Sonnet 委譲 → GrokBuild 独立レビュー + Antigravity 数学QA → 裁定 → CI → マージ」のパイプライン。**Tier 3b(WebGPU)は ADR-005 §5 の昇格ゲート実測により不要と確定**(WebGPU 未導入のまま全構想を完了)。
 
-- **ブランチ**: 実装ブランチは全マージ済み。main 最新 `90e64fe`。次スコープはここから新ブランチを切る。
-- **品質ゲート**(統合 main + 本番デプロイでフレッシュ検証): typecheck 0 errors / lint clean / unit **140 passed** / build 5 pages / e2e(Playwright+axe)**13 passed** / Lighthouse a11y **全4ページ 100**(本番 URL 実測)。CI・Deploy とも main で success。
-- **次の自動アクション**: なし(MVP 1 完了)。残りは HUMAN ゲート(§4)。
+- **ブランチ**: 全マージ済み。main 最新 `19de757`。
+- **品質ゲート**(最新 main): typecheck 0 / eslint 0 / unit **1749** / build **34 pages** / e2e **100**(axe 二段階込み)。CI・Deploy とも success。
+- **ADR**: 001〜005(004=Tier 2 計測選定、005=Tier 3a 導入方式+3b 昇格ゲート)。レビューでのブロッカー級検出は累計14件+(算術誤り・幾何バグ・C-7 トートロジー×2・絶対言明反例・座標系・sRGB 二重ガンマ等)、全件マージ前に是正。
+- **次の自動アクションの候補**(いずれも新規指示待ちで着手可): Issue #21(atan2 幾何 util の rule-of-three リファクタ)/ e2e/smoke.spec.ts の単元別分割(並行波の競合点解消)/ 単元マップ(前提グラフ可視化、DESIGN のオープン論点、公開20〜30本条件は充足済み)。
+- **HUMAN ゲート(AI 非実行)**: 商標検索 / 公開ベータ告知 / 教育効果検証。
 
 ## 2. 完成済み (動くもの)
 
