@@ -101,6 +101,28 @@ describe('logBase (既知例、黄金値オラクル)', () => {
 	it('a=1 は exact でも近傍でも RangeError (log(a)→0 の除算爆発を回避)', () => {
 		expect(() => logBase(1, 4)).toThrow(RangeError);
 		expect(() => logBase(1 + 1e-13, 4)).toThrow(RangeError);
+		expect(() => logBase(1 - 1e-13, 4)).toThrow(RangeError); // 下側近傍も対称に弾く (GrokBuild C3)
+	});
+
+	it('a≈1 ガードのバンド縁の挙動を固定する (GrokBuild C1: 弾くのは |a−1|≤1e-9 のみで、その外は「有限だが巨大な値」を返す契約)', () => {
+		// バンド内(1±1e-10): RangeError
+		expect(() => logBase(1 + 1e-10, 4)).toThrow(RangeError);
+		expect(() => logBase(1 - 1e-10, 4)).toThrow(RangeError);
+		// バンド外(1±1e-8): 通過し、有限だが ~1e8 規模の値になる(不安定な底を広く拒否する
+		// ことはこのガードの契約ではない——それは UI レンジ [1.2,4] の責務)。
+		const above = logBase(1 + 1e-8, 4);
+		expect(Number.isFinite(above)).toBe(true);
+		expect(Math.abs(above)).toBeGreaterThan(1e7);
+		const below = logBase(1 - 1e-8, 4);
+		expect(Number.isFinite(below)).toBe(true);
+		expect(Math.abs(below)).toBeGreaterThan(1e7);
+	});
+
+	it('0<a<1 レジームの黄金値 (GrokBuild C2: 底が1未満でも定義され、値の符号が反転する)', () => {
+		expectApproxEqual(logBase(0.5, 0.25), 2); // (1/2)^2 = 1/4
+		expectApproxEqual(logBase(0.5, 8), -3); // (1/2)^(-3) = 8
+		expectApproxEqual(logBase(0.1, 100), -2); // (1/10)^(-2) = 100
+		expectApproxEqual(expBase(0.5, 3), 0.125); // (1/2)^3 = 1/8
 	});
 
 	for (const [label, value] of NON_FINITE_VALUES) {

@@ -49,6 +49,9 @@ export function ExpLogScene({ a, t, minT, maxT, stepT, interactive, onTChange }:
 	// §10: 数学的真実を緩めない)。Mafs の Plot.OfX は既定では viewBox 全体の x を走査してしまう
 	// ため、レンダラー層の便宜として domain を正の範囲に限定する(lib/math 側の定義域は一切
 	// 変更しない——これは描画のためのサンプリング範囲の制約であり、数学モデルの緩和ではない)。
+	// 注意(GrokBuild C4): この Scene は props の a を自前検証せず、親(ExpLogExperiment)の
+	// clamp(a∈[1.2,4])に依存している。a≤0 や a≈1 を渡すと logBase が throw するため、
+	// 別の親から再利用する場合は同等の a の制約を必ず設けること。
 	const logCurve = (x: number): number => logBase(a, x);
 
 	const aValue = expBase(a, t);
