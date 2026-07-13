@@ -3455,6 +3455,22 @@ test.describe('複素関数を見るページ (DomainColoringExperiment, Tier3a/
 		expect(box?.height ?? 0).toBeGreaterThan(0);
 
 		await page.locator('section[data-hydrated="true"]').waitFor();
+
+		// QA 指摘の反映: 予想ゲート前は関数のカラーマップを表示しない(この単元の予想は
+		// 「描けるか?」なので、描けた結果=色こそが答え)。中央画素が無彩色(RGB 各成分の
+		// 差が小さい中立グリッド)であることを確認する。
+		const preGateSaturation = await page.evaluate(() => {
+			const el = document.querySelector('canvas');
+			if (!el) return null;
+			const gl = el.getContext('webgl2') ?? el.getContext('webgl');
+			if (!gl) return null;
+			const pixel = new Uint8Array(4);
+			gl.readPixels(Math.floor(gl.drawingBufferWidth / 2), Math.floor(gl.drawingBufferHeight / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+			return Math.max(pixel[0], pixel[1], pixel[2]) - Math.min(pixel[0], pixel[1], pixel[2]);
+		});
+		expect(preGateSaturation).not.toBeNull();
+		expect(preGateSaturation ?? 255).toBeLessThan(30);
+
 		await selectPredictionRobustly(page, DC_PREDICTION_TARGET, DC_PREDICTION_DECOY);
 		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
 		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
@@ -3547,6 +3563,7 @@ test.describe('複素関数を見るページ (DomainColoringExperiment, Tier3a/
 
 		// 関数プリセット切替 → 巻き数が既知例どおりに変化する(reciprocal の極 z=0 は巻き数-1)。
 		await page.getByRole('button', { name: /逆数/ }).click();
+
 		await probeReInput.fill('0');
 		await probeReInput.blur();
 		await probeImInput.fill('0');
@@ -3555,6 +3572,43 @@ test.describe('複素関数を見るページ (DomainColoringExperiment, Tier3a/
 		await expect(expectedWindingRow.getByRole('cell')).toHaveText('-1');
 		const matchRow = page.getByRole('row', { name: /^両経路の一致/ });
 		await expect(matchRow.getByRole('cell')).toHaveText('一致');
+		// GLSL/TS 二重実装のズレ検出網を cdiv 経路にも張る(GrokBuild レビュー指摘の反映):
+		// reciprocal で z=(1,1) → w=1/(1+i)=(0.5,−0.5)、arg=−45°。square と同じ画素逆算で概算確認。
+		await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+		const argReciprocalDeg = await page.evaluate(() => {
+			const el = document.querySelector('canvas');
+			if (!el) return null;
+			const gl = el.getContext('webgl2') ?? el.getContext('webgl');
+			if (!gl) return null;
+			const width = gl.drawingBufferWidth;
+			const height = gl.drawingBufferHeight;
+			// 初期ビュー(中心0+0i、halfWidth=3)で z=(1,1): u=(1/6)+0.5, v=((1/(3*(h/w)))... と
+			// 同一写像だが、square 検証と同じく縦横比込みの逆算をシェーダー定義から再現する。
+			const halfWidth = 3;
+			const aspect = height / width;
+			const halfHeight = halfWidth * aspect;
+			const u = 0.5 + 1 / (2 * halfWidth);
+			const v = 0.5 + 1 / (2 * halfHeight);
+			const px = Math.min(width - 1, Math.round(u * width));
+			const py = Math.min(height - 1, Math.round(v * height));
+			const pixel = new Uint8Array(4);
+			gl.readPixels(px, py, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+			const r = pixel[0] / 255;
+			const g = pixel[1] / 255;
+			const b = pixel[2] / 255;
+			const max = Math.max(r, g, b);
+			const min = Math.min(r, g, b);
+			if (max === min) return null;
+			let h;
+			if (max === r) h = ((g - b) / (max - min)) % 6;
+			else if (max === g) h = (b - r) / (max - min) + 2;
+			else h = (r - g) / (max - min) + 4;
+			const hueDeg = ((h * 60) + 360) % 360;
+			return hueDeg - 180;
+		});
+		expect(argReciprocalDeg).not.toBeNull();
+		expect(Math.abs((argReciprocalDeg as number) - -45)).toBeLessThan(20);
+
 
 		// ズームボタン(キーボード操作代替、ADR-005 §5)。Enter で操作してもエラーや
 		// クラッシュが起きず、canvas は存在し続け、観察表の値(DOM主担保)も影響を受けない。

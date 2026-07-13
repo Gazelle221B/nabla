@@ -66,6 +66,7 @@ uniform vec2 uCenter;
 uniform float uHalfWidth;
 uniform float uAspect;
 uniform float uShowLegend;
+uniform float uShowFunction;
 
 varying vec2 vUv;
 
@@ -113,6 +114,17 @@ float logLightness(float m) {
 void main() {
 	float halfHeight = uHalfWidth * uAspect;
 	vec2 z = uCenter + (vUv - vec2(0.5)) * vec2(2.0 * uHalfWidth, 2.0 * halfHeight);
+
+	// 予想ゲート前(uShowFunction=0)は関数の色を出さない: この単元の予想は
+	// 「複素関数はグラフに描けるか?」であり、描けた結果(カラーマップ)そのものが
+	// 答えを構成する(QA 指摘の反映)。中立の暗いグリッドだけを表示する。
+	if (uShowFunction < 0.5) {
+		vec2 grid = abs(fract(z) - 0.5);
+		float line = smoothstep(0.47, 0.5, max(grid.x, grid.y));
+		gl_FragColor = vec4(mix(vec3(0.09, 0.10, 0.13), vec3(0.22, 0.24, 0.3), line), 1.0);
+		return;
+	}
+
 	vec2 w = evalF(uFnId, z);
 	float m = length(w);
 	float hue = (atan(w.y, w.x) + PI) / (2.0 * PI);
@@ -154,6 +166,8 @@ export interface DomainColoringSceneProps {
 	halfWidth: number;
 	/** 予想確定後のみ真。色相環の凡例(答えを読み解く補助表示)を描画する。 */
 	revealLegend: boolean;
+	/** 予想ゲート後のみ真。関数のカラーマップ自体を表示する(ゲート前は中立グリッド)。 */
+	revealFunction: boolean;
 }
 
 export function DomainColoringScene({
@@ -162,6 +176,7 @@ export function DomainColoringScene({
 	centerIm,
 	halfWidth,
 	revealLegend,
+	revealFunction,
 }: DomainColoringSceneProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const rendererRef = useRef<WebGLRenderer | null>(null);
@@ -215,6 +230,7 @@ export function DomainColoringScene({
 				uHalfWidth: { value: halfWidth },
 				uAspect: { value: ASPECT },
 				uShowLegend: { value: revealLegend ? 1 : 0 },
+				uShowFunction: { value: revealFunction ? 1 : 0 },
 			},
 		});
 		const mesh = new Mesh(geometry, material);
@@ -262,7 +278,8 @@ export function DomainColoringScene({
 		material.uniforms.uCenter.value.set(centerRe, centerIm);
 		material.uniforms.uHalfWidth.value = halfWidth;
 		material.uniforms.uShowLegend.value = revealLegend ? 1 : 0;
-	}, [ready, fnId, centerRe, centerIm, halfWidth, revealLegend]);
+		material.uniforms.uShowFunction.value = revealFunction ? 1 : 0;
+	}, [ready, fnId, centerRe, centerIm, halfWidth, revealLegend, revealFunction]);
 
 	return (
 		<div className={styles.sceneWrapper}>

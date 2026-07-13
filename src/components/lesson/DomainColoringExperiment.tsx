@@ -9,6 +9,7 @@ import {
 	type Complex,
 	type ComplexFnId,
 } from '../../lib/math/complexFunctions.js';
+import { approximatelyZero } from '../../lib/math/compare.js';
 import { DomainColoringScene } from '../scenes/three/DomainColoringScene.js';
 import styles from './DomainColoringExperiment.module.css';
 
@@ -153,7 +154,10 @@ export function DomainColoringExperiment() {
 	try {
 		numericWinding = windingNumberAround(fnId, probe, PROBE_RADIUS, WINDING_SAMPLES);
 		expectedWindingValue = expectedWindingNumber(fnId, probe, PROBE_RADIUS);
-	} catch {
+	} catch (error) {
+		// 境界ちょうど(円周が特異点を通る)の RangeError のみを「判定不能」として扱う。
+		// それ以外の例外はプログラミングバグなので握りつぶさず再throwする(GrokBuild 指摘)。
+		if (!(error instanceof RangeError)) throw error;
 		windingAmbiguous = true;
 	}
 	const windingMatches =
@@ -226,6 +230,7 @@ export function DomainColoringExperiment() {
 					centerIm={view.im}
 					halfWidth={view.halfWidth}
 					revealLegend={submitted}
+					revealFunction={submitted}
 				/>
 				{submitted && (
 					<p className={styles.legendHint}>
@@ -349,7 +354,15 @@ export function DomainColoringExperiment() {
 								</tr>
 								<tr>
 									<th scope="row">arg(f(z))(偏角、度)</th>
-									<td>{probeArgDeg !== null ? formatSigned(probeArgDeg) : '—'}</td>
+									{/* w=0(厳密な零点)では偏角は定義されない——極側と同じ丁寧さで明示する
+									    (GrokBuild レビュー指摘の反映)。 */}
+									<td>
+										{probeArgDeg === null
+											? '—'
+											: probeModulus !== null && approximatelyZero(probeModulus, 1)
+												? '未定義(この点は零点: w=0)'
+												: formatSigned(probeArgDeg)}
+									</td>
 								</tr>
 								<tr>
 									<th scope="row">プローブを囲む小円(半径{PROBE_RADIUS})の数値巻き数</th>

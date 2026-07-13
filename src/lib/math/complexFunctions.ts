@@ -69,7 +69,9 @@ export function cMul(a: Complex, b: Complex): Complex {
  * (a+bi)/(c+di) = (a+bi)(c−di) / (c²+d²)。
  *
  * **設計判断(分母≈0でnullを返す理由)**: 分母 b の絶対値が実質的にゼロ
- * (compare.ts の `approximatelyZero` と同じスケール相対誤差で判定)のときは、
+ * (`approximatelyZero(|b|², 1)`——scale を固定の 1 にしているのは意図的: 極の判定は
+ * 「分母が数として実質ゼロか」という絶対的な問いであり、分子のスケールに相対化すると
+ * 「大きな数を小さな数で割る」正当なケースまで極扱いになるため。QA 指摘への回答)のときは、
  * 例外を投げて計算を止めるのではなく、明示的なセンチネル値 `null` を返す
  * (MATH_CONVENTIONS §3/§4: ゼロ除算になりうる箇所は事前に判定し専用の分岐を
  * 用意する——derivative.ts の垂直接線判定と同じ流儀。ゼロ長・退化ケースは
@@ -91,7 +93,7 @@ export function cDiv(a: Complex, b: Complex): Complex | null {
 	return [(a[0] * b[0] + a[1] * b[1]) / denom, (a[1] * b[0] - a[0] * b[1]) / denom];
 }
 
-/** 偏角 arg(w)(度、atan2 により (−180, 180] の範囲で返す)。 */
+/** 偏角 arg(w)(度、atan2 により [−180, 180](Math.atan2 の標準値域。−0 虚部の負実軸で −180 になりうる) の範囲で返す)。 */
 export function argDeg(w: Complex): number {
 	assertFiniteComplex(w, 'w');
 	return (Math.atan2(w[1], w[0]) * 180) / Math.PI;

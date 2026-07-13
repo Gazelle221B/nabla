@@ -236,8 +236,12 @@ describe('expectedWindingNumber (閉形式・独立オラクル)', () => {
 		expect(expectedWindingNumber('mobius', [0, 0], 1.5)).toBe(0);
 	});
 
-	it('円周がちょうど特異点の上に乗る退化ケース → RangeError', () => {
-		expect(() => expectedWindingNumber('square', [0, 0], 0)).toThrow(RangeError); // radius<=0はassertPositiveNumberで先に弾かれる
+	it('円周がちょうど特異点の上に乗る場合は RangeError(曖昧な巻き数を返さない)', () => {
+		// square の特異点は原点。center=(1,0)・radius=1 で境界がちょうど原点を通る
+		// (以前は radius=0 が事前検証で弾かれるだけの偽検証だった——GrokBuild 指摘の反映)。
+		expect(() => expectedWindingNumber('square', [1, 0], 1)).toThrow(RangeError);
+		// mobius の零点 (1,0) を境界に乗せるケース
+		expect(() => expectedWindingNumber('mobius', [0, 0], 1)).toThrow(RangeError);
 	});
 });
 
