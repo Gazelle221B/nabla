@@ -1,6 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { arithmeticTerm, geometricTerm, arithmeticSum } from '../sequences.js';
+// 誤差判定は原則、本番共通の approximatelyZero(相対 1e-9)を使う(QA_MEMORY 指摘:
+// 手動判定の再実装・閾値の無説明な混在を避ける)。ただし「ループでの逐次加算」や
+// 「べき乗同士の除算」を含む突合は、演算回数分の丸めが累積・増幅するため 1e-9 では
+// 数値的に厳しすぎる。そうした箇所だけ、根拠コメント付きの専用許容 (下記
+// ACCUMULATION_TOLERANCE) を使う。
+import { approximatelyZero } from '../compare.js';
+
+// 累積・増幅を伴う突合専用の相対許容。根拠: 和のループは最大100回の加算で丸めが累積し
+// (~100·2^-52 ≈ 2e-14 のオーダーだが、大小混在の加算順序で桁上がりが起きると悪化する)、
+// 比のテストは r^n (最大 3^21) 同士の除算で相対誤差が増幅する。1e-6 はこれらを安全に
+// 覆いつつ、実装バグ(項の取り違え・式の誤り)は確実に検出できる大きさ。
+const ACCUMULATION_TOLERANCE = 1e-6;
 
 // 非有限入力 (NaN / Infinity) を各関数の全引数それぞれについて検証するための共通ヘルパー
 // (riemannSum.test.ts / lawOfSinesCosines.test.ts と同じ方針: 一部の引数だけでなく
@@ -168,7 +180,8 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 						loopSum += arithmeticTerm(a1, d, k);
 					}
 					const scale = Math.max(1, Math.abs(formula), Math.abs(loopSum));
-					return Math.abs(formula - loopSum) <= 1e-6 * scale;
+					// ループ加算(最大100回)の累積丸めのため ACCUMULATION_TOLERANCE(冒頭コメント参照)。
+					return Math.abs(formula - loopSum) <= ACCUMULATION_TOLERANCE * scale;
 				}),
 				{ seed: 42, numRuns: 200 },
 			);
@@ -179,8 +192,8 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 		fc.assert(
 			fc.property(a1Arb, dArb, fc.integer({ min: 1, max: 1000 }), (a1, d, n) => {
 				const diff = arithmeticTerm(a1, d, n + 1) - arithmeticTerm(a1, d, n);
-				const scale = Math.max(1, Math.abs(d));
-				return Math.abs(diff - d) <= 1e-9 * scale;
+				// 単発の減算のみで累積がないため、本番共通の approximatelyZero(相対 1e-9)で判定する。
+				return approximatelyZero(diff - d, Math.max(1, Math.abs(d)));
 			}),
 			{ seed: 42, numRuns: 200 },
 		);
@@ -200,7 +213,8 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 						const termNext = geometricTerm(a1, r, n + 1);
 						const ratio = termNext / term;
 						const scale = Math.max(1, Math.abs(r));
-						return Math.abs(ratio - r) <= 1e-6 * scale;
+						// r^n 同士の除算で相対誤差が増幅するため ACCUMULATION_TOLERANCE(冒頭コメント参照)。
+						return Math.abs(ratio - r) <= ACCUMULATION_TOLERANCE * scale;
 					},
 				),
 				{ seed: 42, numRuns: 200 },
@@ -223,8 +237,8 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 						const k = (rawK % n) + 1; // k を [1, n] へ写像する
 						const pairSum = arithmeticTerm(a1, d, k) + arithmeticTerm(a1, d, n + 1 - k);
 						const expected = 2 * a1 + (n - 1) * d;
-						const scale = Math.max(1, Math.abs(expected));
-						return Math.abs(pairSum - expected) <= 1e-6 * scale;
+						// 大きさの近い2項の加算で相殺誤差が出うるため ACCUMULATION_TOLERANCE(冒頭コメント参照)。
+						return Math.abs(pairSum - expected) <= ACCUMULATION_TOLERANCE * Math.max(1, Math.abs(expected));
 					},
 				),
 				{ seed: 42, numRuns: 200 },

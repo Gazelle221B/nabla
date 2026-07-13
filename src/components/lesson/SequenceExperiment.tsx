@@ -135,16 +135,22 @@ export function SequenceExperiment() {
 	// 差・比の列は「常に実値を表示する」観察対象なので丸め前の値をそのまま使う
 	// (レビュー学習: 検証フラグと連動して固定表示にすると観察が成立しない、
 	// MATH_CONVENTIONS §8 の「≈0 は真に微小な値のときのみ」にも反する)。
-	// 等比で直前の項が実質0(a1=0 または r=0 が続いた場合)の比は数学的に定義されないため、
-	// 例外を投げず「定義されません」という安全な表示に切り替える(退化ケースを塞がない)。
+	// 等比で直前の項が 0(a1=0 または r=0)の比は数学的に定義されないため、例外を投げず
+	// 「定義されません」という安全な表示に切り替える(退化ケースを塞がない)。
+	//
+	// 判定は epsilon 幅ではなく exact zero で行う(独立レビュー GrokBuild M1): 数学的に
+	// a1≠0 かつ r≠0 なら項 a1·r^(n−1) は決して 0 にならず、浮動小数点でも指数部が尽きる
+	// (~1e-308) まで 0 に落ちない。epsilon 幅で判定すると、自由入力の微小値(例 a1=1,
+	// r=0.001 の第4項 1e-9)が誤って「定義されません」になり、正しく定義される比 r を
+	// 表示し損ねる。M3 の固有値分類が epsilon 幅を撤廃し exact zero にしたのと同じ判断。
 	type DiffOrRatio = { readonly definedValue: number | null };
 	const diffsOrRatios: DiffOrRatio[] = [];
 	for (let i = 0; i < TERMS_TO_SHOW - 1; i++) {
 		if (type === 'arithmetic') {
 			diffsOrRatios.push({ definedValue: terms[i + 1] - terms[i] });
 		} else {
-			const denominatorNearZero = approximatelyZero(terms[i], Math.max(1, Math.abs(a1), Math.abs(r)));
-			diffsOrRatios.push({ definedValue: denominatorNearZero ? null : terms[i + 1] / terms[i] });
+			const denominatorZero = terms[i] === 0;
+			diffsOrRatios.push({ definedValue: denominatorZero ? null : terms[i + 1] / terms[i] });
 		}
 	}
 
