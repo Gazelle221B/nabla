@@ -1,0 +1,79 @@
+/* LinearTransform3dScene のレイアウト。CltScene.module.css(Tier 2/Pixi)と同じ構造・
+   トークンを踏襲する(色の意味論トークンは MATH_CONVENTIONS.md §9)。canvas は固定内部解像度を
+   CSS で縮小方向にのみ追従させる(CltScene と同じ理由: 記事幅に収まる固定レイアウト)。 */
+
+.sceneWrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.canvasContainer {
+	width: 100%;
+	max-width: 480px;
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 8px;
+	background: var(--nabla-surface, #1a1d29);
+	overflow: hidden;
+	line-height: 0;
+}
+
+.canvasContainer :global(canvas) {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.initError {
+	padding: 0.75rem 1rem;
+	border-left: 3px solid var(--nabla-warning, #e0a94b);
+	background: rgba(224, 169, 75, 0.1);
+}
+
+/* 視覚的には隠すが支援技術には読み上げさせる定番パターン(CltScene.module.css と同じ)。
+   canvas は装飾に徹し、実際の値は親(LinearTransform3dExperiment)の観察表(DOM)が主担保する。 */
+.visuallyHidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* カメラ回転の離散ボタン群(ADR-005 §3: OrbitControls と併設するキーボード操作代替)。 */
+.cameraControls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.cameraButton {
+	font: inherit;
+	padding: 0.35rem 0.75rem;
+	border-radius: 8px;
+	cursor: pointer;
+	border: 1px solid var(--nabla-grid, #33384a);
+	background: transparent;
+	color: inherit;
+}
+
+.cameraButton:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.cameraButton:focus-visible {
+	outline: 2px solid var(--nabla-focus-ring, #8ab4ff);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sceneWrapper * {
+		transition: none !important;
+		animation: none !important;
+	}
+}
