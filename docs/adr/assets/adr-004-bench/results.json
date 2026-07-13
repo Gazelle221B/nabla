@@ -1,0 +1,389 @@
+{
+  "gpuMode": "gpu",
+  "headed": false,
+  "gpuInfo": {
+    "webgl": true,
+    "renderer": "WebKit WebGL",
+    "vendor": "WebKit",
+    "unmaskedRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "unmaskedVendor": "Google Inc. (Apple)"
+  },
+  "loadavg": [
+    7.96484375,
+    9.474609375,
+    9.75537109375
+  ],
+  "cpus": 10,
+  "platform": "darwin",
+  "arch": "arm64",
+  "rows": [
+    {
+      "renderer": "SVG",
+      "scenario": "A",
+      "n": 50,
+      "runs": [
+        {
+          "frames": 1148,
+          "avgFps": 143.34,
+          "avgFrameMs": 6.976,
+          "p95FrameMs": 8.5
+        },
+        {
+          "frames": 1150,
+          "avgFps": 143.61,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.5
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.61,
+        "avgFrameMs": 6.963,
+        "p95FrameMs": 8.5
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "SVG",
+      "scenario": "A",
+      "n": 200,
+      "runs": [
+        {
+          "frames": 1150,
+          "avgFps": 143.63,
+          "avgFrameMs": 6.962,
+          "p95FrameMs": 8.5
+        },
+        {
+          "frames": 1148,
+          "avgFps": 143.34,
+          "avgFrameMs": 6.977,
+          "p95FrameMs": 8.5
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.63,
+        "avgFrameMs": 6.962,
+        "p95FrameMs": 8.5
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "SVG",
+      "scenario": "A",
+      "n": 800,
+      "runs": [
+        {
+          "frames": 1148,
+          "avgFps": 143.38,
+          "avgFrameMs": 6.975,
+          "p95FrameMs": 8.6
+        },
+        {
+          "frames": 1149,
+          "avgFps": 143.51,
+          "avgFrameMs": 6.968,
+          "p95FrameMs": 8.5
+        }
+      ],
+      "best": {
+        "frames": 1149,
+        "avgFps": 143.51,
+        "avgFrameMs": 6.968,
+        "p95FrameMs": 8.5
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "SVG",
+      "scenario": "B",
+      "n": 1000,
+      "runs": [
+        {
+          "frames": 1150,
+          "avgFps": 143.63,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.5
+        },
+        {
+          "frames": 1150,
+          "avgFps": 143.59,
+          "avgFrameMs": 6.964,
+          "p95FrameMs": 8.5
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.63,
+        "avgFrameMs": 6.963,
+        "p95FrameMs": 8.5
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "SVG",
+      "scenario": "B",
+      "n": 5000,
+      "runs": [
+        {
+          "frames": 1107,
+          "avgFps": 138.26,
+          "avgFrameMs": 7.233,
+          "p95FrameMs": 8.7
+        },
+        {
+          "frames": 1075,
+          "avgFps": 134.23,
+          "avgFrameMs": 7.45,
+          "p95FrameMs": 13.7
+        }
+      ],
+      "best": {
+        "frames": 1107,
+        "avgFps": 138.26,
+        "avgFrameMs": 7.233,
+        "p95FrameMs": 8.7
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "SVG",
+      "scenario": "B",
+      "n": 20000,
+      "runs": [
+        {
+          "frames": 325,
+          "avgFps": 40.41,
+          "avgFrameMs": 24.746,
+          "p95FrameMs": 29.3
+        },
+        {
+          "frames": 323,
+          "avgFps": 40.23,
+          "avgFrameMs": 24.856,
+          "p95FrameMs": 29.5
+        }
+      ],
+      "best": {
+        "frames": 325,
+        "avgFps": 40.41,
+        "avgFrameMs": 24.746,
+        "p95FrameMs": 29.3
+      },
+      "verdict": "MARGINAL"
+    },
+    {
+      "renderer": "SVG",
+      "scenario": "B",
+      "n": 50000,
+      "runs": [
+        {
+          "frames": 117,
+          "avgFps": 14.56,
+          "avgFrameMs": 68.686,
+          "p95FrameMs": 92.1
+        },
+        {
+          "frames": 120,
+          "avgFps": 14.84,
+          "avgFrameMs": 67.366,
+          "p95FrameMs": 96.8
+        }
+      ],
+      "best": {
+        "frames": 120,
+        "avgFps": 14.84,
+        "avgFrameMs": 67.366,
+        "p95FrameMs": 96.8
+      },
+      "verdict": "FAIL (破綻)"
+    },
+    {
+      "renderer": "Pixi",
+      "scenario": "A",
+      "n": 50,
+      "runs": [
+        {
+          "frames": 1149,
+          "avgFps": 143.6,
+          "avgFrameMs": 6.964,
+          "p95FrameMs": 8.6
+        },
+        {
+          "frames": 1150,
+          "avgFps": 143.62,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.6
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.62,
+        "avgFrameMs": 6.963,
+        "p95FrameMs": 8.6
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "Pixi",
+      "scenario": "A",
+      "n": 200,
+      "runs": [
+        {
+          "frames": 1150,
+          "avgFps": 143.63,
+          "avgFrameMs": 6.962,
+          "p95FrameMs": 8.5
+        },
+        {
+          "frames": 1150,
+          "avgFps": 143.62,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.4
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.63,
+        "avgFrameMs": 6.962,
+        "p95FrameMs": 8.5
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "Pixi",
+      "scenario": "A",
+      "n": 800,
+      "runs": [
+        {
+          "frames": 1150,
+          "avgFps": 143.63,
+          "avgFrameMs": 6.962,
+          "p95FrameMs": 8.5
+        },
+        {
+          "frames": 1150,
+          "avgFps": 143.63,
+          "avgFrameMs": 6.962,
+          "p95FrameMs": 8.5
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.63,
+        "avgFrameMs": 6.962,
+        "p95FrameMs": 8.5
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "Pixi",
+      "scenario": "B",
+      "n": 1000,
+      "runs": [
+        {
+          "frames": 1150,
+          "avgFps": 143.62,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.5
+        },
+        {
+          "frames": 1150,
+          "avgFps": 143.62,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.6
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.62,
+        "avgFrameMs": 6.963,
+        "p95FrameMs": 8.5
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "Pixi",
+      "scenario": "B",
+      "n": 5000,
+      "runs": [
+        {
+          "frames": 1150,
+          "avgFps": 143.62,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.5
+        },
+        {
+          "frames": 1150,
+          "avgFps": 143.62,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.6
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.62,
+        "avgFrameMs": 6.963,
+        "p95FrameMs": 8.5
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "Pixi",
+      "scenario": "B",
+      "n": 20000,
+      "runs": [
+        {
+          "frames": 1150,
+          "avgFps": 143.62,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.6
+        },
+        {
+          "frames": 1150,
+          "avgFps": 143.62,
+          "avgFrameMs": 6.963,
+          "p95FrameMs": 8.5
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.62,
+        "avgFrameMs": 6.963,
+        "p95FrameMs": 8.6
+      },
+      "verdict": "PASS (60fps維持)"
+    },
+    {
+      "renderer": "Pixi",
+      "scenario": "B",
+      "n": 50000,
+      "runs": [
+        {
+          "frames": 1150,
+          "avgFps": 143.6,
+          "avgFrameMs": 6.964,
+          "p95FrameMs": 8.5
+        },
+        {
+          "frames": 1150,
+          "avgFps": 143.59,
+          "avgFrameMs": 6.964,
+          "p95FrameMs": 8.5
+        }
+      ],
+      "best": {
+        "frames": 1150,
+        "avgFps": 143.6,
+        "avgFrameMs": 6.964,
+        "p95FrameMs": 8.5
+      },
+      "verdict": "PASS (60fps維持)"
+    }
+  ],
+  "mandelbrotMs": [
+    12.5,
+    12.300000071525574
+  ]
+}

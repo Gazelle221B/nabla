@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Pixi bench</title>
+<style>
+  html, body { margin: 0; background: #111; }
+  canvas { display: block; }
+  #hud { position: fixed; top: 4px; left: 4px; color: #0f0; font: 12px monospace; z-index: 10; }
+</style>
+</head>
+<body>
+<div id="hud">loading...</div>
+<div id="app"></div>
+
+<script src="../common/bench.js"></script>
+<script src="../common/sim.js"></script>
+<script type="module">
+import * as PIXI from '../node_modules/pixi.js/dist/pixi.min.mjs';
+
+const params = new URLSearchParams(location.search);
+const scenario = params.get('scenario') || 'A';
+const n = parseInt(params.get('n') || '200', 10);
+const W = 960, H = 600;
+
+const app = new PIXI.Application();
+await app.init({
+  width: W,
+  height: H,
+  background: '#111111',
+  antialias: false,
+  preference: 'webgl',
+});
+document.getElementById('app').appendChild(app.canvas);
+
+const hud = document.getElementById('hud');
+
+if (scenario === 'A') {
+  const arms = NablaSim.makeEpicycles(n);
+  const pts = new Float64Array(n * 4);
+  const trace = [];
+  const cx = W / 2, cy = H / 2, scale = 3;
+
+  const gfx = new PIXI.Graphics();
+  app.stage.addChild(gfx);
+
+  NablaBench.start((now, elapsed) => {
+    const tSec = now / 1000;
+    NablaSim.stepEpicycles(arms, tSec, cx, cy, scale, pts, trace);
+    gfx.clear();
+    for (let i = 0; i < n; i++) {
+      const color = i % 2 === 0 ? 0x4ea1ff : 0xff9c4e;
+      gfx.moveTo(pts[i * 4], pts[i * 4 + 1]);
+      gfx.lineTo(pts[i * 4 + 2], pts[i * 4 + 3]);
+      gfx.stroke({ width: 1, color });
+    }
+    if (trace.length >= 4) {
+      gfx.moveTo(trace[0], trace[1]);
+      for (let i = 2; i < trace.length; i += 2) {
+        gfx.lineTo(trace[i], trace[i + 1]);
+      }
+      gfx.stroke({ width: 1.5, color: 0xffffff });
+    }
+    hud.textContent = `A n=${n} elapsed=${elapsed.toFixed(0)}ms`;
+  });
+} else {
+  // Build a small circle texture once, then drive N particle sprites.
+  // `position` is a dynamic property by default, so mutating particle.x/y
+  // is picked up automatically at render time (no manual update() needed).
+  const dotGfx = new PIXI.Graphics().circle(0, 0, 2).fill({ color: 0x4ea1ff, alpha: 0.75 });
+  const dotTexture = app.renderer.generateTexture(dotGfx);
+
+  const container = new PIXI.ParticleContainer({
+    dynamicProperties: { position: true, scale: false, rotation: false, color: false },
+  });
+  app.stage.addChild(container);
+
+  const particles = new Array(n);
+  for (let i = 0; i < n; i++) {
+    const p = new PIXI.Particle({ texture: dotTexture, x: 0, y: 0, anchorX: 0.5, anchorY: 0.5 });
+    container.addParticle(p);
+    particles[i] = p;
+  }
+
+  const xs = new Float64Array(n);
+  const ys = new Float64Array(n);
+
+  NablaBench.start((now, elapsed) => {
+    NablaSim.stepCltHistogram(n, W, H, xs, ys);
+    for (let i = 0; i < n; i++) {
+      particles[i].x = xs[i];
+      particles[i].y = ys[i];
+    }
+    hud.textContent = `B n=${n} elapsed=${elapsed.toFixed(0)}ms`;
+  });
+}
+</script>
+</body>
+</html>
