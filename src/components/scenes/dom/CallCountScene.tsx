@@ -39,7 +39,7 @@ function formatCount(value: number): string {
 
 export function CallCountScene({ naiveCalls, memoizedCalls, revealed = true }: CallCountSceneProps) {
 	// 対数目盛の上限: 両方の値(非表示中の memoizedCalls も含む、上記コメント参照)のうち
-	// 大きい方を基準に、10 のべき乗へ切り上げる。10 未満(n=0,1 付近で両方とも1回)の
+	// 大きい方を基準に、10 のべき乗へ切り上げる。10 未満(n=0,1 付近。素朴=1回、メモ化=n+1 回)の
 	// 退化ケースでも目盛りが最低1段(10^0〜10^1)は出るようにフロアを 10 にする。
 	const scaleMax = Math.max(naiveCalls, memoizedCalls, 10);
 	const maxExponent = Math.max(1, Math.ceil(Math.log10(scaleMax)));

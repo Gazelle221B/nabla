@@ -106,7 +106,7 @@ export function naiveCallCount(n: number): number {
 	assertNonNegativeInteger(n, 'n');
 	if (n > MAX_SAFE_NAIVE_CALL_N) {
 		throw new RangeError(
-			`n must not exceed ${MAX_SAFE_NAIVE_CALL_N} (naiveCallCount(${MAX_SAFE_NAIVE_CALL_N + 1}) would require fib(${MAX_SAFE_NAIVE_CALL_N + 2}), which exceeds Number.MAX_SAFE_INTEGER), got ${n}`,
+			`n must not exceed ${MAX_SAFE_NAIVE_CALL_N} (naiveCallCount(${MAX_SAFE_NAIVE_CALL_N + 1}) = 2*fib(${MAX_SAFE_NAIVE_CALL_N + 2}) - 1 exceeds Number.MAX_SAFE_INTEGER, even though fib(${MAX_SAFE_NAIVE_CALL_N + 2}) itself does not), got ${n}`,
 		);
 	}
 	if (n === 0 || n === 1) return 1;

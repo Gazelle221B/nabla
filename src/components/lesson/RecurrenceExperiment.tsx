@@ -239,6 +239,19 @@ export function RecurrenceExperiment() {
 							{formatComputerSeconds(naiveCalls)}かかる計算になります(現在の n={n}
 							の値から算出した参考換算で、常にこうなるという意味ではありません)。
 						</p>
+						{/* n≤2 の退化の注記(GrokBuild レビュー指摘の反映): n=1 では素朴1回 < メモ化2回と
+						    逆転して見える。これは「関数呼び出しの回数」と「部分問題の計算回数」という数え方の
+						    定義差によるもので、無言だと中核メッセージ(メモ化が劇的に少ない)と矛盾して見える。
+						    該当状態のときだけ理由を表示する(状態依存の事実のみ)。 */}
+						{n <= 2 && (
+							<p className={styles.referenceNote}>
+								n={n} のような小さい n では、2つの回数はほとんど同じ
+								{n === 1 ? 'どころか、メモ化の方が多く見えます' : 'です'}
+								。素朴な再帰は「関数呼び出しの回数」、メモ化は「fib(0)〜fib(n) を各1回計算する回数
+								(n+1 回)」という数え方の違いによるもので、両者の差が意味を持つのは n
+								を大きくしたときの<strong>増え方</strong>です。スライダーを右へ動かして確かめてみましょう。
+							</p>
+						)}
 						<p className={identityHeld ? styles.statusHeld : styles.statusBroken}>
 							{identityHeld
 								? `素朴な再帰の呼び出し回数(${naiveCalls})は、恒等式 2・fib(n+1)−1(=${2 * fibonacci(n + 1) - 1}) と一致しています。`
