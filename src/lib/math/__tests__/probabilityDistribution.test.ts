@@ -254,3 +254,20 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 		);
 	});
 });
+
+// 独立レビュー GrokBuild の指摘で追加: simulateDraws 自身の入力検証(負本数・長さ不一致)は
+// distributionFromCounts 側のテストだけでは担保されない(simulateDraws が内部で同じ検証を
+// 通る保証を、公開 API の契約として直接固定する)。
+describe('simulateDraws の入力検証 (追加)', () => {
+	it('負の本数 → RangeError', () => {
+		expect(() => simulateDraws(1, 10, [1, 2], [1, -1])).toThrow(RangeError);
+	});
+
+	it('values と counts の長さ不一致 → RangeError', () => {
+		expect(() => simulateDraws(1, 10, [1, 2, 3], [1, 2])).toThrow(RangeError);
+	});
+
+	it('総本数0 → RangeError', () => {
+		expect(() => simulateDraws(1, 10, [1, 2], [0, 0])).toThrow(RangeError);
+	});
+});
