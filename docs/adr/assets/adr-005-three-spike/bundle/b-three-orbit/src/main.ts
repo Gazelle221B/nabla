@@ -1,0 +1,13 @@
+import { Scene, PerspectiveCamera, WebGLRenderer, BoxGeometry, MeshNormalMaterial, Mesh, GridHelper } from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+const scene = new Scene();
+const camera = new PerspectiveCamera(50, 1, 0.1, 100);
+const renderer = new WebGLRenderer();
+renderer.setSize(480, 360);
+document.getElementById('app')?.appendChild(renderer.domElement);
+scene.add(new GridHelper(4, 8));
+scene.add(new Mesh(new BoxGeometry(1, 1, 1), new MeshNormalMaterial()));
+camera.position.set(3, 3, 5);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.update();
+renderer.render(scene, camera);
