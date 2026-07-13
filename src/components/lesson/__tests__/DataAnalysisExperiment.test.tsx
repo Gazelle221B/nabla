@@ -54,24 +54,24 @@ describe('DataAnalysisExperiment (M8)', () => {
 		expect(screen.getByRole('button', { name: '予想を確定して実験する' })).toBeDisabled();
 	});
 
-	it('予想を確定すると観察が現れ、初期値(可動点=(8,10))の平均・分散・標準偏差・共分散・相関係数が正しく計算される', async () => {
+	it('予想を確定すると観察が現れ、初期値(可動点=(8,8))の平均・分散・標準偏差・共分散・相関係数が正しく計算される', async () => {
 		const user = userEvent.setup();
 		render(<DataAnalysisExperiment />);
 		await enterExperiment(user);
 
 		expect(screen.getByRole('heading', { name: '観察' })).toBeInTheDocument();
-		expect(rowCells(/^可動点/)).toEqual(['(8, 10)']);
-		// 手計算(再検算済み): points=(3,2),(3,3),(3,4),(3,5),(3,6),(8,10)
-		// x̄=23/6≈3.83, ȳ=30/6=5, var(x)=125/36≈3.47, var(y)=40/6≈6.67,
-		// sd(x)≈1.86, sd(y)≈2.58, cov=25/6≈4.17, r=cov/(sd(x)sd(y))≈0.87
-		expect(rowCells(/^平均 x̄/)).toEqual(['3.83']);
-		expect(rowCells(/^平均 ȳ/)).toEqual(['5']);
-		expect(rowCells(/^分散\(x\)/)).toEqual(['3.47']);
-		expect(rowCells(/^分散\(y\)/)).toEqual(['6.67']);
-		expect(rowCells(/^標準偏差\(x\)/)).toEqual(['1.86']);
-		expect(rowCells(/^標準偏差\(y\)/)).toEqual(['2.58']);
-		expect(rowCells(/^共分散/)).toEqual(['4.17']);
-		expect(rowCells(/^相関係数 r/)).toEqual(['0.87']);
+		expect(rowCells(/^可動点/)).toEqual(['(8, 8)']);
+		// 手計算(再検算済み): points=(1,2),(2,3),(4,4),(5,6),(6,6),(8,8)
+		// x̄=26/6≈4.33, ȳ=29/6≈4.83, var(x)≈5.56, var(y)≈4.14,
+		// sd(x)≈2.36, sd(y)≈2.03, cov≈4.72, r≈0.98
+		expect(rowCells(/^平均 x̄/)).toEqual(['4.33']);
+		expect(rowCells(/^平均 ȳ/)).toEqual(['4.83']);
+		expect(rowCells(/^分散\(x\)/)).toEqual(['5.56']);
+		expect(rowCells(/^分散\(y\)/)).toEqual(['4.14']);
+		expect(rowCells(/^標準偏差\(x\)/)).toEqual(['2.36']);
+		expect(rowCells(/^標準偏差\(y\)/)).toEqual(['2.03']);
+		expect(rowCells(/^共分散/)).toEqual(['4.72']);
+		expect(rowCells(/^相関係数 r/)).toEqual(['0.98']);
 	});
 
 	it('予想確定後、フォーカスが新出現する可動点の x スライダーへ移る (body に落ちない)', async () => {
@@ -97,36 +97,39 @@ describe('DataAnalysisExperiment (M8)', () => {
 		const sliderY = screen.getByRole('slider', { name: '可動点の y 座標(スライダー)' });
 		fireEvent.change(sliderY, { target: { value: '-5' } });
 
-		// 手計算(再検算済み): points=(3,2..6),(8,-5) → ȳ=15/6=2.5, cov=-37.5/6=-6.25,
-		// var(y)=77.5/6≈12.92, r=cov/sqrt(var(x)var(y))≈-0.93
-		expect(rowCells(/^相関係数 r/)).toEqual(['-0.93']);
+		// 手計算(再検算済み): points=(1,2),(2,3),(4,4),(5,6),(6,6),(8,-5) → r≈-0.37
+		// (旧配置と異なり、さらに x を動かすと r も変わる=距離が効く。下のテスト参照)
+		expect(rowCells(/^相関係数 r/)).toEqual(['-0.37']);
 		expect(screen.getByText(/負の相関/)).toBeInTheDocument();
 	});
 
-	it('可動点を固定5点と同じ x=3 へ動かすと、全点のx座標が同一になり相関係数は「定義されません」と safe 表示される', async () => {
+	it('外れ値の x を1増やす(8→9)と相関係数がさらに変わる — 外れ値の「距離」が r に効く(QA_MEMORY FAIL 指摘の回帰: 旧配置では x を動かしても |r| が不変だった)', async () => {
 		const user = userEvent.setup();
 		render(<DataAnalysisExperiment />);
 		await enterExperiment(user);
 
-		const sliderX = screen.getByRole('slider', { name: '可動点の x 座標(スライダー)' });
-		expect(() => fireEvent.change(sliderX, { target: { value: '3' } })).not.toThrow();
+		const sliderY = screen.getByRole('slider', { name: '可動点の y 座標(スライダー)' });
+		fireEvent.change(sliderY, { target: { value: '-5' } });
+		expect(rowCells(/^相関係数 r/)).toEqual(['-0.37']);
 
-		expect(rowCells(/^相関係数 r/)).toEqual(['定義されません']);
-		expect(screen.getByText(/縦一直線または横一直線に並んだ状態/)).toBeInTheDocument();
+		const sliderX = screen.getByRole('slider', { name: '可動点の x 座標(スライダー)' });
+		fireEvent.change(sliderX, { target: { value: '9' } });
+		// (9,-5) → r≈-0.46: x 方向の移動だけで r の絶対値が変わる(手計算・再検算済み)。
+		expect(rowCells(/^相関係数 r/)).toEqual(['-0.46']);
 	});
 
-	it('リセットで初期値(可動点=(8,10))に戻る', async () => {
+	it('リセットで初期値(可動点=(8,8))に戻る', async () => {
 		const user = userEvent.setup();
 		render(<DataAnalysisExperiment />);
 		await enterExperiment(user);
 
 		const sliderX = screen.getByRole('slider', { name: '可動点の x 座標(スライダー)' });
 		fireEvent.change(sliderX, { target: { value: '3' } });
-		expect(rowCells(/^可動点/)).not.toEqual(['(8, 10)']);
+		expect(rowCells(/^可動点/)).not.toEqual(['(8, 8)']);
 
 		await user.click(screen.getByRole('button', { name: 'リセット' }));
-		expect(rowCells(/^可動点/)).toEqual(['(8, 10)']);
-		expect(rowCells(/^相関係数 r/)).toEqual(['0.87']);
+		expect(rowCells(/^可動点/)).toEqual(['(8, 8)']);
+		expect(rowCells(/^相関係数 r/)).toEqual(['0.98']);
 	});
 
 	it('数値入力 → 確定 (blur) → 状態 → 観察表 へ同期する (可動点の x 座標)', async () => {
@@ -138,7 +141,7 @@ describe('DataAnalysisExperiment (M8)', () => {
 		fireEvent.change(numberX, { target: { value: '5' } });
 		fireEvent.blur(numberX);
 
-		expect(rowCells(/^可動点/)).toEqual(['(5, 10)']);
+		expect(rowCells(/^可動点/)).toEqual(['(5, 8)']);
 	});
 
 	it('編集途中の文字列は破壊されず、確定まで数値 state は変わらない', async () => {
@@ -149,10 +152,10 @@ describe('DataAnalysisExperiment (M8)', () => {
 		const numberX = screen.getByRole('textbox', { name: '可動点の x 座標' }) as HTMLInputElement;
 		fireEvent.change(numberX, { target: { value: '' } });
 		expect(numberX.value).toBe('');
-		expect(rowCells(/^可動点/)).toEqual(['(8, 10)']); // 確定前は初期値のまま
+		expect(rowCells(/^可動点/)).toEqual(['(8, 8)']); // 確定前は初期値のまま
 
 		fireEvent.blur(numberX);
-		expect(rowCells(/^可動点/)).toEqual(['(8, 10)']);
+		expect(rowCells(/^可動点/)).toEqual(['(8, 8)']);
 		expect(numberX.value).toBe('8');
 	});
 

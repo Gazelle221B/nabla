@@ -16,23 +16,23 @@ import styles from './DataAnalysisExperiment.module.css';
 //   (2) 相関係数 r は「直線的な関係の強さ」だけを測る量であり、全ての点のx座標(またはy座標)が
 //       同じになると、r は数学的に定義できなくなる(safe 表示)。
 //
-// データの設計判断(なぜ5点を x=3 に固定するのか): 可動点は仕様上ちょうど1点であり
-// (C-4準拠、散布図はMafsのPointで十分)、「全点のx座標が同じになり相関係数が定義されない」
-// という縮退状態を実際にUI操作(可動点のxスライダーをx=3へ動かす)だけで到達可能にするには、
-// 残り5点があらかじめ同じx座標を共有している必要がある(1自由度の可動点だけでは、
-// 元々ばらばらなx座標を持つ5点を「全部揃える」ことはできない)。5点のyをある程度ばらつかせて
-// おくことで、可動点がx=3以外にあるときは十分な相関(初期値 r≈0.87)を示す散布図としても機能する
-// (統合テスト・E2Eの「外れ値移動でrが変わる」「全点同一xのsafe表示」の両方をこのデータ1組で
-// 満たす)。
+// データの設計判断(x 方向に散らした右上がりの雲): 旧配置(固定5点が全て x=3 の縦一列)は
+// QA_MEMORY(Antigravity)が FAIL 指摘した数学的欠陥を持っていた——x 偏差ベクトルが可動点
+// のみで決まるため、相関のスケール不変性により可動点の x をどれだけ遠くへ動かしても |r| が
+// 一切変化しない(符号反転のみ)。つまり「外れ値を遠くへ動かすと相関が変わる」という中核体験
+// が x 方向で成立していなかった。固定点を散らした本配置では、可動点の位置(x・y とも)に
+// 応じて r が連続的に変化する(初期 (8,8) で r≈0.98、(8,−5) で −0.37、(9,−5) で −0.46)。
+// トレードオフ: 「全点同一 x」は UI から到達不能になるが、correlation の null 分岐は
+// lib テストが担保し、UI 側の safe 表示は防御コードとして残す。
 const FIXED_POINTS: readonly Point2[] = [
-	[3, 2],
-	[3, 3],
-	[3, 4],
-	[3, 5],
-	[3, 6],
+	[1, 2],
+	[2, 3],
+	[4, 4],
+	[5, 6],
+	[6, 6],
 ];
 
-const INITIAL_MOVABLE: Point2 = [8, 10];
+const INITIAL_MOVABLE: Point2 = [8, 8];
 
 const MOVABLE_X_MIN = 0;
 const MOVABLE_X_MAX = 10;
@@ -219,6 +219,23 @@ export function DataAnalysisExperiment() {
 				)}
 			</div>
 
+			{/* Scene は予想ゲートの前から常時表示する(独立レビュー GrokBuild Major: 予想の
+			    本文が「下の散布図には6個の点があります」と図を参照しているのに、旧実装は
+			    submitted 分岐の内側でしか Scene をマウントせず矛盾していた。既存単元
+			    〔DotProduct 等〕と同じく図は常時・操作だけ interactive={submitted} でゲート)。 */}
+			<div className={styles.scene}>
+				<ScatterScene
+					fixedPoints={FIXED_POINTS}
+					movablePoint={movablePoint}
+					meanPoint={[meanX, meanY]}
+					interactive={submitted}
+					onMovablePointChange={([x, y]) => {
+						handleMovableXChange(x);
+						handleMovableYChange(y);
+					}}
+				/>
+			</div>
+
 			{!submitted ? (
 				<p className={styles.gateHint} role="note">
 					予想を選んで「予想を確定して実験する」を押すと、点を操作して平均・分散・相関係数の変化を観察できます。
@@ -290,20 +307,6 @@ export function DataAnalysisExperiment() {
 						<button type="button" className={styles.secondaryButton} onClick={reset}>
 							リセット
 						</button>
-					</div>
-
-					{/* Scene: Tier 1 図解 (5固定点+1可動点+平均点マーカー) */}
-					<div className={styles.scene}>
-						<ScatterScene
-							fixedPoints={FIXED_POINTS}
-							movablePoint={movablePoint}
-							meanPoint={[meanX, meanY]}
-							interactive={submitted}
-							onMovablePointChange={([x, y]) => {
-								handleMovableXChange(x);
-								handleMovableYChange(y);
-							}}
-						/>
 					</div>
 
 					{/* Observation: 現在値のライブ表示。値の列は常に実値を表示し(検証フラグは下の

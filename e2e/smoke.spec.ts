@@ -2007,14 +2007,15 @@ test.describe('データの分析ページ (DataAnalysisExperiment)', () => {
 		expect(operatingBad, JSON.stringify(operatingBad, null, 2)).toEqual([]);
 	});
 
-	test('予想確定 → 初期値を確認 → 可動点を外れ値の位置(y=-5)へ動かすと相関係数が変わる → 固定点と同じx=3へ動かすと相関係数が「定義されません」になる、という基本フローが例外なく機能する', async ({
+	test('予想確定 → 初期値を確認 → 外れ値(y=-5)で相関係数が大きく変わる → xを1増やすとさらに変わる(外れ値の「距離」が効く)、という基本フローが例外なく機能する', async ({
 		page,
 	}) => {
 		await page.setViewportSize({ width: 1280, height: 2400 });
 		await page.goto(DATA_ANALYSIS_PATH);
 		await page.waitForLoadState('networkidle');
 
-		// 操作前は観察パネルが出ていない (予想ゲート)
+		// 操作前は観察パネルが出ていない (予想ゲート)。散布図(Scene)自体は
+		// ゲート前から表示される(GrokBuild 指摘の是正: 本文が図を参照するため)。
 		await expect(page.getByRole('heading', { name: '観察' })).toHaveCount(0);
 
 		// ハイドレーション完了を示す data-hydrated を確定的に待ってから操作する
@@ -2024,31 +2025,24 @@ test.describe('データの分析ページ (DataAnalysisExperiment)', () => {
 		await selectPredictionRobustly(page, '平均も相関係数も大きく変わる', '点は1個だけなので、平均も相関係数もほとんど変わらない');
 		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
 
-		// 観察パネルが現れ、初期値(可動点=(8,10))で相関係数は0.87(手計算、再検算済み)
+		// 観察パネルが現れ、初期値(可動点=(8,8))で相関係数は0.98(手計算、再検算済み)
 		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
 		const rRow = page.getByRole('row', { name: /^相関係数 r/ });
-		await expect(rRow.getByRole('cell')).toHaveText('0.87');
+		await expect(rRow.getByRole('cell')).toHaveText('0.98');
 
-		// 可動点の y 座標を数値入力で -5 に設定 → 5固定点から大きく外れた外れ値になり、
-		// 相関係数の符号が反転して負になる(手計算、再検算済み: r≈-0.93)。
+		// 可動点の y 座標を数値入力で -5 に設定 → 5固定点の右上がりの傾向から大きく外れ、
+		// 相関係数が激変する(手計算、再検算済み: 0.98 → -0.37)。
 		const numberY = page.getByRole('textbox', { name: '可動点の y 座標' });
 		await numberY.fill('-5');
 		await numberY.blur();
-		await expect(rRow.getByRole('cell')).toHaveText('-0.93');
+		await expect(rRow.getByRole('cell')).toHaveText('-0.37');
 
-		// 可動点の x 座標を固定5点と同じ x=3 に設定 → 全点のx座標が同一になり、
-		// 相関係数は数学的に定義できず「定義されません」と safe 表示される。
-		const numberX = page.getByRole('textbox', { name: '可動点の x 座標' });
-		await numberX.fill('3');
-		await numberX.blur();
-		await expect(rRow.getByRole('cell')).toHaveText('定義されません');
-		await expect(page.getByText(/縦一直線または横一直線に並んだ状態/)).toBeVisible();
-
-		// 矢印キー(ArrowRight)単独でも可動点の x スライダーを1ステップ操作でき、
-		// 例外なく観察が更新される(x=4になり、固定点(x=3)から離れて再びrが定義される)。
+		// 矢印キー(ArrowRight)単独で可動点の x を1ステップ動かす(8→9)と、相関係数が
+		// さらに変わる(-0.37 → -0.46)。旧配置(固定5点が縦一列)では x をどれだけ動かしても
+		// |r| が不変だった(QA_MEMORY FAIL 指摘)——外れ値の「距離」が効くことの回帰検証。
 		const sliderX = page.getByRole('slider', { name: '可動点の x 座標(スライダー)' });
 		await sliderX.focus();
 		await sliderX.press('ArrowRight');
-		await expect(rRow.getByRole('cell')).not.toHaveText('定義されません');
+		await expect(rRow.getByRole('cell')).toHaveText('-0.46');
 	});
 });

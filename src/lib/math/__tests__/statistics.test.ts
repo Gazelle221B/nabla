@@ -109,11 +109,11 @@ describe('correlation', () => {
 		expect(correlation([1, 2, 3, 4, 5], [2, 3, 5, 4, 6])).toBeCloseTo(0.9, 12);
 	});
 
-	it('ys が全点同一値(分散0)→ r は定義されないため null(全点が縦一直線に並ぶ状態と数学的に同型)', () => {
+	it('ys が全点同一値(分散0)→ r は定義されないため null(全点が横一直線に並ぶ状態。GrokBuild 指摘でコメント是正)', () => {
 		expect(correlation([1, 2, 3], [5, 5, 5])).toBeNull();
 	});
 
-	it('xs が全点同一値(分散0)→ r は定義されないため null(全点が横一直線に並ぶ状態と数学的に同型)', () => {
+	it('xs が全点同一値(分散0)→ r は定義されないため null(全点が縦一直線に並ぶ状態。GrokBuild 指摘でコメント是正)', () => {
 		expect(correlation([7, 7, 7], [1, 2, 3])).toBeNull();
 	});
 
@@ -276,6 +276,27 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 				const scale = Math.max(1, Math.abs(altVariance), Math.abs(implVariance));
 				return approximatelyZero(implVariance - altVariance, scale);
 			}),
+			{ seed: 42, numRuns: 200 },
+		);
+	});
+});
+
+// 独立レビュー GrokBuild の指摘で追加: アフィン不変 property は xs 側のみだったため、
+// ys 側の変換 correlation(xs, a·ys+b) = sign(a)·correlation(xs,ys) も対称に検証する。
+describe('invariants (追加: ys 側のアフィン不変、fast-check seed 42)', () => {
+	it('property: correlation(xs, a·ys+b) = sign(a)·correlation(xs, ys) (a≠0)', () => {
+		fc.assert(
+			fc.property(
+				nonDegeneratePairArb,
+				fc.double({ min: -5, max: 5, noNaN: true }).filter((a) => Math.abs(a) > 0.1),
+				fc.double({ min: -10, max: 10, noNaN: true }),
+				([xs, ys], a, b) => {
+					const original = correlation(xs, ys) as number;
+					const transformed = correlation(xs, ys.map((y) => a * y + b)) as number;
+					const expected = Math.sign(a) * original;
+					return approximatelyZero(transformed - expected, Math.max(1, Math.abs(expected)));
+				},
+			),
 			{ seed: 42, numRuns: 200 },
 		);
 	});
