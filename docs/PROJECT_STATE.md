@@ -5,7 +5,7 @@
 
 ## 現在のフェーズ
 
-**★ MVP 1 完了(2026-07-12)。** M1(三平方の定理)・M2(微分係数と接線)・M3(2×2行列と固有ベクトル)の全 PR(#1〜#7)+ 最終仕上げ PR #8(ホーム導線+トップ a11y 是正)を main へマージ済み(main `90e64fe`)。統合後 main で全品質ゲートをフレッシュ検証し回帰ゼロ、DoD の全項目を**本番デプロイ実物で実測充足**(Lighthouse Accessibility 全4ページ 100・公開 URL 200・JS 無効可読)。3記事すべてが「教材/操作/技術」DoD を満たし、MVP 1 完了条件(IMPLEMENTATION_PLAN §完了の定義)を充足。
+**★ Tier 1 マイルストーン(M4〜M7)完走(2026-07-13)。公開15単元。** MVP 1(2026-07-12 完了)に続き、ROADMAP の M4(一次関数/二次関数/三角比)・M5(相似/円周角/正弦・余弦定理)・M6(導関数/定積分/数列)・M7(内積/一次変換と行列式/確率)の12単元を、各単元とも「Sonnet 実装(隔離worktree)→ GrokBuild 独立レビュー + Antigravity 数学QA(異3系統)→ 指摘反映 → CI → マージ → 本番デプロイ」の完全サイクルで統合。**次フェーズ(MVP 2=Tier 2 / MVP 3=Tier 3)は Tier 導入 ADR + 人間 Go が着手ゲート(ADR-003)のため、自律進行はここで停止。** 従前の記録: **★ MVP 1 完了(2026-07-12)。** M1(三平方の定理)・M2(微分係数と接線)・M3(2×2行列と固有ベクトル)の全 PR(#1〜#7)+ 最終仕上げ PR #8(ホーム導線+トップ a11y 是正)を main へマージ済み(main `90e64fe`)。統合後 main で全品質ゲートをフレッシュ検証し回帰ゼロ、DoD の全項目を**本番デプロイ実物で実測充足**(Lighthouse Accessibility 全4ページ 100・公開 URL 200・JS 無効可読)。3記事すべてが「教材/操作/技術」DoD を満たし、MVP 1 完了条件(IMPLEMENTATION_PLAN §完了の定義)を充足。
 
 - **統合検証(2026-07-12、統合 main 93600d4 上でフレッシュ実行)**: `typecheck` 0 errors(29 files)/ `lint` clean / `test`(Vitest+fast-check)**140 件全緑**(8 ファイル)/ `build` 5 ページ / `test:e2e`(Playwright+axe)**13 件全緑**(3記事すべてで axe Critical/Serious 0・コンソール例外 0・予想→操作→観測フロー)。M1/M2/M3 の統合による回帰ゼロ。
 - **Lighthouse Accessibility 実測(2026-07-12)**: 3記事ページ = 100、トップページ = 94(唯一の減点 `landmark-one-main`)。PR #8 で `<main>` 追加により **全4ページ 100** を達成。DoD「Lighthouse Accessibility 原則100」を推論ではなく実測で closure。
