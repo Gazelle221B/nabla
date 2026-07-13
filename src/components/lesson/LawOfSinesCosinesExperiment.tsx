@@ -148,25 +148,34 @@ export function LawOfSinesCosinesExperiment() {
 	const B: Point2 = [cLen, 0];
 	const C: Point2 = [bLen * Math.cos(angleARad), bLen * Math.sin(angleARad)];
 
-	// 対辺 a・他の2つの内角は、b・c・角A をそのままエコーせず、座標から独立に計算する。
+	// 対辺 a は座標から独立に計算する(b・c・角A をエコーしない)。距離は退化でも有効値。
 	const a = sideLength(B, C);
-	const angleBRad = angleAtVertex(B, C, A);
-	const angleCRad = angleAtVertex(C, A, B);
-	const angleBDeg = angleBRad * RAD_TO_DEG;
-	const angleCDeg = angleCRad * RAD_TO_DEG;
+
+	// 三角形が退化(面積 = ½·b·c·|sinA| ≈ 0、= 角A が 0°/180° で3頂点が一直線)しているかを、
+	// angleAtVertex を呼ぶ前に判定する。とくに b=c かつ A=0° では B≡C となり angleAtVertex が
+	// ゼロ長ベクトルで例外を投げてクラッシュする(GrokBuild H1: 到達可能な UI 入力での未処理例外)。
+	// 退化時は角B・角C の計算をスキップして null とし、安全に「定義されません」表示へ回す。
+	const triangleDegenerate = approximatelyZero(Math.sin(angleARad), 1);
+	const angleBRad = triangleDegenerate ? null : angleAtVertex(B, C, A);
+	const angleCRad = triangleDegenerate ? null : angleAtVertex(C, A, B);
+	const angleBDeg = angleBRad === null ? null : angleBRad * RAD_TO_DEG;
+	const angleCDeg = angleCRad === null ? null : angleCRad * RAD_TO_DEG;
 
 	// 余弦定理の左辺(実測の対辺 a)・右辺(公式 lawOfCosinesSide による計算値)。
-	// 断言せず実行時に一致を検証してから表示する (GrokBuild C1 と同じ誠実さ)。
+	// lawOfCosinesSide は除算を含まず退化でも有効なので、退化時も検証・表示できる。
 	const cosineRhs = lawOfCosinesSide(bLen, cLen, angleARad);
 	const cosineHolds = approximatelyZero(cosineRhs - a, Math.max(1, a));
 
-	// 正弦定理の比。角A・角B・角C のいずれかが 0 または π に潰れている(sin ≈ 0)場合、
-	// 比は 0 除算で発散するため定義しない(MATH_CONVENTIONS §4: 退化ケースを安全に扱う)。
+	// 正弦定理の比。三角形が退化している(角A が 0/π で sinA≈0)場合、比は 0 除算で発散するため
+	// 定義しない(MATH_CONVENTIONS §4)。非退化なら角B・角C は (0,π) にあり sin>0。
 	const sinA = Math.sin(angleARad);
-	const sinB = Math.sin(angleBRad);
-	const sinC = Math.sin(angleCRad);
+	const sinB = angleBRad === null ? 0 : Math.sin(angleBRad);
+	const sinC = angleCRad === null ? 0 : Math.sin(angleCRad);
 	const ratioUndefined =
-		approximatelyZero(sinA, 1) || approximatelyZero(sinB, 1) || approximatelyZero(sinC, 1);
+		triangleDegenerate ||
+		approximatelyZero(sinA, 1) ||
+		approximatelyZero(sinB, 1) ||
+		approximatelyZero(sinC, 1);
 
 	const ratioA = ratioUndefined ? null : a / sinA;
 	const ratioB = ratioUndefined ? null : bLen / sinB;
@@ -369,11 +378,11 @@ export function LawOfSinesCosinesExperiment() {
 								</tr>
 								<tr>
 									<th scope="row">角 B(度)</th>
-									<td>{round2(angleBDeg)}</td>
+									<td>{angleBDeg === null ? '定義されません' : round2(angleBDeg)}</td>
 								</tr>
 								<tr>
 									<th scope="row">角 C(度)</th>
-									<td>{round2(angleCDeg)}</td>
+									<td>{angleCDeg === null ? '定義されません' : round2(angleCDeg)}</td>
 								</tr>
 								<tr>
 									<th scope="row">a÷sinA / b÷sinB / c÷sinC</th>

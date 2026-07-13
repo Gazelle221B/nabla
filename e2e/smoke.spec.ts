@@ -886,5 +886,17 @@ test.describe('正弦定理・余弦定理ページ (LawOfSinesCosinesExperiment
 		// 比が再び定義される(End だけでなく矢印キーの動作も担保する、GrokBuild C3 と同じ観点)。
 		await sliderAngleA.press('ArrowLeft');
 		await expect(ratioRow.getByRole('cell')).not.toHaveText('定義されません');
+
+		// GrokBuild H1 回帰: 辺 c を辺 b と同値(3)にして角 A=0° にすると B≡C の退化になる。
+		// 修正前は angleAtVertex がゼロ長ベクトルで RangeError を投げ render がクラッシュした
+		// 到達可能な UI 経路。安全に「定義されません」表示のままページが生きていることを確認する。
+		const numberC = page.getByRole('textbox', { name: '辺 c = AB の長さ' });
+		await numberC.fill('3');
+		await numberC.blur();
+		const numberAngleA = page.getByRole('textbox', { name: '角 A(度)' });
+		await numberAngleA.fill('0');
+		await numberAngleA.blur();
+		await expect(ratioRow.getByRole('cell')).toHaveText('定義されません');
+		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
 	});
 });

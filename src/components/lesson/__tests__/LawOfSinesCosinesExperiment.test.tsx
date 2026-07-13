@@ -190,6 +190,28 @@ describe('LawOfSinesCosinesExperiment (M5)', () => {
 		expect(rowValue(/^余弦定理/)).toBe('1 / 1');
 	});
 
+	it('角 A=0° かつ b=c(B と C が一致する退化)でもクラッシュせず安全に「定義されません」表示になる (GrokBuild H1 回帰)', async () => {
+		const user = userEvent.setup();
+		render(<LawOfSinesCosinesExperiment />);
+		await enterExperiment(user);
+
+		// 辺 c を辺 b と同じ 3 にして角 A を 0° にすると B≡C となり、修正前は angleAtVertex が
+		// ゼロ長ベクトルで RangeError を投げて render がクラッシュした経路(到達可能な UI 入力)。
+		const numberC = screen.getByRole('textbox', { name: '辺 c = AB の長さ' });
+		fireEvent.change(numberC, { target: { value: '3' } });
+		fireEvent.blur(numberC);
+		const numberAngleA = screen.getByRole('textbox', { name: '角 A(度)' });
+		fireEvent.change(numberAngleA, { target: { value: '0' } });
+		fireEvent.blur(numberAngleA);
+
+		// ここまで到達すれば例外は投げられていない(=クラッシュ回帰しない)。退化として安全表示。
+		expect(rowValue(/^a÷sinA/)).toBe('定義されません');
+		expect(rowValue(/^角 B/)).toBe('定義されません');
+		expect(rowValue(/^角 C/)).toBe('定義されません');
+		// b=c=3, A=0° → B≡C → 辺 a=0(余弦定理は除算がなく退化時も有効: √(9+9−18)=0)。
+		expect(rowValue(/^辺 a/)).toBe('0');
+	});
+
 	it('角 A を 180 度(退化・共線)にしても比が安全に「定義されません」と表示されクラッシュしない', async () => {
 		const user = userEvent.setup();
 		render(<LawOfSinesCosinesExperiment />);
