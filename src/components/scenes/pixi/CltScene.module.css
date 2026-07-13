@@ -1,0 +1,45 @@
+/* CltScene のレイアウト。ProbabilityScene 等 Tier 1 (Mafs) の Scene ラッパーと視覚的な
+   一貫性を保ちつつ、Pixi の canvas は固定内部解像度を CSS で縮小方向にのみ追従させる
+   (CltScene.tsx 冒頭コメントの「リサイズ」参照)。 */
+
+.sceneWrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.canvasContainer {
+	width: 100%;
+	max-width: 640px;
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 8px;
+	background: var(--nabla-surface, #1a1d29);
+	overflow: hidden;
+	line-height: 0;
+}
+
+.canvasContainer :global(canvas) {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.initError {
+	padding: 0.75rem 1rem;
+	border-left: 3px solid var(--nabla-warning, #e0a94b);
+	background: rgba(224, 169, 75, 0.1);
+}
+
+/* 視覚的には隠すが支援技術には読み上げさせる定番パターン。ADR-004: canvas は装飾に徹し、
+   実際の値は親(CltExperiment)の観察表(DOM)が主担保するため、ここは補足説明のみ。 */
+.visuallyHidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
