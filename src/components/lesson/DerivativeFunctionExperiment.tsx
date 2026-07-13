@@ -32,9 +32,11 @@ interface FunctionConfig {
 	readonly derivativeYMin: number;
 	readonly derivativeYMax: number;
 	/**
-	 * この関数の可動域全体での |f''(x)| の上界。差分商 (h=H_FIXED) と f'(a) の実行時検証
-	 * (平均値定理の剰余 |secant - f'(a)| <= (|h|/2)*bound) に使う。
-	 * f(x)=x^2 → f''=2 (定数)。f(x)=x^3 → f''=6x, |x|<=aMax → 6*aMax。
+	 * 実行時検証 (平均値定理の剰余 |secant - f'(a)| <= (|h|/2)*bound) に使う |f''| の上界。
+	 * 差分商は a+h を評価するため、上界は可動域そのものではなく **[aMin−h, aMax+h]** で取る
+	 * (独立レビュー GrokBuild C1: aMax ちょうどで剰余の評価点 ξ∈(a, a+h) が可動域を僅かに
+	 * はみ出し、上界を可動域で取ると正しいモデルに「異常」警告が出る偽陰性が起きた)。
+	 * f(x)=x^2 → f''=2 (定数、区間拡張の影響なし)。f(x)=x^3 → f''=6x → 6*(aMax+H_FIXED)。
 	 */
 	readonly secondDerivativeBound: number;
 }
@@ -64,7 +66,8 @@ const FUNCTION_CONFIGS: Record<FunctionId, FunctionConfig> = {
 		fYMax: 3.5,
 		derivativeYMin: -0.5,
 		derivativeYMax: 7,
-		secondDerivativeBound: 9,
+		// 6*(aMax+H_FIXED) = 6*1.5001 = 9.0006 を安全側に丸めた値(上記 doc コメント参照)。
+		secondDerivativeBound: 9.001,
 	},
 };
 

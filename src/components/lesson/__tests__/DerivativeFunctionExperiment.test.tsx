@@ -182,6 +182,21 @@ describe('DerivativeFunctionExperiment (M6)', () => {
 		expect(screen.getByRole('heading', { name: '観察' })).toBeInTheDocument();
 	});
 
+	it('x³ の可動域上端 (a=1.5) でも実行時検証が偽陰性にならず「一致」が表示される (GrokBuild C1 回帰: 誤差上界が差分商の評価点 a+h を覆う)', async () => {
+		const user = userEvent.setup();
+		render(<DerivativeFunctionExperiment />);
+		await enterExperiment(user);
+
+		await user.click(screen.getByRole('radio', { name: 'f(x) = x³' }));
+		const aSlider = screen.getByRole('slider', { name: '接点 a の位置(スライダー)' });
+		fireEvent.change(aSlider, { target: { value: '1.5' } });
+		expect(screen.getByTestId('scene-a')).toHaveTextContent('1.5');
+
+		// 修正前は上界が [aMin, aMax] で取られており、a=aMax では剰余の評価点 ξ∈(a, a+h) が
+		// 域外に出て |secant−f'(a)| が上界を僅かに超え、正しいモデルに警告が出ていた。
+		expect(screen.getByText(/差分商.*近似値.*と一致しています/)).toBeInTheDocument();
+	});
+
 	it('リセットで初期値 (f(x)=x^2, a=1) に戻る', async () => {
 		const user = userEvent.setup();
 		render(<DerivativeFunctionExperiment />);
