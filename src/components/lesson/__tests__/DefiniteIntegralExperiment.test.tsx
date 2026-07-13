@@ -84,6 +84,9 @@ describe('DefiniteIntegralExperiment (M6)', () => {
 		const nSlider = screen.getByRole('slider', { name: '長方形の本数 n(スライダー)' });
 		fireEvent.change(nSlider, { target: { value: '4' } });
 		const diffAtN4 = Math.abs(0.21875 - 1 / 3);
+		// 差の列は検証フラグに関わらず常に生の値を表示する(GrokBuild 回帰: 「≈ 0」固定に
+		// なると差が縮む観察が成立しない)。n=4 の実差 -0.1146 が表示されること。
+		expect(rowValue(/^差/)).toBe('-0.1146');
 
 		fireEvent.change(nSlider, { target: { value: '64' } });
 		expect(rowValue(/^n/)).toBe('64');

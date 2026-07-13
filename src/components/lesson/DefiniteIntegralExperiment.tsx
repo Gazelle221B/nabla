@@ -82,6 +82,14 @@ function round2(value: number): number {
 	return Math.round(value * 100) / 100;
 }
 
+// 差の列は「n を増やすと差が縮む」という中核観察の対象なので、常に生の値を表示する
+// (独立レビュー GrokBuild: 検証フラグと連動して「≈ 0」に固定すると、UI 到達可能な全入力で
+// 上界内に収まるため実質一度も実値が表示されず、観察が成立しない。MATH_CONVENTIONS §8 の
+// 「≈0 は真に微小な値のときのみ」にも反する)。n=64 の差(≈0.008)まで見えるよう4桁で丸める。
+function round4(value: number): number {
+	return Math.round(value * 10000) / 10000;
+}
+
 export function DefiniteIntegralExperiment() {
 	const [functionId, setFunctionId] = useState<FunctionId>(DEFAULT_FUNCTION_ID);
 	const [n, setN] = useState(INITIAL_N);
@@ -301,7 +309,7 @@ export function DefiniteIntegralExperiment() {
 								</tr>
 								<tr>
 									<th scope="row">差(合計面積 − 厳密な面積)</th>
-									<td>{convergenceVerified ? '≈ 0' : round2(diff)}</td>
+									<td>{round4(diff)}</td>
 								</tr>
 							</tbody>
 						</table>

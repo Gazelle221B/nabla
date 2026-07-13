@@ -11,8 +11,9 @@ import { evaluatePoly, type Polynomial } from '../../../lib/math/derivativeFunct
 //
 // この単元の中核体験: n (長方形の本数) を増やすと、長方形の合計面積が曲線の下の
 // 面積へ近づいていく様子を、実際に長方形が細かくなっていく図で見せる。長方形は
-// n という「読者が操作する量」によって形が変わるため accent-primary、曲線 f(x) 自体は
-// 変化しない参照対象として accent-secondary を使う (MATH_CONVENTIONS.md §9)。
+// n という「読者が操作する量」によって形が変わるため強調色 (Theme.blue)、曲線 f(x) 自体は
+// 変化しない参照対象として前景色 (Theme.foreground) を使う (MATH_CONVENTIONS.md §9 の
+// 「操作量を強調・参照対象を控えめに」の意味論を Mafs の Theme トークンで実現)。
 
 type V2 = [number, number];
 
