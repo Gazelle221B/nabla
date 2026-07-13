@@ -190,8 +190,9 @@ describe('invariants (fast-check, seed 42)', () => {
 			'掛けた e・|x|^(d+1)/(d+1)!。log1p: x∈[0,1] では係数が交代級数になり(項の符号が' +
 			'k毎に反転し、項の絶対値 x^k/k は x<=1 で単調減少するため)、交代級数の剰余上界=' +
 			'次に切り捨てた項の絶対値 x^(d+1)/(d+1) が使える。log1p は x<0 では交代級数に' +
-			'ならない(このテストでは x∈[0,1] に限定し、負の x での挙動は golden の反例テスト' +
-			'(x=1.5での発散)や記事の転用問題で別途扱う))',
+			"ならない(全項が負で同符号)ため、x∈(-1,0) は property (a') で同符号項の" +
+			'幾何級数優越の剰余上界により別途検証する。x=1.5 の golden 発散は |x|>1 の証拠で' +
+			'あり半径内の負領域の代替にはならない(GrokBuild レビュー指摘の反映))',
 		() => {
 			const cases = fc.oneof(
 				fc.record({ fn: fc.constant<MaclaurinFunction>('sin'), x: fc.double({ min: -1, max: 1, noNaN: true }) }),
@@ -214,6 +215,27 @@ describe('invariants (fast-check, seed 42)', () => {
 						bound = Math.abs(x) ** (DEGREE + 1) / (DEGREE + 1);
 					}
 
+					return actualError <= Math.max(bound, BOUND_FLOOR);
+				}),
+				{ seed: 42, numRuns: 300 },
+			);
+		},
+	);
+
+	it(
+		"property (a'): log1p の負領域 x∈[-0.9, -0.01] のオラクル突合(GrokBuild レビュー指摘の反映)" +
+			'— x<0 では全項が負で同符号のため交代級数上界は使えないが、剰余の各項の絶対値' +
+			'|x|^k/k (k>=d+1) は |x|^k で上から抑えられ、幾何級数の和により' +
+			'|R_d(x)| <= |x|^(d+1) / ((d+1)・(1-|x|)) が成り立つ(同符号項の幾何級数優越)。' +
+			'この上界も Math.log1p オラクルも maclaurinPartialSum の実装から独立',
+		() => {
+			fc.assert(
+				fc.property(fc.double({ min: -0.9, max: -0.01, noNaN: true }), (x) => {
+					const approx = maclaurinPartialSum('log1p', DEGREE, x);
+					const exact = exactValue('log1p', x);
+					const actualError = Math.abs(approx - exact);
+					const absX = Math.abs(x);
+					const bound = absX ** (DEGREE + 1) / ((DEGREE + 1) * (1 - absX));
 					return actualError <= Math.max(bound, BOUND_FLOOR);
 				}),
 				{ seed: 42, numRuns: 300 },

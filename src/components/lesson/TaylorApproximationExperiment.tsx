@@ -408,6 +408,15 @@ export function TaylorApproximationExperiment() {
 						{previousDegreeError !== null && (
 							<p className={styles.statusNeutral}>
 								{`次数を n=${degree - 1} から n=${degree} に上げると、誤差は ${round2(previousDegreeError)} から ${round2(absError)} に変化しました。`}
+								{/* 偶奇プラトーの注記(QA 指摘): sin は奇数次・cos は偶数次の項しか持たないため、
+								    係数 0 の段では多項式が1つ下の次数とまったく同じになる。無言だと「動いていない
+								    =バグ」と誤認しうるので、その状態のときだけ理由を添える(状態依存の事実のみ)。 */}
+								{degree > DEGREE_MIN && maclaurinCoefficient(functionId, degree) === 0 && (
+									<>
+										{' '}
+										{`(n=${degree} の項の係数は 0 なので、P${degree}(x) は P${degree - 1}(x) とまったく同じ多項式です。sin は奇数次、cos は偶数次の項だけを持つためです)`}
+									</>
+								)}
 							</p>
 						)}
 					</div>

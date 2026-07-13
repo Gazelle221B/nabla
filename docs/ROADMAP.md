@@ -37,35 +37,35 @@
 - ✅ `similar-figures` 相似と拡大縮小(中学)— prereq: []
 - ✅ `inscribed-angle` 円周角の定理(中学)— prereq: []
 - ✅ `law-of-sines-cosines` 正弦定理・余弦定理(高校数I)— prereq: [trigonometric-ratios]
-- ⬜ `circle-equation` 円の方程式・点と直線の距離(高校数II)
+- ✅ `circle-equation` 円の方程式・点と直線の距離(高校数II)— 実装 slug は `circle-line`(PR #27、M8a)
 
 ### algebra(関数・方程式)
 - ✅ `linear-function` 一次関数とグラフ(中学)— prereq: []
 - ✅ `quadratic-function` 二次関数とグラフ・平方完成(高校数I)— prereq: [linear-function]
-- 🔜 `quadratic-equation` 二次方程式と判別式(高校数I)— prereq: [quadratic-function]
+- ✅ `quadratic-equation` 二次方程式と判別式(高校数I)— prereq: [quadratic-function](PR #25、M8a)
 - ✅ `trigonometric-ratios` 三角比と単位円(高校数I/II)— prereq: [pythagorean-theorem]
-- ⬜ `exp-log` 指数関数・対数関数(高校数II)— prereq: []
+- ✅ `exp-log` 指数関数・対数関数(高校数II)— prereq: [](PR #26、M8a)
 - ✅ `sequences` 数列と漸化式(高校数B)
 
 ### calculus(微積分)
 - ✅ `derivative-tangent-line` 微分係数と接線(高校数II)
 - ✅ `derivative-function` 導関数 — 微分係数から関数へ(高校数II)— prereq: [calculus/derivative-tangent-line](実装時に slug/焦点を「関数としての導関数」へ具体化)
 - ✅ `definite-integral-area` 定積分と面積(高校数II)— prereq: [derivative-tangent-line]
-- ⬜ `limits-sequences` 数列と極限(高校数III)— prereq: [sequences]
-- ⬜ `taylor-approximation` テイラー近似(大学教養)— prereq: [derivative-tangent-line]
+- ✅ `limits-sequences` 数列と極限(高校数III)— prereq: [sequences](PR #31、M8c)
+- 🔜 `taylor-approximation` テイラー近似(大学教養)— prereq: [derivative-tangent-line](M8c 実装中)
 
 ### linear-algebra(線形代数)
 - ✅ `eigenvectors` 2×2行列と固有ベクトル(大学教養)
 - ✅ `dot-product` ベクトルの内積(高校数C)— prereq: []
 - ✅ `linear-transformation-2d` 一次変換(2×2)と行列式(高校数C/大学)— prereq: [eigenvectors]
-- ⬜ `matrix-determinant-area` 行列式と面積拡大率(大学教養)— prereq: [linear-transformation-2d]
+- ✅ `matrix-determinant-area` 行列式と面積拡大率(大学教養)— `linear-transformation-2d` が行列式=面積拡大率を中核体験として既にカバー(2026-07-13 判断、独立単元は立てない)
 
 ### probability / statistics(確率・統計)
 - ✅ `simple-probability` 確率(単純試行・樹形図)(中学)— prereq: []
-- ⬜ `permutation-combination` 場合の数(順列・組合せ)(高校数A)— prereq: [simple-probability]
-- ⬜ `data-analysis` データの分析(平均・分散・相関)(高校数I)— prereq: []
-- ⬜ `probability-distribution` 確率分布と期待値(高校数B)— prereq: [simple-probability]
-- ⬜ `normal-distribution-clt` 正規分布・中心極限定理(大学教養、Tier 2 候補)— prereq: [probability-distribution]
+- ✅ `permutation-combination` 場合の数(順列・組合せ)(高校数A)— 実装 slug は `combinatorics`(PR #28、M8b)
+- ✅ `data-analysis` データの分析(平均・分散・相関)(高校数I)— prereq: [](PR #29、M8b)
+- ✅ `probability-distribution` 確率分布と期待値(高校数B)— prereq: [simple-probability](PR #30、M8b)
+- ⬜ `normal-distribution-clt` 正規分布・中心極限定理(大学教養)— prereq: [probability-distribution]。**Tier 2(MVP 2)へ送致済み**(大量試行の描画密度が Tier 1/SVG の限界を超えるため)
 
 ### discrete-math(離散数学、主に大学・後期波)
 - ⬜ `graph-theory-intro` グラフ理論入門 / `recurrence` 漸化式と計算量 など(バックログ)
