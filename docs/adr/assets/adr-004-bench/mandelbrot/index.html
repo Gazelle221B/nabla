@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Mandelbrot reference</title>
+<style>
+  html, body { margin: 0; background: #111; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="640" height="480"></canvas>
+<script>
+(function () {
+  const W = 640, H = 480, MAX_ITER = 100;
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(W, H);
+
+  function mandelbrotOnce() {
+    const t0 = performance.now();
+    const data = img.data;
+    const xmin = -2.5, xmax = 1.0, ymin = -1.25, ymax = 1.25;
+    for (let py = 0; py < H; py++) {
+      const y0 = ymin + (py / H) * (ymax - ymin);
+      for (let px = 0; px < W; px++) {
+        const x0 = xmin + (px / W) * (xmax - xmin);
+        let x = 0, y = 0, iter = 0;
+        while (x * x + y * y <= 4 && iter < MAX_ITER) {
+          const xt = x * x - y * y + x0;
+          y = 2 * x * y + y0;
+          x = xt;
+          iter++;
+        }
+        const idx = (py * W + px) * 4;
+        const shade = iter === MAX_ITER ? 0 : Math.floor((iter / MAX_ITER) * 255);
+        data[idx] = shade;
+        data[idx + 1] = shade;
+        data[idx + 2] = Math.floor(shade * 0.6);
+        data[idx + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    const t1 = performance.now();
+    return t1 - t0;
+  }
+
+  // Run once "cold", then report a fresh single-call timing (matches the
+  // "one render, e.g. on zoom" use case rather than steady-state rAF).
+  mandelbrotOnce();
+  const ms = mandelbrotOnce();
+  window.__MANDEL_MS__ = ms;
+  window.__MANDEL_DONE__ = true;
+  document.title = 'Mandelbrot ' + ms.toFixed(2) + 'ms';
+})();
+</script>
+</body>
+</html>
