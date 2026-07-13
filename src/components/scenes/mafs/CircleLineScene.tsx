@@ -5,6 +5,7 @@ import {
 	footOfPerpendicular,
 	circleLineIntersections,
 } from '../../../lib/math/circleLine.js';
+import { approximatelyZero } from '../../../lib/math/compare.js';
 
 // Tier 1 (Mafs/SVG) 図解レイヤ (AGENTS.md §5, docs/DESIGN.md §レンダリング戦略)。
 // 数学の計算(距離・垂線の足・交点の導出)は lib/math/circleLine.ts の純粋関数へ委譲し、
@@ -104,7 +105,9 @@ export function CircleLineScene({
 			{/* 中心から直線への垂線(距離 d の可視化) */}
 			<Line.Segment point1={[p, q]} point2={[foot[0], foot[1]]} color={COLORS.perpendicular} />
 			<Point x={foot[0]} y={foot[1]} color={COLORS.perpendicular} />
-			{d > 0.001 && (
+			{/* ラベル「d」は距離が実質ゼロ(中心が直線上)のときのみ隠す。固定絶対閾値 0.001 では
+			    なくスケール相対判定を使う(MATH_CONVENTIONS §2、GrokBuild 指摘)。 */}
+			{!approximatelyZero(d, Math.max(1, r)) && (
 				<LaTeX
 					at={[(p + foot[0]) / 2 + 0.3, (q + foot[1]) / 2 + 0.3]}
 					tex="d"

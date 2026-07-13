@@ -156,6 +156,23 @@ describe('CircleLineExperiment (M8)', () => {
 		expect(screen.getByRole('textbox', { name: '直線の傾き m' })).toHaveValue('2');
 	});
 
+	it('m≠0 では距離 d が |k| と一致しない(誤解「y切片比較で判定」の実験的反証を自動テストでも踏む、GrokBuild 指摘)', async () => {
+		const user = userEvent.setup();
+		render(<CircleLineExperiment />);
+		await enterExperiment(user);
+
+		// m=2, k=3: d = |k|/√(m²+1) = 3/√5 ≈ 1.34(|k|=3 とは大きく異なる)。
+		const numberM = screen.getByRole('textbox', { name: '直線の傾き m' });
+		fireEvent.change(numberM, { target: { value: '2' } });
+		fireEvent.blur(numberM);
+		const numberK = screen.getByRole('textbox', { name: '直線の切片 k' });
+		fireEvent.change(numberK, { target: { value: '3' } });
+		fireEvent.blur(numberK);
+
+		const dRow = screen.getByRole('row', { name: /中心から直線までの距離 d/ });
+		expect(within(dRow).getByRole('cell').textContent).toBe('1.34');
+	});
+
 	it('リセットで初期値 (m=0,k=2) に戻る', async () => {
 		const user = userEvent.setup();
 		render(<CircleLineExperiment />);

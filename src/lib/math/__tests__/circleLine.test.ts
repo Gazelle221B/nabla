@@ -188,3 +188,61 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 		},
 	);
 });
+
+// 独立レビュー GrokBuild の指摘で追加した2つの property。
+describe('invariants (追加: 接線境界と垂線の足、fast-check seed 42)', () => {
+	it(
+		'property (d): 構成的な接線 — 単位円上の点 T=(cosθ,sinθ) での接線は、中心からの距離が' +
+			'半径≈1 になり、返る交点(浮動小数のため 0〜2 個に揺れうる)はすべて接点 T の近傍にある ' +
+			'(接線境界 d=r を乱数任せにせず構成的に行使する。exact D=0 は浮動小数構成では' +
+			'狙えないため、個数ではなく「距離=半径」と「交点の位置」という頑健な性質で検証する)',
+		() => {
+			fc.assert(
+				fc.property(
+					// sinθ≈0(垂直接線=y=mx+k で表現不能)を避ける角度域。
+					fc.double({ min: 0.3, max: Math.PI - 0.3, noNaN: true }),
+					fc.boolean(),
+					(thetaRaw, lower) => {
+						const theta = lower ? -thetaRaw : thetaRaw;
+						const tx = Math.cos(theta);
+						const ty = Math.sin(theta);
+						// T での接線: 傾き m=−cosθ/sinθ、T を通る。
+						const m = -tx / ty;
+						const k = ty - m * tx;
+						const d = pointLineDistance(0, 0, m, k);
+						if (!approximatelyZero(d - 1, 1)) return false;
+						const points = circleLineIntersections(0, 0, 1, m, k);
+						// 交点が返る場合、それはすべて接点 T の近傍でなければならない。
+						return points.every(
+							([ix, iy]) => distance([ix, iy], [tx, ty]) < 1e-6,
+						);
+					},
+				),
+				{ seed: 42, numRuns: 200 },
+			);
+		},
+	);
+
+	it(
+		'property (e): 垂線の足 — footOfPerpendicular の結果は直線 y=mx+k の上にあり、' +
+			'元の点との距離が pointLineDistance と一致する(2つの独立実装の突合)',
+		() => {
+			fc.assert(
+				fc.property(
+					fc.double({ min: -10, max: 10, noNaN: true }),
+					fc.double({ min: -10, max: 10, noNaN: true }),
+					fc.double({ min: -5, max: 5, noNaN: true }),
+					fc.double({ min: -10, max: 10, noNaN: true }),
+					(px, py, m, k) => {
+						const [fx, fy] = footOfPerpendicular(px, py, m, k);
+						const onLine = approximatelyZero(fy - (m * fx + k), Math.max(1, Math.abs(fy)));
+						const d = pointLineDistance(px, py, m, k);
+						const viaFoot = distance([px, py], [fx, fy]);
+						return onLine && approximatelyZero(viaFoot - d, Math.max(1, d));
+					},
+				),
+				{ seed: 42, numRuns: 200 },
+			);
+		},
+	);
+});
