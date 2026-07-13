@@ -216,6 +216,7 @@ export function ProbabilityExperiment() {
 								step={1}
 								value={nToSliderPosition(n)}
 								aria-label="試行回数 n(スライダー、対数目盛り)"
+								aria-valuetext={`${n} 回`}
 								onChange={(e) => handleSliderChange(Number(e.target.value))}
 							/>
 							<input
