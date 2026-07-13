@@ -163,3 +163,21 @@ describe('SurfacePartialExperiment (MVP3 第3波, Tier 3a/Three.js)', () => {
 		expect(container.querySelector('noscript')).toBeTruthy();
 	});
 });
+
+// レビュー指摘(PR #43)の反映: 臨界点(∇f=0)での退化表示の検証。
+describe('臨界点の退化表示 (追加)', () => {
+	it('paraboloid の原点(∇f=0)では勾配方向が「定義されない」と表示され、checkpoint も臨界点文言になる', async () => {
+		const user = userEvent.setup();
+		render(<SurfacePartialExperiment />);
+		await enterExperiment(user);
+		// 注目点を原点へ(数値入力で確定)
+		const inputX = screen.getByLabelText(/x₀/);
+		const inputY = screen.getByLabelText(/y₀/);
+		fireEvent.change(inputX, { target: { value: '0' } });
+		fireEvent.blur(inputX);
+		fireEvent.change(inputY, { target: { value: '0' } });
+		fireEvent.blur(inputY);
+		expect(screen.getByText(/定義されない(.*)∇f=0/)).toBeInTheDocument();
+		expect(screen.getByText(/平らな点/)).toBeInTheDocument();
+	});
+});

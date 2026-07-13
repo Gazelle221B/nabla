@@ -103,6 +103,9 @@ export function SurfacePartialExperiment() {
 	const directional = directionalDerivative(fnId, x0, y0, thetaDeg);
 	const gradMag = gradientMagnitude(fnId, x0, y0);
 	const gradDir = gradientDirectionDeg(fnId, x0, y0);
+	// 臨界点(∇f=0)の判定(両レビュー指摘の反映): このとき「勾配方向」は定義されず、
+	// どの向きへ進んでも傾きは0。UI の言明を状態依存で切り替えるためのフラグ。
+	const isCriticalPoint = approximatelyZero(gradMag, 1);
 
 	const predictionCorrect = prediction === 'varies';
 
@@ -293,7 +296,7 @@ export function SurfacePartialExperiment() {
 								</tr>
 								<tr>
 									<th scope="row">最大になる向き(勾配方向)</th>
-									<td>{round2(gradDir)}°</td>
+									<td>{isCriticalPoint ? '定義されない(この点は平ら: ∇f=0、どの向きも傾き0)' : `${round2(gradDir)}°`}</td>
 								</tr>
 							</tbody>
 						</table>
@@ -312,15 +315,20 @@ export function SurfacePartialExperiment() {
 						</p>
 						<p>
 							{predictionCorrect
-								? 'その通りです。同じ点でも、進む向きによって足元の傾きは変わります。'
-								: '実は、同じ点でも進む向きによって足元の傾きは変わります。予想と見比べてみましょう。'}
+								? 'その通りです。ほとんどの点では、進む向きによって足元の傾きが変わります。'
+								: '実は、ほとんどの点では、進む向きによって足元の傾きが変わります。予想と見比べてみましょう。'}
+							{isCriticalPoint &&
+								' ただし、いま注目している点はちょうど「平らな点」(∇f=0、山頂・谷底・鞍点のような臨界点)で、どの向きへ進んでも傾きは0です——注目点を少し動かすと、向きによる違いが現れます。'}
 						</p>
 						<p className={styles.narration}>
-							なぜそうなるのか: この点での傾きは1つの数ではなく、x方向の傾き(∂f/∂x=
-							{formatSigned(dxAnalytic)})とy方向の傾き(∂f/∂y={formatSigned(dyAnalytic)})という
-							2つの独立な値(偏微分)で決まります。一般の向き θ への傾き(方向微分)は、
-							この2つを θ で重み付けした D_θf = ∂f/∂x・cosθ + ∂f/∂y・sinθ という式になり、
-							θ={gradDir.toFixed(0)}° 付近(勾配方向)で最大値 |∇f|={gradMag.toFixed(2)} を取ります。
+							なぜそうなるのか: この点での傾きは1つの数ではなく、「x方向の傾き」(=
+							{formatSigned(dxAnalytic)})と「y方向の傾き」(={formatSigned(dyAnalytic)})という
+							2つの独立な値で決まります(この2つの正式な名前と記号は、下の「形式的な定義」で
+							導入します)。一般の向き θ への傾きは、この2つを cosθ・sinθ で重み付けした
+							合成になります。
+							{isCriticalPoint
+								? 'いまの点では両方の傾きが0なので、どの向きに合成しても傾きは0のままです。'
+								: `いまの点では θ=${gradDir.toFixed(0)}° 付近で傾きが最大(=${gradMag.toFixed(2)})になります。`}
 						</p>
 						<p className={styles.narration}>
 							よくある誤解: 「1点での傾きは1つの数に決まる(1変数のときと同じ)」。しかし鞍点面

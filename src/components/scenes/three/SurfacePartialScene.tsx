@@ -54,7 +54,7 @@ const WIDTH = 480;
 const HEIGHT = 420;
 const STEP = Math.PI / 12; // 15度刻み(ADR-005 §3)
 const DEFAULT_CAMERA_POSITION: readonly [number, number, number] = [5, 4.5, 6];
-const DEFAULT_TARGET: readonly [number, number, number] = [0, 1, 0];
+const DEFAULT_TARGET: readonly [number, number, number] = [0, 0, 0]; // 全プリセットの対称中心=原点(QA 指摘の反映)
 const MIN_POLAR = 0.15;
 const MAX_POLAR = Math.PI - 0.15;
 
@@ -70,7 +70,19 @@ const COLOR_SURFACE_FACE = 0x4f8ff0;
 const COLOR_SURFACE_WIRE = 0x33384a;
 const COLOR_MARKER = 0xe7e9f0;
 const COLOR_TANGENT_X = 0xff6b6b; // x方向接線(赤、LinearTransform3dScene の e1' と同じ配色)
-const COLOR_TANGENT_Y = 0x4f8ff0; // y方向接線(青、同 e2' と同じ配色)
+const COLOR_TANGENT_Y = 0x35c26e; // y方向接線(緑。曲面と同じ青だと埋没する——GrokBuild レビュー指摘)
+
+/**
+ * 数学座標 (x, y, z=f(x,y)) → シーン座標 [x, z, −y] の単一写像(両レビュー指摘の反映)。
+ * Three.js は Y 軸が画面の上(OrbitControls・離散カメラボタンの天頂も Y)なので、恒等写像だと
+ * 関数の「高さ」z が画面の手前/奥に寝てしまい「山の斜面」の直観と一致しない。
+ * (x,y,z)→(x,z,−y) は x 軸まわり −90° の回転(det=+1、鏡映ではない)で、
+ * 高さ z が画面の上、y は画面の奥向きになる。曲面・マーカー・接線・ラベルの
+ * すべてがこの関数だけを通る(座標変換の単一定義、ADR-005 §4)。
+ */
+function toSceneCoords(x: number, y: number, z: number): [number, number, number] {
+	return [x, z, -y];
+}
 
 function buildSurfaceGeometry(fnId: SurfaceFnId): BufferGeometry {
 	const n = GRID_SEGMENTS;
@@ -82,7 +94,7 @@ function buildSurfaceGeometry(fnId: SurfaceFnId): BufferGeometry {
 		for (let i = 0; i <= n; i++) {
 			const x = GRID_MIN + step * i;
 			const z = evaluateSurface(fnId, x, y);
-			positions.push(x, y, z);
+			positions.push(...toSceneCoords(x, y, z));
 		}
 	}
 	const indices: number[] = [];
@@ -113,12 +125,16 @@ function buildTangentLine(
 	color: number,
 ): Line {
 	const positions = [
-		x0 - dirX * TANGENT_HALF_LENGTH,
-		y0 - dirY * TANGENT_HALF_LENGTH,
-		z0 - slope * TANGENT_HALF_LENGTH,
-		x0 + dirX * TANGENT_HALF_LENGTH,
-		y0 + dirY * TANGENT_HALF_LENGTH,
-		z0 + slope * TANGENT_HALF_LENGTH,
+		...toSceneCoords(
+			x0 - dirX * TANGENT_HALF_LENGTH,
+			y0 - dirY * TANGENT_HALF_LENGTH,
+			z0 - slope * TANGENT_HALF_LENGTH,
+		),
+		...toSceneCoords(
+			x0 + dirX * TANGENT_HALF_LENGTH,
+			y0 + dirY * TANGENT_HALF_LENGTH,
+			z0 + slope * TANGENT_HALF_LENGTH,
+		),
 	];
 	const geometry = new BufferGeometry();
 	geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
@@ -208,6 +224,16 @@ export function SurfacePartialScene({ fnId, x0, y0, revealPartialLabels }: Surfa
 		camera.position.set(...DEFAULT_CAMERA_POSITION);
 
 		const axes = new AxesHelper(2.4);
+		// 写像後の軸の意味を明示するラベル(シーン X=数学 x、シーン Y=高さ z、シーン −Z=数学 y)。
+		const axisLabelX = makeTextSprite('x', '#e05555', [0.3, 0.18]);
+		axisLabelX.position.set(2.6, 0, 0);
+		scene.add(axisLabelX);
+		const axisLabelZ = makeTextSprite('z(高さ)', '#55c07a', [0.7, 0.2]);
+		axisLabelZ.position.set(0, 2.6, 0);
+		scene.add(axisLabelZ);
+		const axisLabelY = makeTextSprite('y', '#5f8fe0', [0.3, 0.18]);
+		axisLabelY.position.set(0, 0, -2.6);
+		scene.add(axisLabelY);
 		scene.add(axes);
 
 		const surfaceGroup = new Group();
@@ -246,6 +272,11 @@ export function SurfacePartialScene({ fnId, x0, y0, revealPartialLabels }: Surfa
 			disposeGroup(pointGroup);
 			axes.geometry.dispose();
 			(axes.material as LineBasicMaterial).dispose();
+			// 軸ラベル Sprite の破棄(自分が作ったものは自分で破棄する規約)。
+			for (const label of [axisLabelX, axisLabelY, axisLabelZ]) {
+				label.material.map?.dispose();
+				label.material.dispose();
+			}
 			renderer.dispose();
 			if (renderer.domElement.parentElement === containerRef.current) {
 				containerRef.current?.removeChild(renderer.domElement);
@@ -309,7 +340,7 @@ export function SurfacePartialScene({ fnId, x0, y0, revealPartialLabels }: Surfa
 			new SphereGeometry(0.07, 12, 8),
 			new MeshBasicMaterial({ color: COLOR_MARKER }),
 		);
-		marker.position.set(x0, y0, z0);
+		marker.position.set(...toSceneCoords(x0, y0, z0));
 		group.add(marker);
 
 		group.add(buildTangentLine(x0, y0, z0, 1, 0, dx, COLOR_TANGENT_X));
@@ -317,11 +348,11 @@ export function SurfacePartialScene({ fnId, x0, y0, revealPartialLabels }: Surfa
 
 		if (revealPartialLabels) {
 			const labelX = makeTextSprite(`∂f/∂x=${dx.toFixed(2)}`, '#ff6b6b', [1.3, 0.4]);
-			labelX.position.set(x0 + TANGENT_HALF_LENGTH * 1.15, y0, z0 + dx * TANGENT_HALF_LENGTH * 1.15);
+			labelX.position.set(...toSceneCoords(x0 + TANGENT_HALF_LENGTH * 1.15, y0, z0 + dx * TANGENT_HALF_LENGTH * 1.15));
 			group.add(labelX);
 
 			const labelY = makeTextSprite(`∂f/∂y=${dy.toFixed(2)}`, '#4f8ff0', [1.3, 0.4]);
-			labelY.position.set(x0, y0 + TANGENT_HALF_LENGTH * 1.15, z0 + dy * TANGENT_HALF_LENGTH * 1.15);
+			labelY.position.set(...toSceneCoords(x0, y0 + TANGENT_HALF_LENGTH * 1.15, z0 + dy * TANGENT_HALF_LENGTH * 1.15));
 			group.add(labelY);
 		}
 	}, [ready, fnId, x0, y0, revealPartialLabels]);
