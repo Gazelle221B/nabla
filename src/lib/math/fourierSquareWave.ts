@@ -116,9 +116,12 @@ export function fourierPartialSum(nTerms: number, t: number): number {
  * sin(k・0)=0 かつ sin(kπ)=0(整数 k)なので被積分関数の値そのものが 0 になり、square(0)や
  * square(π) の値(0)がどちらであっても積分の評価に影響しない——不連続性が「消える」特殊な
  * 配置になっている、事前に node で確認済み)。滑らかな関数に対するシンプソン則の誤差は
- * O(h⁴)(h=(π−0)/n)であり、n=2000 なら h≈1.57e-3、h⁴≈6.1e-12 で桁違いに小さく、
- * このテストで要求する精度(approximatelyZero, 相対誤差 1e-9 オーダー)を十分に満たす
- * (下記の不変条件テストで実測して固定済み)。
+ * O((b−a)·h⁴·max|f⁗|/180) であり、被積分関数 sin(kt) の4階微分は k⁴ 倍に増幅される点に
+ * 注意(k=25 では k⁴≈39万)。n=2000(h≈1.57e-3)では上界がおおむね
+ * π·h⁴·k⁴/180 ≈ 4.2e-8(k=25)となるが、実測の最大差は 6.7e-10(奇数 k≤25、テストで
+ * 固定済み)で上界より十分小さい——判定は approximatelyZero(相対 1e-9)を係数値スケールで
+ * 使い、実測に裏付けられた余裕がある(GrokBuild レビュー指摘の反映: 以前の誤差評価は
+ * k⁴ 因子を落としていた)。
  */
 export function computeCoefficientByQuadrature(k: number): number {
 	assertValidHarmonicIndex(k, 'k');
