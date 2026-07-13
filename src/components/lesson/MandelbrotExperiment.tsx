@@ -73,12 +73,6 @@ function clampMaxIter(value: number, fallback: number): number {
 	return Math.round(clamped / MAX_ITER_STEP) * MAX_ITER_STEP;
 }
 
-// 表示専用の丸め(MATH_CONVENTIONS.md §1: 内部値は丸めず、表示のみ丸める)。
-function round2(value: number): number {
-	const rounded = Math.round(value * 100) / 100;
-	return Object.is(rounded, -0) ? 0 : rounded;
-}
-
 /**
  * 表示中心の座標フォーマット(表示専用)。既定の小数第2位(MATH_CONVENTIONS §8)のままだと、
  * 深くズームしたときに中心座標が「変化していないように」見えてしまう(実際には小数点以下
