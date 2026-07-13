@@ -108,22 +108,45 @@ const nonZeroVecArb = fc
 
 describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 	it(
-		'property: 成分公式 ↔ 幾何公式(|a||b|cosθ)の独立2経路突合 — dot(a,b) と ' +
-			'magnitude(a)・magnitude(b)・Math.cos(angleBetween(a,b)) は一致する ' +
-			'(C-7: dot は成分の積和、angleBetween は atan2(|外積|,内積) 経由で cos を' +
-			'直接エコーしない別経路。検証には Math.cos(angleBetween(...)) を使い dot の成分計算と突合する)',
+		'property: 成分公式 ↔ 幾何公式(|a||b|cosθ)の独立2経路突合 — dot(a,b) と、' +
+			'各ベクトルの偏角の差から求めた |a||b|cosθ が一致する ' +
+			'(C-7 注意〔QA_MEMORY 指摘で是正〕: angleBetween(atan2(|外積|,内積))を経由すると、' +
+			'ラグランジュ恒等式 (a·b)²+(a×b)²=|a|²|b|² により |a||b|cos(angleBetween) が成分内積へ' +
+			'恒等的に簡約され、突合が三角恒等式の確認に潰れる。ここでは各ベクトルの偏角 ' +
+			'atan2(y,x) の差を [0,π] へ正規化した参照角を使う——成分内積の式を一切経由しない独立経路)',
 		() => {
 			fc.assert(
 				fc.property(nonZeroVecArb, nonZeroVecArb, (a, b) => {
 					const componentDot = dot(a, b);
-					const geometricDot = magnitude(a) * magnitude(b) * Math.cos(angleBetween(a, b));
-					const scale = Math.max(1, Math.abs(componentDot), Math.abs(geometricDot));
+					// 独立経路: 偏角の差(成分内積 aₓbₓ+aᵧbᵧ を計算しない)
+					const phiA = Math.atan2(a[1], a[0]);
+					const phiB = Math.atan2(b[1], b[0]);
+					let refAngle = Math.abs(phiA - phiB);
+					if (refAngle > Math.PI) refAngle = 2 * Math.PI - refAngle;
+					const geometricDot = magnitude(a) * magnitude(b) * Math.cos(refAngle);
+					// atan2 の偏角と cos の合成は、なす角が 0/π に近い領域で最後の桁が揺れるため、
+					// スケールに |a||b| を含めた相対誤差で判定する(値の大きさに比例した許容)。
+					const scale = Math.max(1, magnitude(a) * magnitude(b));
 					return approximatelyZero(componentDot - geometricDot, scale);
 				}),
 				{ seed: 42, numRuns: 200 },
 			);
 		},
 	);
+
+	it('property: angleBetween(atan2 実装)は偏角の差と一致する(角度計算そのものの独立検証)', () => {
+		fc.assert(
+			fc.property(nonZeroVecArb, nonZeroVecArb, (a, b) => {
+				const viaLib = angleBetween(a, b);
+				const phiA = Math.atan2(a[1], a[0]);
+				const phiB = Math.atan2(b[1], b[0]);
+				let ref = Math.abs(phiA - phiB);
+				if (ref > Math.PI) ref = 2 * Math.PI - ref;
+				return approximatelyZero(viaLib - ref, Math.max(1, ref));
+			}),
+			{ seed: 42, numRuns: 200 },
+		);
+	});
 
 	it('property: 対称性 dot(a,b) = dot(b,a)', () => {
 		fc.assert(

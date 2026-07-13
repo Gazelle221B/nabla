@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { dot, magnitude, angleBetween, type Vec2 } from '../../lib/math/dotProduct.js';
+import { dot, magnitude, type Vec2 } from '../../lib/math/dotProduct.js';
 import { approximatelyZero } from '../../lib/math/compare.js';
 import { DotProductScene } from '../scenes/mafs/DotProductScene.js';
 import styles from './DotProductExperiment.module.css';
@@ -16,7 +16,7 @@ import styles from './DotProductExperiment.module.css';
 //
 // 設計判断: 大きさ |a|・|b| は固定値(MAG_A, MAG_B)とし、読者が操作するのは向き(角度)のみに
 // 絞る(タスク厳守事項「大きさ固定でシンプルに」を採用)。これにより、ゼロベクトル
-// (angleBetween が RangeError を投げる唯一の入力)はこの UI からは構造的に到達不可能になる
+// (なす角が数学的に定義されない唯一の入力)はこの UI からは構造的に到達不可能になる
 // ——大きさが正の定数である限り、原点に一致するベクトルは作れない。
 
 const DEG_TO_RAD = Math.PI / 180;
@@ -118,9 +118,14 @@ export function DotProductExperiment() {
 	const componentDot = dot(vecA, vecB);
 	const magA = magnitude(vecA);
 	const magB = magnitude(vecB);
-	// angleBetween は atan2(|外積|,内積) 経由で求める、成分計算 componentDot とは独立した経路
-	// (C-7: 同じ式へ戻すだけの自己確認的な計算にしない)。
-	const angleRad = angleBetween(vecA, vecB);
+	// 幾何経路のなす角は、成分を一切経由しない**スライダー状態の角度差**から直接求める
+	// (QA_MEMORY 指摘: angleBetween は内部で同じ成分内積を計算するため、それを cos に戻すと
+	// ラグランジュ恒等式 (a·b)²+(a×b)²=|a|²|b|² により componentDot と恒等的に一致してしまい、
+	// 2経路突合が三角恒等式の確認に潰れる。スライダーの θa−θb は成分計算と真に独立な情報源)。
+	// [0°, 180°] へ正規化(なす角は符号なし・優角は劣角へ折り返す)。
+	let angleDiffDeg = Math.abs(angleADeg - angleBDeg) % 360;
+	if (angleDiffDeg > 180) angleDiffDeg = 360 - angleDiffDeg;
+	const angleRad = angleDiffDeg * DEG_TO_RAD;
 	const geometricDot = magA * magB * Math.cos(angleRad);
 
 	// 2経路(成分計算 と |a||b|cosθ)の一致を実行時検証する。丸めない内部値で判定し、

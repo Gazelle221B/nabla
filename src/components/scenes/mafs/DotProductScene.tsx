@@ -22,8 +22,8 @@ const COLORS = {
 	arc: Theme.foreground,
 };
 
-// 可動点を原点中心の円(半径 = 現在の大きさ)へ拘束する制約関数。ドラッグ後の点はこの円上に
-// 留まり、大きさは変えず向きだけを変える(大きさはスライダー/数値入力側で別途操作する設計)。
+// 可動点を原点中心の円(半径 = そのベクトルの固定の大きさ)へ拘束する制約関数。ドラッグ後の
+// 点はこの円上に留まり、向きだけが変わる(大きさは MAG_A/MAG_B の固定定数で、UI から変更しない)。
 // 原点(大きさ0、向きが定義できない一点)へドラッグされた場合は、既定の向き (radius, 0) へ
 // 丸める(NaN(0/0)を生まない。EigenvectorScene の constrainToUnitCircle と同じ考え方)。
 function makeConstrainToRadius(radius: number): ConstraintFunction {
