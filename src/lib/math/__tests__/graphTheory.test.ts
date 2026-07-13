@@ -307,3 +307,38 @@ describe('invariants (fast-check, seed 42, numRuns 300)', () => {
 		);
 	});
 });
+
+// GrokBuild レビュー指摘(PR #33)による追加: 層化した負例 golden。
+// ランダム生成器(graphArb)は連結/非連結×奇数次数0/2/4+ を確率的にしか踏まないため、
+// 「奇数次数の条件は満たすが連結性で落ちる」セルを明示的に固定する。findEulerPath が
+// 判定式非依存の事後検証方式になったことで、これらは構成側の null 判定の負例にもなる。
+describe('層化した負例 golden (追加)', () => {
+	it('非連結・奇数次数0個(三角形2つ): オイラー路なし・findEulerPath は null', () => {
+		const g = { vertexCount: 6, edges: [[0, 1], [1, 2], [2, 0], [3, 4], [4, 5], [5, 3]] } as const;
+		expect(oddDegreeVertices(g)).toEqual([]);
+		expect(isConnectedIgnoringIsolated(g)).toBe(false);
+		expect(hasEulerPath(g)).toBe(false);
+		expect(hasEulerCircuit(g)).toBe(false);
+		expect(findEulerPath(g)).toBeNull();
+	});
+
+	it('非連結・奇数次数2個(C4 + パス 6-7-8): 「奇数次数がちょうど2個」でも不可能', () => {
+		const g = {
+			vertexCount: 9,
+			edges: [[0, 1], [1, 4], [4, 3], [3, 0], [6, 7], [7, 8]],
+		} as const;
+		expect(oddDegreeVertices(g)).toEqual([6, 8]);
+		expect(isConnectedIgnoringIsolated(g)).toBe(false);
+		expect(hasEulerPath(g)).toBe(false);
+		expect(findEulerPath(g)).toBeNull();
+	});
+
+	it('連結・奇数次数4個(ケーニヒスベルク相当の小型例 K4): 構成側も null', () => {
+		// K4(完全グラフ4頂点)は全頂点次数3=奇数が4個。連結だが不可能。
+		const g = { vertexCount: 4, edges: [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]] } as const;
+		expect(oddDegreeVertices(g)).toEqual([0, 1, 2, 3]);
+		expect(isConnectedIgnoringIsolated(g)).toBe(true);
+		expect(hasEulerPath(g)).toBe(false);
+		expect(findEulerPath(g)).toBeNull();
+	});
+});

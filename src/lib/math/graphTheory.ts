@@ -76,7 +76,8 @@ export function oddDegreeVertices(g: Graph): number[] {
 /**
  * 辺に接続する頂点だけを見た連結性(孤立頂点——次数0の頂点——は無視する)。
  * 辺が0本のグラフは「無視すべき頂点しかない」ため真とする(空虚な真、退化ケースを塞がない
- * MATH_CONVENTIONS.md §4 の方針)。BFS で辺を持つ頂点をすべて1つの成分から辿れるかを見る。
+ * MATH_CONVENTIONS.md §4 の方針)。スタックによる DFS で辺を持つ頂点をすべて1つの成分から
+ * 辿れるかを見る(訪問順は結論に影響しないため、探索方式は DFS/BFS どちらでもよい)。
  */
 export function isConnectedIgnoringIsolated(g: Graph): boolean {
 	assertValidGraph(g);
@@ -123,28 +124,60 @@ export function hasEulerCircuit(g: Graph): boolean {
 }
 
 /**
- * Hierholzer 法によるオイラー路の構成(実際に辺の使用順を求める、判定式を一切参照しない
- * 独立実装、C-7)。存在しない場合は null。
+ * 構成側の事後検証: 列 path が「グラフ g のすべての辺をちょうど1回ずつ、連続して使う
+ * 散歩」になっているかだけを確認する。次数の偶奇や連結性(判定式 hasEulerPath の世界)には
+ * 一切依存せず、「返そうとしている答えがオイラー路の定義そのものを満たすか」を辺の
+ * 多重集合の消費で直接確かめる(C-7: 判定式とは独立な、定義への検証)。
+ */
+function consumesAllEdgesExactlyOnce(g: Graph, path: number[]): boolean {
+	if (path.length !== g.edges.length + 1) return false;
+	// 多重辺対応: 正規化キー(小さい頂点-大きい頂点)ごとの残り本数を数える。
+	const remaining = new Map<string, number>();
+	for (const [u, v] of g.edges) {
+		const key = u < v ? `${u}-${v}` : `${v}-${u}`;
+		remaining.set(key, (remaining.get(key) ?? 0) + 1);
+	}
+	for (let i = 0; i + 1 < path.length; i++) {
+		const a = path[i];
+		const b = path[i + 1];
+		const key = a < b ? `${a}-${b}` : `${b}-${a}`;
+		const count = remaining.get(key) ?? 0;
+		if (count === 0) return false;
+		remaining.set(key, count - 1);
+	}
+	// path.length === edges.length + 1 かつ全ステップで消費できたので、残りは必ず0本。
+	return true;
+}
+
+/**
+ * Hierholzer 法によるオイラー路の構成(実際に辺の使用順を求める)。存在しない場合は null。
  *
- * 退化ケース: vertexCount=0 は「訪れる頂点が無い」ため空の路 [] を返す(hasEulerPath は
- * この場合も連結性が空虚な真になり true を返すため、null にすると不変条件
- * hasEulerPath(g)===(findEulerPath(g)!==null) が崩れる)。辺が0本(頂点はある)の場合は
- * 「0本の辺を使う自明な散歩」として頂点0だけの路 [0] を返す。
+ * C-7(独立性): この関数は存在判定を hasEulerPath に委ねない。Hierholzer 法を無条件に
+ * 走らせ、出力が「全辺をちょうど1回ずつ連続して使う散歩」になっているかを構成側の
+ * 事後検証(consumesAllEdgesExactlyOnce)だけで確かめ、満たさなければ null を返す。
+ * オイラー路が存在しないグラフ(奇数次数4個以上・非連結など)では、出力が全辺を
+ * 使えないか連続しない形になり、ここで null に落ちる(事後検証が受理する列は定義上
+ * オイラー路そのものなので、偽陽性は原理的に起きない)。
+ * なお開始頂点の選択に次数(degrees/oddDegreeVertices)を使うが、これは探索の起点を
+ * 決めるヒューリスティクスであり、可否の結論は事後検証のみが決める。
  *
- * アルゴリズム: 標準的な反復版 Hierholzer 法。開始頂点は、奇数次数頂点が2個ある場合は
- * そのうち小さい方の ID(始点は必ず奇数次数の頂点でなければならないため、恣意的だが
- * 決定的に選ぶ)、0個の場合(閉路)は辺を持つ最小の頂点 ID から開始する。
+ * 退化ケース: vertexCount=0 は「訪れる頂点が無い」ため空の路 [] を返す。辺が0本
+ * (頂点はある)の場合は「0本の辺を使う自明な散歩」として頂点0だけの路 [0] を返す
+ * (いずれも事後検証を自明に満たす)。
+ *
+ * アルゴリズム: 標準的な反復版 Hierholzer 法。開始頂点は、奇数次数頂点があれば
+ * そのうち最小の ID(オイラー路が存在するなら始点は奇数次数の頂点でなければならない)、
+ * 無ければ辺を持つ最小の頂点 ID から開始する(恣意的だが決定的)。
  */
 export function findEulerPath(g: Graph): number[] | null {
 	assertValidGraph(g);
-	if (!hasEulerPath(g)) return null;
 
 	if (g.vertexCount === 0) return [];
 	if (g.edges.length === 0) return [0];
 
 	const odd = oddDegreeVertices(g);
 	const deg = degrees(g);
-	const start = odd.length === 2 ? Math.min(odd[0], odd[1]) : deg.findIndex((d) => d > 0);
+	const start = odd.length > 0 ? Math.min(...odd) : deg.findIndex((d) => d > 0);
 
 	// 隣接リスト: adjacency[v] は v から出る (相手, 辺ID) のペアの配列(無向グラフとして
 	// 両端点それぞれに登録する)。
@@ -183,5 +216,9 @@ export function findEulerPath(g: Graph): number[] | null {
 	}
 
 	circuit.reverse();
+
+	// 構成側の事後検証(上記 JSDoc)。判定式には頼らず、出力そのものがオイラー路の
+	// 定義を満たすかだけで可否を決める。
+	if (!consumesAllEdgesExactlyOnce(g, circuit)) return null;
 	return circuit;
 }

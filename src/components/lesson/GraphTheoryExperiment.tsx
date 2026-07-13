@@ -153,12 +153,16 @@ const PREDICTION_OPTIONS: { value: Prediction; label: string }[] = [
 	{ value: 'depends', label: '橋の配置によるので、一概には言えない' },
 ];
 
-type Judgement = 'circuit' | 'path' | 'impossible';
+type Judgement = 'circuit' | 'path' | 'impossible' | 'trivial';
 
 const JUDGEMENT_LABEL: Record<Judgement, string> = {
 	circuit: '可能(出発点に戻れる)',
 	path: '可能(出発点には戻れない)',
 	impossible: '不可能',
+	// 辺が0本のとき: 数学的には「0本の辺を使う自明なオイラー閉路」だが、「橋を全部
+	// 止めたら散歩できる」と読めるとミスリーディングなので、自明である旨を明示する
+	// (GrokBuild レビュー指摘の反映)。
+	trivial: '自明(渡る辺が1本もありません)',
 };
 
 export function GraphTheoryExperiment() {
@@ -221,12 +225,20 @@ export function GraphTheoryExperiment() {
 	const constructedPath = findEulerPath(activeGraph);
 
 	// 実行時交差検証(タスク厳守事項、C-7): 判定式(hasEulerPath、次数の偶奇+連結性だけを見る)
-	// と構成的アルゴリズム(findEulerPath、Hierholzer法で実際に路を構成する)という2つの
-	// 完全に独立した実装の結果を突き合わせる。本来は必ず一致するはずだが、一致しない場合は
+	// と構成的アルゴリズム(findEulerPath、Hierholzer法で路を構成し「全辺をちょうど1回ずつ
+	// 連続して使えたか」の事後検証だけで可否を決める——判定式は参照しない)という2つの
+	// 独立した経路の結果を突き合わせる。本来は必ず一致するはずだが、一致しない場合は
 	// 数学モデルにバグがあることを示すため、断言せずステータスとして表示する(防御的表示)。
 	const crossCheckConsistent = judgementHasPath === (constructedPath !== null);
 
-	const judgement: Judgement = judgementHasCircuit ? 'circuit' : judgementHasPath ? 'path' : 'impossible';
+	const judgement: Judgement =
+		activeGraph.edges.length === 0
+			? 'trivial'
+			: judgementHasCircuit
+				? 'circuit'
+				: judgementHasPath
+					? 'path'
+					: 'impossible';
 
 	const predictionCorrect = prediction === 'impossible';
 
@@ -392,8 +404,7 @@ export function GraphTheoryExperiment() {
 							必ず偶数本の橋を使います。したがって奇数次数の陸地になれるのは、散歩の
 							<strong>出発点</strong>と<strong>終着点</strong>の高々2つだけです。奇数次数の陸地が
 							4つもあるケーニヒスベルクでは、この条件を満たせないため一筆書きができません。
-							上の図で橋(辺)を1本OFFにしてみましょう——奇数次数の頂点が4個から2個に減ると、
-							判定が「不可能」から「可能」に変わることを確かめられます。
+							図の種類を「ケーニヒスベルクの橋」にした状態で、橋(辺)をどれか1本OFFにしてみましょう——奇数次数の頂点が4個から2個に減ると、判定が「不可能」から「可能」に変わることを確かめられます(この図はどの頂点も奇数次数なので、どの橋を選んでも同じ結論になります)。
 						</p>
 						<p className={styles.narration}>
 							よくある誤解:「図形が複雑(辺が多い)ほど一筆書きは難しい、あるいはできない」と
