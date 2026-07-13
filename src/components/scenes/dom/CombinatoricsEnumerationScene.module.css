@@ -1,0 +1,53 @@
+/* CombinatoricsEnumerationScene のレイアウト。既存単元(Mafs 図解)と同じ色トークン
+   (MATH_CONVENTIONS.md §9)を踏襲しつつ、DOM ベースの列挙表示に合わせた構造にする。 */
+
+.enumerationScene {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.sceneCaption {
+	margin: 0;
+	font-weight: 600;
+}
+
+.enumerationList {
+	max-height: 14rem;
+	overflow-y: auto;
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 8px;
+	padding: 0.5rem;
+	background: rgba(255, 255, 255, 0.02);
+}
+
+.enumerationList:focus-visible {
+	outline: 2px solid var(--nabla-focus-ring, #8ab4ff);
+	outline-offset: 2px;
+}
+
+.chipList {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.chip {
+	font-variant-numeric: tabular-nums;
+	font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+	padding: 0.2rem 0.5rem;
+	border-radius: 6px;
+	border: 1px solid var(--nabla-grid, #33384a);
+	background: rgba(255, 255, 255, 0.03);
+	white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.enumerationList * {
+		transition: none !important;
+		animation: none !important;
+	}
+}
