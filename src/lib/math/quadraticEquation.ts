@@ -105,6 +105,12 @@ export function realRoots(a: number, b: number, c: number): readonly number[] {
 	if (d < 0) return [];
 	const { p } = completeSquare(a, b, c);
 	if (d === 0) return [p];
+	// 数値注記(独立レビュー GrokBuild): これは頂点 p ± √D/(2|a|) という素朴な形で、
+	// |b| ≫ √D のとき一方の根で桁落ちする古典的問題への対策(Numerical Recipes の
+	// q = −(b + sign(b)√D)/2 方式)は施していない。本単元の係数レンジ(|a|≤3, |b|,|c|≤6、
+	// 整数中心)では両根の相対誤差は表示桁に対して無視できることを数値検算済みのため、
+	// 教材の読みやすさ(頂点からの対称なずれ、という幾何的意味が式に見える形)を優先した。
+	// レンジを大きく広げる場合はこの前提を再評価すること。
 	const offset = Math.sqrt(d) / (2 * Math.abs(a));
 	return [p - offset, p + offset];
 }

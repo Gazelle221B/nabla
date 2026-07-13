@@ -67,9 +67,14 @@ export function QuadraticEquationScene({
 
 	const yInterceptPoint: V2 = [0, c];
 	const clampC = (v: number) => Math.min(maxC, Math.max(minC, v));
-	// y切片は常に x=0 に固定し、y=c だけを [minC,maxC] にクランプして動かす制約
-	// (QuadraticFunctionScene の constrainShape と同じ考え方)。
-	const constrainYIntercept: ConstraintFunction = ([, y]) => [0, clampC(y)];
+	// y切片は常に x=0 に固定し、y=c を**整数ステップへ量子化**して [minC,maxC] にクランプする制約。
+	// 整数量子化の根拠(独立レビュー GrokBuild 指摘): (1) ドラッグだけ連続値を許すと、係数が
+	// 整数のとき整数になる D が中途半端な値(例 0.004)になり、round2 表示「0」と exact 分類
+	// 「2個」が矛盾して見える(MATH_CONVENTIONS §8)。(2) 連続値では D=0(重解=この単元の
+	// 核心)が測度ゼロの一点になりドラッグで踏めない。スライダー・数値入力(step=1)と同じ
+	// 量子化に揃えることで、全入力経路で D が整数になり表示と分類が常に一致し、重解にも
+	// ドラッグで確実に到達できる。
+	const constrainYIntercept: ConstraintFunction = ([, y]) => [0, clampC(Math.round(y))];
 
 	return (
 		<Mafs
