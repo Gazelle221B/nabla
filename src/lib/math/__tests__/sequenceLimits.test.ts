@@ -267,3 +267,24 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 		);
 	});
 });
+
+// GrokBuild レビュー指摘(PR #31)による追加: geometricPartialSum の r≈1 近傍ガード
+// (approximatelyZero(r-1, 1)、|r-1| ≤ 1e-9)が実際に n 分岐へ落ちることの明示テスト。
+// (1-r) 除算の桁落ち爆発を避ける設計判断そのものを直接検証する。
+describe('geometricPartialSum の r≈1 近傍ガード (追加)', () => {
+	it('r = 1 ± 1e-12(許容帯の内側)では S_n = n をちょうど返す', () => {
+		expect(geometricPartialSum(1 + 1e-12, 15)).toBe(15);
+		expect(geometricPartialSum(1 - 1e-12, 15)).toBe(15);
+		expect(geometricPartialSum(1 + 1e-12, 1)).toBe(1);
+	});
+
+	it('r = 1 ± 1e-6(許容帯の外側)では閉形式で計算し、真値 S_n ≈ n に近い値を返す', () => {
+		// 許容帯の外では (1-r^n)/(1-r) を使う。r が 1 に近いので値は n に近いが、
+		// ちょうど n ではない(二項展開の1次補正 n(n-1)/2·(r-1) 分ずれる)。
+		const sPlus = geometricPartialSum(1 + 1e-6, 15);
+		expect(sPlus).not.toBe(15);
+		// 補正項 15·14/2 · 1e-6 = 1.05e-4 程度のずれに収まる
+		expect(Math.abs(sPlus - 15)).toBeLessThan(1e-3);
+		expect(Math.abs(sPlus - 15)).toBeGreaterThan(1e-5);
+	});
+});

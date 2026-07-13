@@ -51,9 +51,16 @@ export interface SequenceLimitSceneProps {
 	termsCount: number;
 	/** 表示モード: 'terms'=点列 (n, aₙ)、'partialSums'=部分和の点列 (n, Sₙ)。*/
 	mode: DisplayMode;
+	/**
+	 * 極限値の水平線と lim/Σ の数式ラベルを表示するか(既定 true)。
+	 * 予想ゲートの前は false にする——極限値の表示はこの単元の「答え」そのものであり、
+	 * 予想前に見えると発見学習が成立しない。viewBox の計算には非表示中も極限値を
+	 * 含めたままにし、予想確定時に図が跳ねないようにする。
+	 */
+	showLimit?: boolean;
 }
 
-export function SequenceLimitScene({ r, termsCount, mode }: SequenceLimitSceneProps) {
+export function SequenceLimitScene({ r, termsCount, mode, showLimit = true }: SequenceLimitSceneProps) {
 	const classification = classifyGeometricLimit(r);
 
 	const points: V2[] = [];
@@ -97,7 +104,7 @@ export function SequenceLimitScene({ r, termsCount, mode }: SequenceLimitScenePr
 		>
 			<Coordinates.Cartesian subdivisions={false} />
 
-			{limit !== null && (
+			{showLimit && limit !== null && (
 				<>
 					<Line.Segment
 						point1={[xLo, limit]}

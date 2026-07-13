@@ -213,9 +213,10 @@ export function LimitsSequencesExperiment() {
 			</div>
 
 			{/* Scene は予想ゲートの前から常時表示する(ProbabilityDistributionScene / SequenceScene
-			    と同じ方針: 本文が「公比r=0.8の等比数列を考えます」と図を参照するため矛盾を避ける)。 */}
+			    と同じ方針: 本文が「公比r=0.8の等比数列を考えます」と図を参照するため矛盾を避ける)。
+			    ただし極限値の破線と lim の数式ラベルはこの単元の「答え」なので、予想確定まで隠す。 */}
 			<div className={styles.scene}>
-				<SequenceLimitScene r={r} termsCount={TERMS_COUNT} mode={mode} />
+				<SequenceLimitScene r={r} termsCount={TERMS_COUNT} mode={mode} showLimit={submitted} />
 			</div>
 
 			{!submitted ? (
@@ -346,11 +347,12 @@ export function LimitsSequencesExperiment() {
 						</p>
 						<p className={styles.narration}>
 							なぜそうなるのか: |r|&lt;1 のとき、n を1増やすごとに aₙ の絶対値は「1未満の比率 |r| 倍」に
-							なり続けるため、どこまでも小さくなっていき 0 に近づきます(0 に到達することはありませんが、
-							いくらでも 0 に近づけます)。r を動かして4つの運命を確かめてみましょう: r=1 では
-							すべての項がちょうど1のまま一定に、r&gt;1 では |r|&gt;1 倍で増え続けるためどこまでも
-							大きくなり(発散)、r≤−1 では絶対値が1以上のまま符号だけが交互に反転するため、
-							特定の値に近づかず暴れ続けます(振動)。上の表示切替で「部分和」に切り替えると、
+							なり続けるため、どこまでも小さくなっていき 0 に近づきます(r=0 で第2項からちょうど 0 に
+							なる場合を除けば 0 にちょうど到達することはありませんが、いくらでも 0 に近づけます)。
+							r を動かして4つの運命を確かめてみましょう: r=1 ではすべての項がちょうど1のまま一定に、
+							r&gt;1 では |r|&gt;1 倍で増え続けるためどこまでも大きくなり(発散)、r=−1 では絶対値1のまま
+							符号だけが交互に反転し、r&lt;−1 では符号が反転しながら絶対値もどこまでも大きくなるため、
+							どちらも特定の値に近づかず暴れ続けます(振動)。上の表示切替で「部分和」に切り替えると、
 							|r|&lt;1 のときだけ Sₙ が一定値 1/(1−r) へ近づいていく様子も確かめられます。
 						</p>
 						<p className={styles.narration}>
