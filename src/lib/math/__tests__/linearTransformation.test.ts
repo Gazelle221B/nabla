@@ -141,10 +141,12 @@ function matMul(m: Matrix2x2, n: Matrix2x2): Matrix2x2 {
 
 describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 	it(
-		'property: 単位正方形を変換した実測面積(シューレース、独立経路)と determinant(m)(成分の式)が' +
-			'一致する — 行列式は ad−bc という成分だけの式、面積は変換後の4頂点から求めるシューレース公式で、' +
-			'計算に使う材料(行列の成分そのもの / 変換後の座標)が異なる代数的に独立な2経路' +
-			'(C-7: 単位正方形の符号つき面積は1なので、変換後の符号つき面積は理論上ちょうど det(m) になる)',
+		'property: 単位正方形を変換した実測面積(シューレース)と determinant(m)(成分の式)が一致する — ' +
+			'正確には(GrokBuild 指摘で表現を是正): シューレース展開は代数的には ad−bc に簡約される' +
+			'同一の恒等式であり「代数的に独立」ではない。ただし**実装経路は独立**' +
+			'(determinant / applyMatrix / signedPolygonArea は互いを呼ばない別関数)なので、' +
+			'いずれか1つの実装の式誤り(行列積の行/列取り違え・符号誤り・/2 抜け等)を確実に検出できる' +
+			'(C-7: 検出力の根拠は代数の独立性ではなく実装の分離にある)',
 		() => {
 			fc.assert(
 				fc.property(matrixArb, (m) => {
@@ -200,21 +202,23 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 		);
 	});
 
-	it('property: 行列式が負の変換は、符号つき面積の符号を必ず反転させる(向きの反転の検出)', () => {
+	it('property: 任意の行列で sign(変換後の符号つき面積) = sign(det A)・sign(元の面積)(向きの保存/反転が det の符号で完全に決まる。QA_MEMORY 指摘: 固定の鏡映のみでなく任意行列で検証)', () => {
 		fc.assert(
-			fc.property(triangleArb, (tri) => {
-				// 構成的に det<0 な行列を作る(x軸反転を合成): 任意の A に対し reflectA は
-				// 必ず行列式の符号が A と反対になる (det(reflect)=-1, 乗法性より
-				// det(reflect・A) = -det(A))。
-				const reflect: Matrix2x2 = [[1, 0], [0, -1]];
-				const original = signedPolygonArea(tri);
-				const transformed = tri.map((p) => applyMatrix(reflect, p));
-				const after = signedPolygonArea(transformed);
-				// 面積が実質0(共線に近い)場合は符号自体が数値的に不安定なので、この性質は
-				// 十分な大きさを持つ元の面積についてのみ意味を持つ(triangleArb で既に
-				// |area|>0.5 を保証済み)。
-				return Math.sign(original) !== 0 && Math.sign(after) === -Math.sign(original);
-			}),
+			fc.property(
+				// |det| が微小だと変換後面積も微小になり符号が数値的に不安定になるため、
+				// 十分な大きさの行列式を持つ行列に限定する(性質自体は det≠0 で成り立つ)。
+				matrixArb.filter((m) => Math.abs(determinant(m)) > 0.1),
+				triangleArb,
+				(m, tri) => {
+					const original = signedPolygonArea(tri);
+					const transformed = tri.map((p) => applyMatrix(m, p));
+					const after = signedPolygonArea(transformed);
+					return (
+						Math.sign(original) !== 0 &&
+						Math.sign(after) === Math.sign(determinant(m)) * Math.sign(original)
+					);
+				},
+			),
 			{ seed: 42, numRuns: 200 },
 		);
 	});

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+	applyMatrix,
 	determinant,
 	signedPolygonArea,
 	type Matrix2x2,
@@ -146,10 +147,12 @@ export function LinearTransformationExperiment() {
 	const det = determinant(matrix);
 	// 実測面積は「行列式(成分の式)」とは独立に、変換後の頂点座標からシューレース公式で
 	// 求める(このモジュールの中核体験: 2つの独立な計算経路の一致)。
-	const transformedSquare = UNIT_SQUARE.map(([x, y]): [number, number] => [
-		a * x + b * y,
-		c * x + d * y,
-	]);
+	const transformedSquare = UNIT_SQUARE.map(([x, y]): [number, number] => {
+		// 行列積をインライン再実装せず applyMatrix を再利用する(GrokBuild 指摘: インラインだと
+		// applyMatrix 単独のバグを UI 側検証が検出できない非対称と、上のコメントとの乖離が生じる)。
+		const [tx, ty] = applyMatrix(matrix, [x, y]);
+		return [tx, ty];
+	});
 	const measuredArea = signedPolygonArea(transformedSquare);
 
 	// 2経路(成分の式 det と、頂点座標からの実測面積)の一致を実行時検証する。
