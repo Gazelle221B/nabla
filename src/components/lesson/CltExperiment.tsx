@@ -179,7 +179,7 @@ export function CltExperiment() {
 					この図はブラウザ上で操作する対話的な図解です。JavaScript を有効にすると、サイコロ
 					k個の和を n 回試行した結果をドットヒストグラムで観察できます。
 					<strong>
-						試行回数 n を増やすと標本平均は期待値 3.5k に近づき(大数の法則)、サイコロの個数 k
+						試行回数 n を増やすと標本平均は期待値 3.5k の近くに落ち着いていく傾向が強まり(大数の法則——確率的な言明で、1回ごとの実験で必ずではありません)、サイコロの個数 k
 						を増やすと和の分布の形は平ら→三角形→釣鐘型へと変わっていきます(中心極限定理)。
 					</strong>
 					詳しくは下の「形式的な定義」を参照してください。
@@ -330,16 +330,23 @@ export function CltExperiment() {
 									<td>{round4(Math.abs(diff))}</td>
 								</tr>
 								<tr>
-									<th scope="row">理論標準偏差</th>
+									<th scope="row">和 S の理論標準偏差 σ(k のみに依存)</th>
 									<td>{round4(sigma)}</td>
 								</tr>
+								{/* QA 指摘の反映: 転用問題3(√n 法則)が「n を動かして縮み方を確かめる」
+								    と誘導するのに対し、σ は n に依存しない。n に反応して縮む
+								    「標本平均の理論標準偏差 σ/√n」を別行で示し、体感の受け皿にする。 */}
 								<tr>
-									<th scope="row">正規近似との最大偏差</th>
+									<th scope="row">σ/√n(標本平均の理論上のばらつき、n に反応)</th>
+									<td>{round4(sigma / Math.sqrt(n))}</td>
+								</tr>
+								<tr>
+									<th scope="row">厳密分布と正規分布の最大偏差(k のみに依存)</th>
 									<td>{round4(maxDeviation)}</td>
 								</tr>
 								<tr>
-									<th scope="row">1ドットが表す試行回数</th>
-									<td>{trialsPerDot}</td>
+									<th scope="row">1ドットが表す試行回数(端数は切り上げ)</th>
+									<td>約{trialsPerDot}</td>
 								</tr>
 							</tbody>
 						</table>

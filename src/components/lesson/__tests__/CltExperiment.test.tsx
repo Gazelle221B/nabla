@@ -91,8 +91,10 @@ describe('CltExperiment (MVP2, Tier2/Pixi)', () => {
 			expect(screen.getByRole('heading', { name: '観察: 標本平均と正規近似' })).toBeInTheDocument();
 			// k=1: 期待値3.5・分散35/12(標準偏差≈1.7078)。centralLimit.test.ts の golden と同じ値。
 			expect(rowCells(/^期待値 3\.5k/)).toEqual(['3.5']);
-			expect(rowCells(/^理論標準偏差/)).toEqual(['1.7078']);
-			expect(rowCells(/^正規近似との最大偏差/)).toEqual(['0.1434']);
+			expect(rowCells(/^和 S の理論標準偏差/)).toEqual(['1.7078']);
+		// QA 指摘反映で追加された行: σ/√n = 1.7078/√100 = 0.1708(n に反応する)
+		expect(rowCells(/^σ\/√n/)).toEqual(['0.1708']);
+			expect(rowCells(/^厳密分布と正規分布の最大偏差/)).toEqual(['0.1434']);
 		},
 	);
 
@@ -115,13 +117,13 @@ describe('CltExperiment (MVP2, Tier2/Pixi)', () => {
 		render(<CltExperiment />);
 		await enterExperiment(user);
 
-		expect(rowCells(/^正規近似との最大偏差/)).toEqual(['0.1434']); // k=1
+		expect(rowCells(/^厳密分布と正規分布の最大偏差/)).toEqual(['0.1434']); // k=1
 
 		const sliderK = screen.getByRole('slider', { name: 'サイコロの個数 k(スライダー)' });
 		fireEvent.change(sliderK, { target: { value: '5' } });
 
 		// k=5 の golden 値(centralLimit.test.ts と同じ): 0.05245482369948007 → 表示は0.0525丸め。
-		expect(rowCells(/^正規近似との最大偏差/)).toEqual(['0.0525']);
+		expect(rowCells(/^厳密分布と正規分布の最大偏差/)).toEqual(['0.0525']);
 	});
 
 	it('矢印キーで k のスライダーを操作すると観察表が更新される(キーボード操作)', async () => {

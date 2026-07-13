@@ -100,6 +100,14 @@ export function CltScene({ frequencies, k, exactProbabilities, mean, sigma, reve
 				setReady(true);
 			})
 			.catch((error: unknown) => {
+				// 失敗パスでも Application を破棄する(GrokBuild レビュー指摘: init 失敗時に
+				// destroy しないと部分初期化された GPU 資源が残りうる)。init 失敗後の destroy が
+				// 例外を投げる可能性に備えて握りつぶす(この時点で描画は諦めている)。
+				try {
+					app.destroy(true, true);
+				} catch {
+					/* noop */
+				}
 				if (cancelled) return;
 				setInitError(
 					error instanceof Error
@@ -173,7 +181,10 @@ export function CltScene({ frequencies, k, exactProbabilities, mean, sigma, reve
 			if (maxPdf > 0) {
 				for (let p = 0; p <= NORMAL_CURVE_SAMPLES; p++) {
 					const x = xMin + ((xMax - xMin) * p) / NORMAL_CURVE_SAMPLES;
-					const px = ((x - xMin) / (xMax - xMin)) * WIDTH;
+					// 和の値 x=s は「i = s−k 番目の列の中心」columnWidth·(i+0.5) に写す。
+					// 以前は [xMin,xMax]→[0,WIDTH] の全幅スパンで、ヒストグラム列(両端に
+					// 半列マージン)と横軸がズレていた(QA 指摘: 特に k が小さいとき顕著)。
+					const px = columnWidth * (x - k + 0.5);
 					const py = baseY - (pdfs[p] / maxPdf) * maxColumnHeightPx;
 					if (p === 0) gfx.moveTo(px, py);
 					else gfx.lineTo(px, py);
