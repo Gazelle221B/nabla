@@ -1,0 +1,173 @@
+/* CombinatoricsExperiment のレイアウト。ProbabilityExperiment.module.css / QuadraticEquationExperiment.module.css
+   (直前の単元群)と同じ構造・トークンを踏襲する (色の意味論トークンは MATH_CONVENTIONS.md §9)。
+   MVP 1 の範囲に留め、共有コンポーネント化は次の単元でも同じ構造が必要になった時点で検討する
+   (rule of three)。 */
+
+.experiment {
+	max-width: 44rem;
+	margin: 2rem auto;
+	padding: 1.25rem;
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 12px;
+	background: var(--nabla-surface, #1a1d29);
+	color: var(--nabla-text-primary, #e7e9f0);
+	line-height: 1.7;
+}
+
+.noscript {
+	padding: 0.75rem 1rem;
+	border-left: 3px solid var(--nabla-warning, #e0a94b);
+	background: rgba(224, 169, 75, 0.1);
+}
+
+.prompt {
+	margin-bottom: 1rem;
+}
+
+.predictionFieldset,
+.modeFieldset {
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 8px;
+	padding: 0.75rem 1rem;
+	margin: 0.75rem 0;
+}
+
+.predictionFieldset[disabled] {
+	opacity: 0.7;
+}
+
+.predictionOption {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.2rem 0;
+	cursor: pointer;
+}
+
+.scene {
+	margin: 1rem 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.gateHint {
+	font-style: italic;
+	color: var(--nabla-text-secondary, #a7adc0);
+}
+
+.controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem 1.5rem;
+	align-items: flex-start;
+	margin: 1rem 0;
+}
+
+.control {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.control input[type='range'] {
+	width: 14rem;
+}
+
+.control input[type='text'] {
+	width: 6rem;
+	padding: 0.3rem 0.4rem;
+}
+
+.rangeHint {
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--nabla-text-secondary, #a7adc0);
+	max-width: 18rem;
+}
+
+.observation {
+	margin: 1rem 0;
+	padding: 0.75rem 1rem;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.03);
+}
+
+.valueTable {
+	border-collapse: collapse;
+	width: 100%;
+	max-width: 36rem;
+	margin-bottom: 0.75rem;
+}
+
+.valueTable th,
+.valueTable td {
+	text-align: left;
+	padding: 0.25rem 0.75rem 0.25rem 0;
+	border-bottom: 1px solid var(--nabla-grid, #33384a);
+	font-variant-numeric: tabular-nums;
+}
+
+.valueTable td {
+	text-align: right;
+}
+
+.statusHeld {
+	color: var(--nabla-success, #4bbf7b);
+	font-weight: 600;
+}
+
+.statusBroken {
+	color: var(--nabla-warning, #e0a94b);
+	font-weight: 600;
+}
+
+.checkpoint {
+	margin-top: 1rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--nabla-grid, #33384a);
+}
+
+.narration {
+	color: var(--nabla-text-secondary, #a7adc0);
+}
+
+.primaryButton,
+.secondaryButton {
+	font: inherit;
+	padding: 0.45rem 1rem;
+	border-radius: 8px;
+	cursor: pointer;
+	border: 1px solid var(--nabla-grid, #33384a);
+}
+
+.primaryButton {
+	background: var(--nabla-accent-primary, #4f8ff0);
+	color: #0b0d14;
+	border-color: transparent;
+	font-weight: 600;
+}
+
+.primaryButton:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.secondaryButton {
+	background: transparent;
+	color: inherit;
+	align-self: flex-end;
+}
+
+/* フォーカスの可視化 (MATH_CONVENTIONS §9 focus-ring、アクセシビリティ要件) */
+.experiment :is(button, input, label):focus-visible {
+	outline: 2px solid var(--nabla-focus-ring, #8ab4ff);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.experiment * {
+		transition: none !important;
+		animation: none !important;
+	}
+}
