@@ -252,3 +252,18 @@ describe('LinearTransform3dExperiment (MVP3, Tier 3a/Three.js)', () => {
 		expect(container.querySelector('noscript')).toBeTruthy();
 	});
 });
+
+// QA 指摘(PR #41)の反映: 回転角スライダーで det=1 が連続的に保たれることの検証。
+describe('z軸回転スライダー (追加)', () => {
+	it('θ を 90→150 と動かしても det の表示は 1 のまま(回転は体積を保つ)', async () => {
+		const user = userEvent.setup();
+		render(<LinearTransform3dExperiment />);
+		await enterExperiment(user);
+		const slider = screen.getByLabelText(/z軸回転 θ/);
+		for (const deg of ['90', '150']) {
+			fireEvent.change(slider, { target: { value: deg } });
+			expect(rowCells(/^行列式/)).toEqual(['1']);
+			expect(rowCells(/^体積拡大率/)).toEqual(['1']);
+		}
+	});
+});

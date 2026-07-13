@@ -199,6 +199,26 @@ export function columnsOf(matrix: Matrix3x3): readonly [Vector3, Vector3, Vector
 	];
 }
 
+/**
+ * z軸まわりの回転行列 Rz(θ)。θ は度(degree)で受け取る(UI のスライダー単位と一致させ、
+ * ラジアン変換の重複実装を防ぐ)。det(Rz(θ)) = cos²θ + sin²θ = 1(角度によらず体積を保つ)
+ * ——「回転は体積を変えない」を連続的に観察するための単元内パラメトリック・プリセット
+ * (QA 指摘の反映: 固定角のプリセットだけでは連続変化として観察できなかった)。
+ */
+export function rotationZMatrix(thetaDegrees: number): Matrix3x3 {
+	if (!Number.isFinite(thetaDegrees)) {
+		throw new RangeError(`thetaDegrees must be finite, got ${thetaDegrees}`);
+	}
+	const t = (thetaDegrees * Math.PI) / 180;
+	const c = Math.cos(t);
+	const s = Math.sin(t);
+	return [
+		[c, -s, 0],
+		[s, c, 0],
+		[0, 0, 1],
+	];
+}
+
 export type PresetKey3d = 'identity' | 'diagonal' | 'rotationZ45' | 'reflectionX' | 'degenerate' | 'shear';
 
 const COS_45 = Math.cos(Math.PI / 4);

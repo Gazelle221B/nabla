@@ -13,6 +13,7 @@ import {
 	LINEAR_TRANSFORM_3D_PRESETS,
 	type Matrix3x3,
 	type Vector3,
+	rotationZMatrix,
 } from '../linearTransformation3d.js';
 import { approximatelyZero } from '../compare.js';
 
@@ -350,5 +351,34 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 			}),
 			{ seed: 42, numRuns: 200 },
 		);
+	});
+});
+
+// QA 指摘(PR #41)の反映で追加された rotationZMatrix のテスト。
+describe('rotationZMatrix (追加)', () => {
+	it('golden: Rz(0)=I、Rz(90) は (1,0,0)→(0,1,0) に写す', () => {
+		expect(rotationZMatrix(0)).toEqual([
+			[1, -0, 0],
+			[0, 1, 0],
+			[0, 0, 1],
+		]);
+		const v = applyMatrix3(rotationZMatrix(90), [1, 0, 0]);
+		expect(approximatelyZero(v[0], 1)).toBe(true);
+		expect(approximatelyZero(v[1] - 1, 1)).toBe(true);
+		expect(v[2]).toBe(0);
+	});
+
+	it('property: det(Rz(θ)) は角度によらず 1(cos²+sin²=1)', () => {
+		fc.assert(
+			fc.property(fc.double({ min: -720, max: 720, noNaN: true }), (theta) => {
+				return approximatelyZero(determinant3(rotationZMatrix(theta)) - 1, 1);
+			}),
+			{ seed: 42, numRuns: 200 },
+		);
+	});
+
+	it('非有限は RangeError', () => {
+		expect(() => rotationZMatrix(Number.NaN)).toThrow(RangeError);
+		expect(() => rotationZMatrix(Number.POSITIVE_INFINITY)).toThrow(RangeError);
 	});
 });

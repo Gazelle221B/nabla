@@ -7,6 +7,7 @@ import {
 	Float32BufferAttribute,
 	Mesh,
 	MeshBasicMaterial,
+	Line,
 	LineSegments,
 	LineBasicMaterial,
 	ArrowHelper,
@@ -135,8 +136,15 @@ function makeTextSprite(text: string, color: string, scale: readonly [number, nu
 
 function disposeGroup(group: Group): void {
 	group.traverse((obj) => {
-		if (obj instanceof Mesh || obj instanceof LineSegments) {
-			obj.geometry.dispose();
+		// ArrowHelper の子(line/cone)はモジュールスコープで共有される geometry を使う
+		// (three r185 ArrowHelper.js の _lineGeometry/_coneGeometry)。ここで geometry を
+		// dispose すると以後に生成される「すべての」ArrowHelper の錐・線が壊れる
+		// (GrokBuild レビュー指摘・High)。material は各インスタンス固有なので破棄する。
+		const isArrowChild = obj.parent !== null && obj.parent.type === 'ArrowHelper';
+		// Line は LineSegments の親クラス(ArrowHelper.line は Line)。Mesh/Line 系を
+		// まとめて拾い、共有 geometry のみ除外する。
+		if (obj instanceof Mesh || obj instanceof Line) {
+			if (!isArrowChild) obj.geometry.dispose();
 			if (Array.isArray(obj.material)) {
 				obj.material.forEach((m) => m.dispose());
 			} else {
@@ -165,7 +173,10 @@ export function LinearTransform3dScene({ matrix, revealVolumeLabel }: LinearTran
 	const controlsRef = useRef<OrbitControls | null>(null);
 	const dynamicGroupRef = useRef<Group | null>(null);
 	const [initError, setInitError] = useState<string | null>(null);
-	const [ready, setReady] = useState(false);
+	// ready は boolean でなく「初期化の世代」カウンタ。StrictMode の二重実行や再マウントで
+	// scene/dynamicGroup が作り直されたとき、boolean だと setReady(true) が no-op になり
+	// 動的グループ再構築 effect が走らない(GrokBuild レビュー指摘・latent bug)。
+	const [ready, setReady] = useState(0);
 
 	// マウント時に一度だけ初期化し、アンマウント時に確実に破棄する(CltScene.tsx と同型の
 	// ライフサイクル規律。StrictMode の二重実行は cancelled フラグで後始末する)。
@@ -219,7 +230,7 @@ export function LinearTransform3dScene({ matrix, revealVolumeLabel }: LinearTran
 		sceneRef.current = scene;
 		cameraRef.current = camera;
 		controlsRef.current = controls;
-		setReady(true);
+		setReady((generation) => generation + 1);
 		rafId = requestAnimationFrame(animate);
 
 		return () => {
@@ -227,6 +238,9 @@ export function LinearTransform3dScene({ matrix, revealVolumeLabel }: LinearTran
 			cancelAnimationFrame(rafId);
 			controls.dispose();
 			disposeGroup(dynamicGroup);
+			// AxesHelper も明示破棄(GrokBuild レビュー指摘: originalEdges と非対称だった)。
+			axes.geometry.dispose();
+			(axes.material as LineBasicMaterial).dispose();
 			originalEdges.geometry.dispose();
 			(originalEdges.material as LineBasicMaterial).dispose();
 			renderer.dispose();
@@ -247,7 +261,7 @@ export function LinearTransform3dScene({ matrix, revealVolumeLabel }: LinearTran
 	// 体積ラベルを組み直す(CltScene と同じ「毎回クリアして組み立て直す」方針。この規模の
 	// ジオメトリでは差分更新の最適化は不要)。
 	useEffect(() => {
-		if (!ready) return;
+		if (ready === 0) return;
 		const group = dynamicGroupRef.current;
 		if (!group) return;
 

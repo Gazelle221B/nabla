@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
 	determinant3,
+	rotationZMatrix,
 	signedVolumeOfParallelepiped,
 	columnsOf,
 	LINEAR_TRANSFORM_3D_PRESETS,
@@ -130,6 +131,20 @@ export function LinearTransform3dExperiment() {
 		const init: Record<ComponentKey, string> = {} as Record<ComponentKey, string>;
 		for (const k of COMPONENT_ORDER) init[k] = String(round2(INITIAL[k]));
 		setInputs(init);
+	};
+
+	// QA 指摘の反映: 回転を「連続的に」動かして det=1 が保たれることを観察するための
+	// パラメトリック・プリセット。スライダーを動かすと行列全体を Rz(θ) に設定する。
+	const [rotationDeg, setRotationDeg] = useState(45);
+	const applyRotation = (deg: number) => {
+		const clamped = Math.min(360, Math.max(0, Math.round(deg / 5) * 5));
+		setRotationDeg(clamped);
+		const [[pa, pb, pc], [pd, pe, pf], [pg, ph, pi]] = rotationZMatrix(clamped);
+		const next: Record<ComponentKey, number> = { a: pa, b: pb, c: pc, d: pd, e: pe, f: pf, g: pg, h: ph, i: pi };
+		setValues(next);
+		const nextInputs: Record<ComponentKey, string> = {} as Record<ComponentKey, string>;
+		for (const k of COMPONENT_ORDER) nextInputs[k] = String(round2(next[k]));
+		setInputs(nextInputs);
 	};
 
 	const loadPreset = (key: PresetKey3d) => {
@@ -297,6 +312,21 @@ export function LinearTransform3dExperiment() {
 										{LINEAR_TRANSFORM_3D_PRESETS[key].label}
 									</button>
 								))}
+							</div>
+							<div className={styles.control}>
+								<label htmlFor="rotation-deg-slider">
+									z軸回転 θ(動かすと行列を Rz(θ) に設定。det が角度によらず 1.00 のままであることを観察できます)
+								</label>
+								<input
+									id="rotation-deg-slider"
+									type="range"
+									min={0}
+									max={360}
+									step={5}
+									value={rotationDeg}
+									onChange={(e) => applyRotation(Number(e.target.value))}
+								/>
+								<span aria-live="polite">θ = {rotationDeg}°</span>
 							</div>
 						</fieldset>
 
