@@ -24,6 +24,8 @@
 | **MVP 2** | 高密度2D(要 ADR + Pixi/WebGPU 基盤) | 2 | フーリエ級数の合成 / 大量試行と大数の法則・中心極限 / フラクタル | M4〜M7 の関連単元 |
 | **MVP 3** | 3D(要 ADR + Three.js/WebGPU 基盤) | 3a/3b | 一次変換(3×3)/ 回転行列と基底変換 / 曲面プロット / 複素関数のドメインカラーリング(3b) | MVP 2・線形代数系 |
 
+> **✅ 2026-07-13: M4〜M7(Tier 1 マイルストーン)完走。** 12単元を実装・独立レビュー・数学QA・統合済み(PR #11〜#23)。公開は MVP 1 と合わせて15単元。次は MVP 2(Tier 2)/ MVP 3(Tier 3)——いずれも Tier 導入 ADR + 人間 Go が着手ゲート(ADR-003)。
+
 各マイルストーン着手時に、当該波の3〜5単元を `IMPLEMENTATION_PLAN` に T タスクとして具体化し、終了条件+反復上限を付す(憲法 C-7)。MVP 2 / MVP 3 は Tier 導入 ADR(ADR-004 以降)+ 人間 Go を着手ゲートとする。
 
 ## 3. 単元バックログ(ビジョングラフ / Tier 1 中心)
@@ -32,34 +34,34 @@
 
 ### geometry(平面図形)
 - ✅ `pythagorean-theorem` 三平方の定理(中学)
-- 🔜 `similar-figures` 相似と拡大縮小(中学)— prereq: []
-- 🔜 `inscribed-angle` 円周角の定理(中学)— prereq: []
-- 🔜 `law-of-sines-cosines` 正弦定理・余弦定理(高校数I)— prereq: [trigonometric-ratios]
+- ✅ `similar-figures` 相似と拡大縮小(中学)— prereq: []
+- ✅ `inscribed-angle` 円周角の定理(中学)— prereq: []
+- ✅ `law-of-sines-cosines` 正弦定理・余弦定理(高校数I)— prereq: [trigonometric-ratios]
 - ⬜ `circle-equation` 円の方程式・点と直線の距離(高校数II)
 
 ### algebra(関数・方程式)
-- 🔜 `linear-function` 一次関数とグラフ(中学)— prereq: []
-- 🔜 `quadratic-function` 二次関数とグラフ・平方完成(高校数I)— prereq: [linear-function]
+- ✅ `linear-function` 一次関数とグラフ(中学)— prereq: []
+- ✅ `quadratic-function` 二次関数とグラフ・平方完成(高校数I)— prereq: [linear-function]
 - 🔜 `quadratic-equation` 二次方程式と判別式(高校数I)— prereq: [quadratic-function]
-- 🔜 `trigonometric-ratios` 三角比と単位円(高校数I/II)— prereq: [pythagorean-theorem]
+- ✅ `trigonometric-ratios` 三角比と単位円(高校数I/II)— prereq: [pythagorean-theorem]
 - ⬜ `exp-log` 指数関数・対数関数(高校数II)— prereq: []
-- ⬜ `sequences` 数列と漸化式(高校数B)
+- ✅ `sequences` 数列と漸化式(高校数B)
 
 ### calculus(微積分)
 - ✅ `derivative-tangent-line` 微分係数と接線(高校数II)
-- 🔜 `average-rate-derivative` 平均変化率と導関数(高校数II)— prereq: [derivative-tangent-line]
-- 🔜 `definite-integral-area` 定積分と面積(高校数II)— prereq: [derivative-tangent-line]
+- ✅ `derivative-function` 導関数 — 微分係数から関数へ(高校数II)— prereq: [calculus/derivative-tangent-line](実装時に slug/焦点を「関数としての導関数」へ具体化)
+- ✅ `definite-integral-area` 定積分と面積(高校数II)— prereq: [derivative-tangent-line]
 - ⬜ `limits-sequences` 数列と極限(高校数III)— prereq: [sequences]
 - ⬜ `taylor-approximation` テイラー近似(大学教養)— prereq: [derivative-tangent-line]
 
 ### linear-algebra(線形代数)
 - ✅ `eigenvectors` 2×2行列と固有ベクトル(大学教養)
-- 🔜 `dot-product` ベクトルの内積(高校数C)— prereq: []
-- 🔜 `linear-transformation-2d` 一次変換(2×2)と行列式(高校数C/大学)— prereq: [eigenvectors]
+- ✅ `dot-product` ベクトルの内積(高校数C)— prereq: []
+- ✅ `linear-transformation-2d` 一次変換(2×2)と行列式(高校数C/大学)— prereq: [eigenvectors]
 - ⬜ `matrix-determinant-area` 行列式と面積拡大率(大学教養)— prereq: [linear-transformation-2d]
 
 ### probability / statistics(確率・統計)
-- 🔜 `simple-probability` 確率(単純試行・樹形図)(中学)— prereq: []
+- ✅ `simple-probability` 確率(単純試行・樹形図)(中学)— prereq: []
 - ⬜ `permutation-combination` 場合の数(順列・組合せ)(高校数A)— prereq: [simple-probability]
 - ⬜ `data-analysis` データの分析(平均・分散・相関)(高校数I)— prereq: []
 - ⬜ `probability-distribution` 確率分布と期待値(高校数B)— prereq: [simple-probability]
