@@ -193,3 +193,38 @@ describe('invariants (fast-check, seed 42, numRuns 200)', () => {
 		},
 	);
 });
+
+// GrokBuild レビュー(PR #47 初回 FAIL)の反映: 単元モジュールの公開 API 互換
+// (ゼロ長判定の「点の絶対座標スケール」とエラーメッセージ)を回帰テストとして固定する。
+// 共有 util の unsignedAngleAtVertex(差分ベクトルスケール)とは境界が異なることも
+// ここで明示的に検証する。
+import { angleAtVertex as inscribedAngleAtVertex } from '../inscribedAngle.js';
+import { angleAtVertex as lawAngleAtVertex } from '../lawOfSinesCosines.js';
+import { angleBetween } from '../dotProduct.js';
+
+describe('単元モジュールの公開 API 互換(旧境界・旧メッセージの固定)', () => {
+	it('巨大座標×近接点(桁落ち領域)では、単元の angleAtVertex は点座標スケールで RangeError', () => {
+		// 旧実装の境界: scale=max(1,|1e6|)=1e6 → 閾値 1e-3 > len=1e-6 → 退化として弾く
+		expect(() => inscribedAngleAtVertex([1e6, 0], [1e6 + 1e-6, 0], [0, 1])).toThrow(RangeError);
+		expect(() => lawAngleAtVertex([1e6, 0], [1e6 + 1e-6, 0], [0, 1])).toThrow(RangeError);
+		// 共有 util 側は差分ベクトルスケール(scale=1 → 閾値 1e-9 < 1e-6)なので角度を返す
+		// ——新 API として境界が異なることの明示(互換制約なし)。
+		expect(() => unsignedAngleAtVertex([1e6, 0], [1e6 + 1e-6, 0], [0, 1])).not.toThrow();
+	});
+
+	it('エラーメッセージは各モジュールの公開 API 名のまま(観測可能な挙動の互換)', () => {
+		expect(() => inscribedAngleAtVertex([0, 0], [0, 0], [1, 0])).toThrow(/angleAtVertex requires vertex !== p1/);
+		expect(() => lawAngleAtVertex([0, 0], [1, 0], [0, 0])).toThrow(/angleAtVertex requires vertex !== p2/);
+		expect(() => angleBetween([0, 0], [1, 0])).toThrow(/angleBetween requires a non-zero vector a/);
+		expect(() => angleBetween([1, 0], [0, 0])).toThrow(/angleBetween requires a non-zero vector b/);
+	});
+
+	it('通常域では3モジュールと共有 util の角度が一致する(核の共有の確認)', () => {
+		const angle1 = inscribedAngleAtVertex([1, 1], [3, 1], [1, 4]);
+		const angle2 = lawAngleAtVertex([1, 1], [3, 1], [1, 4]);
+		const angle3 = unsignedAngleAtVertex([1, 1], [3, 1], [1, 4]);
+		expect(angle1).toBe(angle2);
+		expect(angle2).toBe(angle3);
+		expect(approximatelyZero(angle1 - Math.PI / 2, 1)).toBe(true);
+	});
+});

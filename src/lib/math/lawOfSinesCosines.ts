@@ -9,7 +9,8 @@
 // 頂点 A の対辺 (= BC の長さ) を a、頂点 B の対辺 (= CA の長さ) を b、頂点 C の対辺
 // (= AB の長さ) を c と呼ぶ。
 
-import { unsignedAngleAtVertex } from './geometry.js';
+import { approximatelyZero } from './compare.js';
+import { unsignedAngleFromVectors } from './geometry.js';
 
 export type Point2 = readonly [number, number];
 
@@ -60,7 +61,35 @@ export function sideLength(p: Point2, q: Point2): number {
  * 検査する)。
  */
 export function angleAtVertex(vertex: Point2, p1: Point2, p2: Point2): number {
-	return unsignedAngleAtVertex(vertex, p1, p2);
+	assertFinitePoint(vertex, 'vertex');
+	assertFinitePoint(p1, 'p1');
+	assertFinitePoint(p2, 'p2');
+
+	const v1x = p1[0] - vertex[0];
+	const v1y = p1[1] - vertex[1];
+	const v2x = p2[0] - vertex[0];
+	const v2y = p2[1] - vertex[1];
+
+	const len1 = Math.hypot(v1x, v1y);
+	const len2 = Math.hypot(v2x, v2y);
+
+	// ゼロ長判定はスケール相対誤差で行う (MATH_CONVENTIONS §2)。scale は比較対象と同じ次元
+	// (座標の大きさ)の量を渡す。
+	const scale1 = Math.max(1, Math.abs(vertex[0]), Math.abs(vertex[1]), Math.abs(p1[0]), Math.abs(p1[1]));
+	const scale2 = Math.max(1, Math.abs(vertex[0]), Math.abs(vertex[1]), Math.abs(p2[0]), Math.abs(p2[1]));
+	if (approximatelyZero(len1, scale1)) {
+		throw new RangeError(
+			'angleAtVertex requires vertex !== p1 (zero-length vector, angle undefined)',
+		);
+	}
+	if (approximatelyZero(len2, scale2)) {
+		throw new RangeError(
+			'angleAtVertex requires vertex !== p2 (zero-length vector, angle undefined)',
+		);
+	}
+
+	// 計算核は共有 util へ委譲(Issue #21。検証・境界・メッセージは本モジュールの公開 API 互換のため自前のまま)。
+	return unsignedAngleFromVectors([v1x, v1y], [v2x, v2y]);
 }
 
 /**

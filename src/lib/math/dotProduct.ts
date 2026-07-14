@@ -10,7 +10,8 @@
 // 角度の内部単位はラジアンで統一する (MATH_CONVENTIONS §5)。度 (°) への変換は UI 層
 // (components/lesson/DotProductExperiment.tsx) に置く。
 
-import { unsignedAngleBetweenVectors } from './geometry.js';
+import { approximatelyZero } from './compare.js';
+import { unsignedAngleFromVectors } from './geometry.js';
 
 export type Vec2 = readonly [number, number];
 
@@ -57,5 +58,23 @@ export function magnitude(v: Vec2): number {
  * する(MATH_CONVENTIONS §4: サイレントに NaN を伝播させない)。
  */
 export function angleBetween(a: Vec2, b: Vec2): number {
-	return unsignedAngleBetweenVectors(a, b);
+	assertFiniteVec2(a, 'a');
+	assertFiniteVec2(b, 'b');
+
+	const lenA = Math.hypot(a[0], a[1]);
+	const lenB = Math.hypot(b[0], b[1]);
+
+	// ゼロ長判定はスケール相対誤差で行う (MATH_CONVENTIONS §2)。scale は比較対象と同じ次元
+	// (座標の大きさ)の量を渡す。
+	const scaleA = Math.max(1, Math.abs(a[0]), Math.abs(a[1]));
+	const scaleB = Math.max(1, Math.abs(b[0]), Math.abs(b[1]));
+	if (approximatelyZero(lenA, scaleA)) {
+		throw new RangeError('angleBetween requires a non-zero vector a (zero vector has no direction, angle undefined)');
+	}
+	if (approximatelyZero(lenB, scaleB)) {
+		throw new RangeError('angleBetween requires a non-zero vector b (zero vector has no direction, angle undefined)');
+	}
+
+	// 計算核は共有 util へ委譲(Issue #21。検証・境界・メッセージは本モジュールの公開 API 互換のため自前のまま)。
+	return unsignedAngleFromVectors(a, b);
 }
