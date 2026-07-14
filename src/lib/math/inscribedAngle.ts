@@ -12,7 +12,7 @@
 // `angleAtVertex(center, A, B)` (中心角) / `angleAtVertex(p, A, B)` (円周角) と
 // 呼び分けることで意図を表現する (Simplicity First)。
 
-import { approximatelyZero } from './compare.js';
+import { unsignedAngleAtVertex } from './geometry.js';
 
 export type Point2 = readonly [number, number];
 
@@ -55,45 +55,11 @@ export function pointOnCircle(center: Point2, radius: number, theta: number): Po
 /**
  * 頂点 vertex での符号なし角 ∠p1–vertex–p2 (ラジアン、[0, π])。
  *
- * Math.acos(内積 / (|v1|・|v2|)) ではなく Math.atan2(|外積|, 内積) を使う方針(根拠):
- * acos は入力が ±1 に近い(=角度が 0 または π に近い)場合、割り算と acos の定義域境界
- * 付近での桁落ちにより誤差が拡大しやすい。円周角の定理はまさに「角度が 0 や π に近い」
- * 境界(タレスの定理=π/2 はともかく、ほぼ同じ向き・正反対の向きのケースを含む)を扱うため、
- * 外積・内積を割り算せずそのまま atan2 に渡すこの方式のほうが数値的に安定する。
- *
- * vertex が p1 または p2 と一致する(ベクトルがゼロ長になる)場合、角度そのものが定義
- * できないため RangeError とする(MATH_CONVENTIONS §4: 退化ケースは明示ハンドリングし、
- * サイレントに NaN 等を伝播させない)。
+ * 実装 (atan2(|外積|, 内積) 方式、ゼロ長ベクトルは RangeError) は Issue #21 で
+ * lib/math/geometry.ts の unsignedAngleAtVertex へ共有化済み(旧: lawOfSinesCosines.ts の
+ * angleAtVertex・dotProduct.ts の angleBetween と同一実装が重複していた。数値的根拠の
+ * コメントも共有先に集約している)。
  */
 export function angleAtVertex(vertex: Point2, p1: Point2, p2: Point2): number {
-	assertFinitePoint(vertex, 'vertex');
-	assertFinitePoint(p1, 'p1');
-	assertFinitePoint(p2, 'p2');
-
-	const v1x = p1[0] - vertex[0];
-	const v1y = p1[1] - vertex[1];
-	const v2x = p2[0] - vertex[0];
-	const v2y = p2[1] - vertex[1];
-
-	const len1 = Math.hypot(v1x, v1y);
-	const len2 = Math.hypot(v2x, v2y);
-
-	// ゼロ長判定はスケール相対誤差で行う (MATH_CONVENTIONS §2)。scale は比較対象と同じ次元
-	// (座標の大きさ)の量を渡す。
-	const scale1 = Math.max(1, Math.abs(vertex[0]), Math.abs(vertex[1]), Math.abs(p1[0]), Math.abs(p1[1]));
-	const scale2 = Math.max(1, Math.abs(vertex[0]), Math.abs(vertex[1]), Math.abs(p2[0]), Math.abs(p2[1]));
-	if (approximatelyZero(len1, scale1)) {
-		throw new RangeError(
-			'angleAtVertex requires vertex !== p1 (zero-length vector, angle undefined)',
-		);
-	}
-	if (approximatelyZero(len2, scale2)) {
-		throw new RangeError(
-			'angleAtVertex requires vertex !== p2 (zero-length vector, angle undefined)',
-		);
-	}
-
-	const dot = v1x * v2x + v1y * v2y;
-	const cross = v1x * v2y - v1y * v2x;
-	return Math.atan2(Math.abs(cross), dot);
+	return unsignedAngleAtVertex(vertex, p1, p2);
 }
