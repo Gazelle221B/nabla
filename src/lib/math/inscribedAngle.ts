@@ -57,7 +57,7 @@ export function pointOnCircle(center: Point2, radius: number, theta: number): Po
  * 頂点 vertex での符号なし角 ∠p1–vertex–p2 (ラジアン、[0, π])。
  *
  * 実装 (atan2(|外積|, 内積) 方式、ゼロ長ベクトルは RangeError) は Issue #21 で
- * lib/math/geometry.ts の unsignedAngleAtVertex へ共有化済み(旧: lawOfSinesCosines.ts の
+ * lib/math/geometry.ts の unsignedAngleFromVectors(計算核)へ委譲済み(検証・境界・メッセージは本モジュール所有)(旧: lawOfSinesCosines.ts の
  * angleAtVertex・dotProduct.ts の angleBetween と同一実装が重複していた。数値的根拠の
  * コメントも共有先に集約している)。
  */

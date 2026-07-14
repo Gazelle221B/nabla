@@ -33,6 +33,22 @@ function assertFinitePoint(point: Point2, name: string): void {
 }
 
 /**
+ * 【計算核・検証なし】2ベクトルのなす角(符号なし、ラジアン、[0, π])を
+ * Math.atan2(|外積|, 内積) で計算する。
+ *
+ * 事前条件: 呼び出し側が「成分は有限」「ゼロ長ベクトルでない」ことを検証済みであること
+ * (この関数は検証しない)。既存3モジュール(inscribedAngle/lawOfSinesCosines/dotProduct)は
+ * それぞれの公開 API 互換(ゼロ長判定のスケール定義・例外メッセージ)を守るために自前の
+ * 検証を保持したまま、この計算核だけを共有する(GrokBuild レビュー指摘の反映: 検証まで
+ * 共有すると点ベース API のゼロ長境界〔点の絶対座標スケール〕が変わってしまう)。
+ */
+export function unsignedAngleFromVectors(v1: Vec2, v2: Vec2): number {
+	const dot = v1[0] * v2[0] + v1[1] * v2[1];
+	const cross = v1[0] * v2[1] - v1[1] * v2[0];
+	return Math.atan2(Math.abs(cross), dot);
+}
+
+/**
  * 2ベクトル v1, v2 のなす角(符号なし、ラジアン、[0, π])。
  *
  * Math.acos(内積 / (|v1||v2|)) ではなく Math.atan2(|外積|, 内積) を使う方針(根拠。
@@ -49,22 +65,6 @@ function assertFinitePoint(point: Point2, name: string): void {
  * 数学的に定義できない。RangeError とする(MATH_CONVENTIONS §4: サイレントに NaN を
  * 伝播させない)。
  */
-/**
- * 【計算核・検証なし】2ベクトルのなす角(符号なし、ラジアン、[0, π])を
- * Math.atan2(|外積|, 内積) で計算する。
- *
- * 事前条件: 呼び出し側が「成分は有限」「ゼロ長ベクトルでない」ことを検証済みであること
- * (この関数は検証しない)。既存3モジュール(inscribedAngle/lawOfSinesCosines/dotProduct)は
- * それぞれの公開 API 互換(ゼロ長判定のスケール定義・例外メッセージ)を守るために自前の
- * 検証を保持したまま、この計算核だけを共有する(GrokBuild レビュー指摘の反映: 検証まで
- * 共有すると点ベース API のゼロ長境界〔点の絶対座標スケール〕が変わってしまう)。
- */
-export function unsignedAngleFromVectors(v1: Vec2, v2: Vec2): number {
-	const dot = v1[0] * v2[0] + v1[1] * v2[1];
-	const cross = v1[0] * v2[1] - v1[1] * v2[0];
-	return Math.atan2(Math.abs(cross), dot);
-}
-
 export function unsignedAngleBetweenVectors(v1: Vec2, v2: Vec2): number {
 	assertFiniteVec2(v1, 'v1');
 	assertFiniteVec2(v2, 'v2');

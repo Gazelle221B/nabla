@@ -48,7 +48,7 @@ export function magnitude(v: Vec2): number {
  * 2ベクトル a, b のなす角(符号なし、ラジアン、[0, π])。
  *
  * 実装 (atan2(|外積|, 内積) 方式、ゼロベクトルは RangeError) は Issue #21 で
- * lib/math/geometry.ts の unsignedAngleBetweenVectors へ共有化済み(旧: inscribedAngle.ts の
+ * lib/math/geometry.ts の unsignedAngleFromVectors(計算核)へ委譲済み(検証・境界・メッセージは本モジュール所有)(旧: inscribedAngle.ts の
  * angleAtVertex・lawOfSinesCosines.ts の angleAtVertex と同一実装が重複していた。rule of
  * three 到達時〔PR #20〕は既存2単元の安定を壊さない外科的判断として先送りしたが、Issue #21
  * の横断リファクタで共有化した。数値的根拠のコメントも共有先に集約している)。
