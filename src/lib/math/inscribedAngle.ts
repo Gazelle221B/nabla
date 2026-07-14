@@ -13,6 +13,7 @@
 // 呼び分けることで意図を表現する (Simplicity First)。
 
 import { approximatelyZero } from './compare.js';
+import { unsignedAngleFromVectors } from './geometry.js';
 
 export type Point2 = readonly [number, number];
 
@@ -55,15 +56,10 @@ export function pointOnCircle(center: Point2, radius: number, theta: number): Po
 /**
  * 頂点 vertex での符号なし角 ∠p1–vertex–p2 (ラジアン、[0, π])。
  *
- * Math.acos(内積 / (|v1|・|v2|)) ではなく Math.atan2(|外積|, 内積) を使う方針(根拠):
- * acos は入力が ±1 に近い(=角度が 0 または π に近い)場合、割り算と acos の定義域境界
- * 付近での桁落ちにより誤差が拡大しやすい。円周角の定理はまさに「角度が 0 や π に近い」
- * 境界(タレスの定理=π/2 はともかく、ほぼ同じ向き・正反対の向きのケースを含む)を扱うため、
- * 外積・内積を割り算せずそのまま atan2 に渡すこの方式のほうが数値的に安定する。
- *
- * vertex が p1 または p2 と一致する(ベクトルがゼロ長になる)場合、角度そのものが定義
- * できないため RangeError とする(MATH_CONVENTIONS §4: 退化ケースは明示ハンドリングし、
- * サイレントに NaN 等を伝播させない)。
+ * 実装 (atan2(|外積|, 内積) 方式、ゼロ長ベクトルは RangeError) は Issue #21 で
+ * lib/math/geometry.ts の unsignedAngleFromVectors(計算核)へ委譲済み(検証・境界・メッセージは本モジュール所有)(旧: lawOfSinesCosines.ts の
+ * angleAtVertex・dotProduct.ts の angleBetween と同一実装が重複していた。数値的根拠の
+ * コメントも共有先に集約している)。
  */
 export function angleAtVertex(vertex: Point2, p1: Point2, p2: Point2): number {
 	assertFinitePoint(vertex, 'vertex');
@@ -93,7 +89,6 @@ export function angleAtVertex(vertex: Point2, p1: Point2, p2: Point2): number {
 		);
 	}
 
-	const dot = v1x * v2x + v1y * v2y;
-	const cross = v1x * v2y - v1y * v2x;
-	return Math.atan2(Math.abs(cross), dot);
+	// 計算核は共有 util へ委譲(Issue #21。検証・境界・メッセージは本モジュールの公開 API 互換のため自前のまま)。
+	return unsignedAngleFromVectors([v1x, v1y], [v2x, v2y]);
 }

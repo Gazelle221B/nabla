@@ -11,6 +11,7 @@
 // (components/lesson/DotProductExperiment.tsx) に置く。
 
 import { approximatelyZero } from './compare.js';
+import { unsignedAngleFromVectors } from './geometry.js';
 
 export type Vec2 = readonly [number, number];
 
@@ -46,25 +47,15 @@ export function magnitude(v: Vec2): number {
 /**
  * 2ベクトル a, b のなす角(符号なし、ラジアン、[0, π])。
  *
- * Math.acos(内積 / (|a||b|)) ではなく Math.atan2(|外積|, 内積) を使う方針(根拠):
- * acos は入力が ±1 に近い(=角度が 0 または π に近い、a と b がほぼ同じ向き・正反対の向き)
- * 場合、割り算と acos の定義域境界付近での桁落ちにより誤差が拡大しやすい。この単元は
- * まさに「直角(π/2)」だけでなく平行・反平行に近い操作域も扱うため、外積・内積を
- * 割り算せずそのまま atan2 に渡すこの方式のほうが数値的に安定する
- * (inscribedAngle.ts の angleAtVertex と同じ根拠)。
+ * 実装 (atan2(|外積|, 内積) 方式、ゼロベクトルは RangeError) は Issue #21 で
+ * lib/math/geometry.ts の unsignedAngleFromVectors(計算核)へ委譲済み(検証・境界・メッセージは本モジュール所有)(旧: inscribedAngle.ts の
+ * angleAtVertex・lawOfSinesCosines.ts の angleAtVertex と同一実装が重複していた。rule of
+ * three 到達時〔PR #20〕は既存2単元の安定を壊さない外科的判断として先送りしたが、Issue #21
+ * の横断リファクタで共有化した。数値的根拠のコメントも共有先に集約している)。
  *
- * 設計判断(inscribedAngle.ts / lawOfSinesCosines.ts との重複について、rule of three):
- * この計算(atan2(|外積|,内積) による符号なし角)は、inscribedAngle.ts の angleAtVertex・
- * lawOfSinesCosines.ts の angleAtVertex と同型の式であり、これで3箇所目の独立実装になる。
- * rule of three(3箇所目が現れて初めて共通化を検討する)にはちょうど達したが、
- * 既存2単元(円周角の定理・正弦定理余弦定理)の安定を壊さない外科的判断として、この場では
- * 共有モジュール(例 lib/math/vecAngle.ts)への切り出し・両者のリファクタは行わない。
- * 次に横断的なリファクタ機会が来た時点で共有化を検討する(根拠をここに明記して先送りする)。
- *
- * ゼロベクトル(a または b の大きさが実質0)は、向きを持たないため2ベクトルのなす角が
- * 数学的に定義できない。この単元のUI操作域ではゼロベクトルを作れない設計にするが
- * (DotProductExperiment.tsx: 大きさの最小値 > 0)、数学モデルとしては境界条件を明示的に
- * ハンドリングし RangeError とする(MATH_CONVENTIONS §4: サイレントに NaN を伝播させない)。
+ * この単元のUI操作域ではゼロベクトルを作れない設計にするが(DotProductExperiment.tsx:
+ * 大きさの最小値 > 0)、数学モデルとしては境界条件を明示的にハンドリングし RangeError と
+ * する(MATH_CONVENTIONS §4: サイレントに NaN を伝播させない)。
  */
 export function angleBetween(a: Vec2, b: Vec2): number {
 	assertFiniteVec2(a, 'a');
@@ -84,7 +75,6 @@ export function angleBetween(a: Vec2, b: Vec2): number {
 		throw new RangeError('angleBetween requires a non-zero vector b (zero vector has no direction, angle undefined)');
 	}
 
-	const dotAB = a[0] * b[0] + a[1] * b[1];
-	const cross = a[0] * b[1] - a[1] * b[0];
-	return Math.atan2(Math.abs(cross), dotAB);
+	// 計算核は共有 util へ委譲(Issue #21。検証・境界・メッセージは本モジュールの公開 API 互換のため自前のまま)。
+	return unsignedAngleFromVectors(a, b);
 }

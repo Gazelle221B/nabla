@@ -10,6 +10,7 @@
 // (= AB の長さ) を c と呼ぶ。
 
 import { approximatelyZero } from './compare.js';
+import { unsignedAngleFromVectors } from './geometry.js';
 
 export type Point2 = readonly [number, number];
 
@@ -45,28 +46,19 @@ export function sideLength(p: Point2, q: Point2): number {
 /**
  * 頂点 vertex での符号なし角 ∠p1–vertex–p2 (ラジアン、[0, π])。
  *
- * Math.acos(内積 / (|v1|・|v2|)) ではなく Math.atan2(|外積|, 内積) を使う方針(根拠):
- * acos は入力が ±1 に近い(=角度が 0 または π に近い)場合、割り算と acos の定義域境界
- * 付近での桁落ちにより誤差が拡大しやすい。この単元は「三角形がほぼ潰れる」退化に近い
- * 形状も扱うため、外積・内積を割り算せずそのまま atan2 に渡すこの方式のほうが数値的に
- * 安定する(inscribedAngle.ts の angleAtVertex と同じ根拠)。
+ * 実装 (atan2(|外積|, 内積) 方式、ゼロ長ベクトルは RangeError) は Issue #21 で
+ * lib/math/geometry.ts の unsignedAngleFromVectors(計算核)へ委譲済み(検証・境界・メッセージは本モジュール所有)(旧: inscribedAngle.ts の
+ * angleAtVertex・dotProduct.ts の angleBetween と同一実装が重複していた。数値的根拠の
+ * コメントも共有先に集約している)。
  *
- * 設計判断(inscribedAngle.ts との重複について、rule of three): この計算(atan2(|外積|,内積)
- * による符号なし角)は inscribedAngle.ts の angleAtVertex と同一の式だが、あえてこの
- * モジュールに独立して再定義する。現時点でこの計算を必要とするモジュールは
- * inscribedAngle.ts とこのモジュールの2つのみであり、rule of three(3箇所目が現れて
- * 初めて共通化を検討する)にまだ達していない。3つ目の単元で同じ計算が必要になった時点で、
- * lib/math 内の共有ジオメトリユーティリティ(例: lib/math/geometry.ts)への切り出しを
- * 検討する。それまでは、各単元が自己完結したモジュールとして独立に持つ(pythagoras.ts /
- * similarity.ts / inscribedAngle.ts が assertFiniteNumber 等の極小ヘルパーをそれぞれ
- * 独立に再定義しているのと同じ、本コードベース既存の慣習に沿う)。
- *
- * 退化ケースの方針(MATH_CONVENTIONS §4): vertex が p1 または p2 と一致する場合、
- * 頂点から見るベクトルがゼロ長になり角度そのものが定義できないため RangeError とする。
- * 一方、3点が一直線上にある(共線)だけで vertex が p1・p2 と異なる場合は、角度は
- * 0 (同じ向き) または π (正反対の向き) として有効に定義できる——この場合、3点を頂点と
- * する「三角形」の面積は0に退化するが、角度自体は退化しない(面積0=角度未定義、では
- * ない)。そのため、共線であるという理由だけでは例外にしない。
+ * 退化ケースの方針(MATH_CONVENTIONS §4、この単元固有の判断のため引き続きここに残す):
+ * vertex が p1 または p2 と一致する場合、頂点から見るベクトルがゼロ長になり角度そのものが
+ * 定義できないため RangeError とする。一方、3点が一直線上にある(共線)だけで vertex が
+ * p1・p2 と異なる場合は、角度は 0 (同じ向き) または π (正反対の向き) として有効に定義
+ * できる——この場合、3点を頂点とする「三角形」の面積は0に退化するが、角度自体は退化しない
+ * (面積0=角度未定義、ではない)。そのため、共線であるという理由だけでは例外にしない
+ * (unsignedAngleAtVertex はこの方針の通り、共線かどうかではなくベクトルのゼロ長のみを
+ * 検査する)。
  */
 export function angleAtVertex(vertex: Point2, p1: Point2, p2: Point2): number {
 	assertFinitePoint(vertex, 'vertex');
@@ -96,9 +88,8 @@ export function angleAtVertex(vertex: Point2, p1: Point2, p2: Point2): number {
 		);
 	}
 
-	const dot = v1x * v2x + v1y * v2y;
-	const cross = v1x * v2y - v1y * v2x;
-	return Math.atan2(Math.abs(cross), dot);
+	// 計算核は共有 util へ委譲(Issue #21。検証・境界・メッセージは本モジュールの公開 API 互換のため自前のまま)。
+	return unsignedAngleFromVectors([v1x, v1y], [v2x, v2y]);
 }
 
 /**
