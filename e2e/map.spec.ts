@@ -76,4 +76,15 @@ test.describe('トップページからの導線', () => {
 		await expect(page).toHaveURL(/\/map\/$/);
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('単元マップ');
 	});
+
+	test('SVG は aria-hidden の装飾であり、内部に対話要素を持たない(a11y 設計の回帰ロック)', async ({ page }) => {
+		await page.goto(MAP_PATH);
+		await page.waitForLoadState('networkidle');
+		// aria-hidden は SVG を包む section 側に付与されている(実装の設計)。
+		const visual = page.locator('section[aria-hidden="true"].legend-visual');
+		await expect(visual).toHaveCount(1);
+		await expect(visual.locator('svg')).toHaveCount(1);
+		// aria-hidden コンテナ内の focusable(aria-hidden-focus 違反の原因)がゼロであること
+		await expect(visual.locator('a, button, input, [tabindex]')).toHaveCount(0);
+	});
 });
