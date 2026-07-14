@@ -53,6 +53,10 @@ const base = import.meta.env.BASE_URL;
 				(インタラクティブ教材の設計仮説を実装した公開ベータ)。
 			</p>
 
+			<p class="map-link">
+				<a href={`${base}map/`}>単元マップ(前提関係を図で見る)</a>
+			</p>
+
 			<nav aria-labelledby="lessons-heading">
 				<h2 id="lessons-heading">公開中の単元</h2>
 				<ul class="lesson-list">
@@ -85,6 +89,16 @@ const base = import.meta.env.BASE_URL;
 	}
 	.intro {
 		color: #444;
+	}
+	.map-link {
+		margin: 1.25rem 0 0;
+	}
+	.map-link a {
+		color: inherit;
+	}
+	.map-link a:focus-visible {
+		outline: 2px solid #1f6feb;
+		outline-offset: 2px;
 	}
 	.lesson-list {
 		list-style: none;
