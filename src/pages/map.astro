@@ -1,0 +1,271 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import {
+	buildUnitMapLayout,
+	subjectLabel,
+	subjectColor,
+	SUBJECT_ORDER,
+	NODE_WIDTH,
+	NODE_HEIGHT,
+	type UnitInput,
+} from '../lib/graph/unitMap';
+
+// 単元マップ(/map/): 前提関係の DAG を可視化するナビゲーションページ。
+// DESIGN.md のオープン論点「単元マップは記事20〜30本後に導入」の実施(公開単元数が
+// しきい値を超えたため導入)。教材テンプレ(予想ゲート等)は適用外だが、a11y DoD
+// (axe Critical/Serious 0)は適用する(AGENTS.md §9)。
+//
+// レンダリング方針: レッスンと違いインタラクション不要のナビゲーションページのため、
+// React Island を使わずビルド時に静的 HTML/SVG として生成する(C-3「JS無効でも
+// 本文は読める」を最も強い形で満たす——このページはJSを一切必要としない)。
+// SVGは視覚補助(aria-hidden)とし、実際にキーボード・スクリーンリーダーで操作できる
+// 主担保は後続の DOM リスト(subject ごとの節)。SVG内にリンク等の対話要素を置くと
+// aria-hidden コンテナ内にフォーカス可能要素が残る aria-hidden-focus 問題(axe Serious)を
+// 誘発するため、SVGは矩形・テキスト・パスのみで構成し、リンクは一切含めない。
+
+const entries = await getCollection('lessons');
+
+const units: UnitInput[] = entries.map((entry) => ({
+	id: entry.id,
+	title: entry.data.title,
+	subject: entry.id.split('/')[0]!,
+	prerequisites: entry.data.prerequisites,
+}));
+
+// 循環・ダングリング参照があればここで例外が投げられ、ビルドが止まる(C-2 の防波堤)。
+const layout = buildUnitMapLayout(units);
+
+const titleById = new Map(units.map((unit) => [unit.id, unit.title]));
+const slugOf = (id: string) => id.split('/').pop()!;
+const base = import.meta.env.BASE_URL;
+const lessonHref = (id: string) => `${base}lessons/${slugOf(id)}/`;
+
+// DOM リスト用: subject ごとにグルーピングし、AGENTS.md §6 のディレクトリ列挙順
+// (SUBJECT_ORDER)に揃える。未知の subject(将来ディレクトリが増えた場合)は末尾に回す。
+const subjectsPresent = Array.from(new Set(units.map((u) => u.subject)));
+const orderedSubjects = [
+	...SUBJECT_ORDER.filter((s) => subjectsPresent.includes(s)),
+	...subjectsPresent.filter((s) => !SUBJECT_ORDER.includes(s)),
+];
+
+const unitsBySubject = new Map(
+	orderedSubjects.map((subject) => [
+		subject,
+		units
+			.filter((u) => u.subject === subject)
+			.slice()
+			.sort(
+				(a, b) =>
+					layout.nodes.find((n) => n.id === a.id)!.depth -
+						layout.nodes.find((n) => n.id === b.id)!.depth ||
+					a.title.localeCompare(b.title, 'ja'),
+			),
+	]),
+);
+
+const depthOf = new Map(layout.nodes.map((n) => [n.id, n.depth]));
+
+const svgWidth = layout.width;
+const svgHeight = layout.height;
+---
+
+<BaseLayout title="単元マップ">
+	<main class="map-page">
+		<h1>単元マップ</h1>
+		<p class="intro">
+			前提関係(prerequisites)にもとづいて単元を「深さ」ごとの段に並べたマップです。上の段ほど
+			前提知識が少なく、下へ進むほど前提が積み重なります。
+		</p>
+
+		<section aria-hidden="true" class="legend-visual">
+			<ul class="legend">
+				{
+					orderedSubjects.map((subject) => (
+						<li>
+							<span class="swatch" style={`background:${subjectColor(subject)}`} />
+							{subjectLabel(subject)}
+						</li>
+					))
+				}
+			</ul>
+
+			<svg
+				viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+				width={svgWidth}
+				height={svgHeight}
+				role="presentation"
+				focusable="false"
+			>
+				{
+					layout.edges.map((edge) => (
+						<path d={edge.path} class="edge" />
+					))
+				}
+				{
+					layout.nodes.map((node) => (
+						<g transform={`translate(${node.x}, ${node.y})`}>
+							<rect
+								width={NODE_WIDTH}
+								height={NODE_HEIGHT}
+								rx="8"
+								class="node"
+								style={`--node-color:${subjectColor(node.subject)}`}
+							/>
+							<text x={NODE_WIDTH / 2} y={22} class="node-title">
+								{node.title.length > 16 ? `${node.title.slice(0, 15)}…` : node.title}
+							</text>
+							<text x={NODE_WIDTH / 2} y={40} class="node-subject">
+								{subjectLabel(node.subject)}
+							</text>
+						</g>
+					))
+				}
+			</svg>
+		</section>
+
+		<section aria-labelledby="unit-list-heading" class="unit-list">
+			<h2 id="unit-list-heading">分野ごとの単元一覧</h2>
+			{
+				orderedSubjects.map((subject) => (
+					<section aria-labelledby={`subject-heading-${subject}`}>
+						<h3 id={`subject-heading-${subject}`}>
+							<span class="swatch" style={`background:${subjectColor(subject)}`} aria-hidden="true" />
+							{subjectLabel(subject)}
+						</h3>
+						<ul>
+							{unitsBySubject.get(subject)!.map((unit) => (
+								<li>
+									<a href={lessonHref(unit.id)}>{unit.title}</a>
+									<span class="depth-badge">深さ {depthOf.get(unit.id)}</span>
+									<p class="prereq">
+										前提:{' '}
+										{unit.prerequisites.length === 0 ? (
+											'なし'
+										) : (
+											unit.prerequisites.map((prereqId, i) => (
+												<>
+													<a href={lessonHref(prereqId)}>{titleById.get(prereqId) ?? prereqId}</a>
+													{i < unit.prerequisites.length - 1 ? '、' : ''}
+												</>
+											))
+										)}
+									</p>
+								</li>
+							))}
+						</ul>
+					</section>
+				))
+			}
+		</section>
+	</main>
+</BaseLayout>
+
+<style>
+	.map-page {
+		max-width: 60rem;
+		margin: 0 auto;
+		padding: 2rem 1.25rem 4rem;
+		line-height: 1.8;
+	}
+	.intro {
+		color: #444;
+		max-width: 44rem;
+	}
+	.legend-visual {
+		margin: 1.5rem 0 2.5rem;
+		overflow-x: auto;
+	}
+	.legend {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem 1.25rem;
+		list-style: none;
+		padding: 0;
+		margin: 0 0 1rem;
+		font-size: 0.9rem;
+	}
+	.legend li {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.swatch {
+		display: inline-block;
+		width: 0.8rem;
+		height: 0.8rem;
+		border-radius: 3px;
+		flex-shrink: 0;
+	}
+	svg {
+		display: block;
+		max-width: 100%;
+		height: auto;
+	}
+	.edge {
+		fill: none;
+		stroke: #b5bac8;
+		stroke-width: 1.5;
+	}
+	.node {
+		fill: color-mix(in srgb, var(--node-color) 14%, white);
+		stroke: var(--node-color);
+		stroke-width: 1.5;
+	}
+	.node-title {
+		text-anchor: middle;
+		font-size: 11px;
+		font-weight: 600;
+		fill: #1a1a1a;
+	}
+	.node-subject {
+		text-anchor: middle;
+		font-size: 9px;
+		fill: #444;
+	}
+	.unit-list h2 {
+		margin-bottom: 0.25rem;
+	}
+	.unit-list h3 {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 2rem 0 0.5rem;
+		font-size: 1.05rem;
+	}
+	.unit-list ul {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: grid;
+		gap: 0.75rem;
+	}
+	.unit-list li {
+		padding: 0.75rem 1rem;
+		border: 1px solid #d5d8e0;
+		border-radius: 10px;
+	}
+	.unit-list a {
+		font-weight: 600;
+		text-decoration: none;
+		color: inherit;
+	}
+	.unit-list a:hover,
+	.unit-list a:focus-visible {
+		text-decoration: underline;
+	}
+	.unit-list a:focus-visible {
+		outline: 2px solid #1f6feb;
+		outline-offset: 2px;
+	}
+	.depth-badge {
+		margin-left: 0.6rem;
+		font-size: 0.8rem;
+		color: #555;
+	}
+	.prereq {
+		margin: 0.35rem 0 0;
+		font-size: 0.9rem;
+		color: #444;
+	}
+</style>

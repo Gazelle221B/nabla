@@ -70,4 +70,35 @@ describe('lessons コンテンツグラフ (C-2)', () => {
 		const selfRefs = entries.filter((e) => prerequisitesOf(e).includes(e.id)).map((e) => e.id);
 		expect(selfRefs).toEqual([]);
 	});
+
+	// 上の自己参照テストは循環の最小形(長さ1)のみを見ており、A→B→A のような
+	// 多段の循環は未検証だった(単元マップ導入時に確認・追加。src/lib/graph/unitMap.ts の
+	// topologicalDepth にも独立した循環検出があるが、ここでは別実装の DFS で
+	// コンテンツ側からも二重に守る)。
+	it('prerequisites は自己参照に限らない一般の循環も持たない', () => {
+		const prereqsById = new Map(entries.map((e) => [e.id, prerequisitesOf(e)]));
+		const state = new Map<string, 'visiting' | 'done'>();
+		const cyclesFound: string[] = [];
+
+		function visit(id: string, path: readonly string[]): void {
+			if (state.get(id) === 'done') return;
+			if (state.get(id) === 'visiting') {
+				cyclesFound.push([...path, id].join(' → '));
+				return;
+			}
+			state.set(id, 'visiting');
+			// ダングリング参照(実在しない前提)は別テストの守備範囲なので、ここでは
+			// 単に「これ以上辿る前提が無い」として扱い、循環検出だけに専念する。
+			for (const prereq of prereqsById.get(id) ?? []) {
+				visit(prereq, [...path, id]);
+			}
+			state.set(id, 'done');
+		}
+
+		for (const entry of entries) {
+			visit(entry.id, []);
+		}
+
+		expect(cyclesFound, `循環を検出した前提関係: ${cyclesFound.join(', ')}`).toEqual([]);
+	});
 });
