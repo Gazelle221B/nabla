@@ -6,6 +6,7 @@ import {
 	enumeratePermutations,
 	enumerateCombinations,
 } from '../../lib/math/combinatorics.js';
+import { getPresetSearchParams, readNumberPreset } from '../../lib/urlPreset.js';
 import { CombinatoricsEnumerationScene } from '../scenes/dom/CombinatoricsEnumerationScene.js';
 import styles from './CombinatoricsExperiment.module.css';
 
@@ -33,6 +34,16 @@ const INITIAL_N = 4;
 const R_MIN = 1;
 const INITIAL_R = 2;
 
+// URL パラメータでの初期状態固定 (ADR-006 M9d、一斉提示モード、パイロット3単元の1つ)。
+// ?n=<人数>・?r=<選ぶ人数> で初期値だけを差し替えられる (教師が「全員同じ初期状態」で
+// 提示する用途)。不正値・範囲外は lib/urlPreset.ts が黙って既定値へフォールバックする
+// (console エラーなし)。r は「現在の n」に依存してクランプされるため、n を先に解決してから
+// r を clampR (既存関数、ロジック変更なし) で最終クランプする。予想 (prediction)・確定
+// (submitted) 状態はこのパラメータの対象外——予想ゲートは迂回できない (下の useState の
+// 初期値計算にのみ影響する)。
+const N_PRESET_PARAM = 'n';
+const R_PRESET_PARAM = 'r';
+
 type Mode = 'permutation' | 'combination';
 
 // 予想ゲートの質問: 「4人から2人を『選んで並べる』のと『選ぶだけ』——多いのはどっち?」
@@ -57,17 +68,34 @@ function clampR(value: number, n: number): number {
 }
 
 export function CombinatoricsExperiment() {
-	const [n, setN] = useState(INITIAL_N);
-	const [r, setR] = useState(INITIAL_R);
+	// 初期値は既定値 (INITIAL_N / INITIAL_R) だが、?n=/?r= があればそちらを優先する。
+	// n を先に解決し、既存の clampR (ロジック変更なし) で r を「現在の n」の範囲へ最終クランプする。
+	const [n, setN] = useState(() =>
+		readNumberPreset(getPresetSearchParams(), N_PRESET_PARAM, {
+			min: N_MIN,
+			max: N_MAX,
+			fallback: INITIAL_N,
+		}),
+	);
+	const [r, setR] = useState(() =>
+		clampR(
+			readNumberPreset(getPresetSearchParams(), R_PRESET_PARAM, {
+				min: R_MIN,
+				max: N_MAX,
+				fallback: INITIAL_R,
+			}),
+			n,
+		),
+	);
 	const [mode, setMode] = useState<Mode>('permutation');
 	const [prediction, setPrediction] = useState<Prediction | null>(null);
 	const [submitted, setSubmitted] = useState(false);
 
 	// 数値入力の編集途中の文字列を保持する表示用 state (DerivativeFunctionExperiment /
 	// QuadraticEquationExperiment と同じ理由: 確定 (blur/Enter) 時にのみ clamp して数値 state
-	// へ反映し、入力途中の破壊を防ぐ)。
-	const [inputN, setInputN] = useState(String(INITIAL_N));
-	const [inputR, setInputR] = useState(String(INITIAL_R));
+	// へ反映し、入力途中の破壊を防ぐ)。初期表示は上で解決済みの n・r (プリセット反映後) に合わせる。
+	const [inputN, setInputN] = useState(() => String(n));
+	const [inputR, setInputR] = useState(() => String(r));
 
 	useEffect(() => setInputN(String(n)), [n]);
 	useEffect(() => setInputR(String(r)), [r]);

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -179,5 +179,57 @@ describe('TrigonometryExperiment (M4)', () => {
 	it('JS 無効フォールバックの <noscript> 要素を持つ', () => {
 		const { container } = render(<TrigonometryExperiment />);
 		expect(container.querySelector('noscript')).toBeTruthy();
+	});
+});
+
+// ADR-006 M9d: URL パラメータでの初期状態固定(一斉提示モード、パイロット3単元の1つ)。
+describe('TrigonometryExperiment: URL プリセット (ADR-006 M9d)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	afterEach(() => {
+		window.history.pushState({}, '', '/');
+	});
+
+	it('?theta=45 で予想確定後の初期値が45になる', async () => {
+		window.history.pushState({}, '', '/?theta=45');
+		const user = userEvent.setup();
+		render(<TrigonometryExperiment />);
+		await enterExperiment(user);
+		expect(rowValue(/^角度 θ\(度\)/)).toBe('45');
+	});
+
+	it('不正な ?theta=abc は既定値0へ黙ってフォールバックする(console.error なし)', async () => {
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		window.history.pushState({}, '', '/?theta=abc');
+		const user = userEvent.setup();
+		render(<TrigonometryExperiment />);
+		await enterExperiment(user);
+		expect(rowValue(/^角度 θ\(度\)/)).toBe('0');
+		expect(errorSpy).not.toHaveBeenCalled();
+		errorSpy.mockRestore();
+	});
+
+	it('範囲外の ?theta=9999 は上限 (359度) へクランプされる', async () => {
+		window.history.pushState({}, '', '/?theta=9999');
+		const user = userEvent.setup();
+		render(<TrigonometryExperiment />);
+		await enterExperiment(user);
+		expect(rowValue(/^角度 θ\(度\)/)).toBe('359');
+	});
+
+	it('プリセットが指定されていても予想ゲートは表示されたままで、確定前は観察パネルが出ない(迂回不可)', () => {
+		window.history.pushState({}, '', '/?theta=45');
+		render(<TrigonometryExperiment />);
+		expect(screen.queryByRole('heading', { name: '観察' })).not.toBeInTheDocument();
+		expect(screen.getByRole('button', { name: '予想を確定して実験する' })).toBeDisabled();
+	});
+
+	it('予想・確定状態を狙った未知パラメータ(prediction/submitted)は無視され、予想ゲートは迂回されない', () => {
+		window.history.pushState({}, '', '/?prediction=decreases&submitted=true&theta=10');
+		render(<TrigonometryExperiment />);
+		expect(screen.queryByRole('heading', { name: '観察' })).not.toBeInTheDocument();
+		expect(screen.getByRole('button', { name: '予想を確定して実験する' })).toBeDisabled();
 	});
 });

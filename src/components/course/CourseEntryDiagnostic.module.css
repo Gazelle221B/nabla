@@ -1,0 +1,130 @@
+/* CourseEntryDiagnostic(入口診断、ADR-006 M9d)のレイアウト。PrerequisiteCheck.module.css
+   (M9b)とほぼ同一のダーク自己完結カード(--nabla-surface 等のフォールバック色トークンを
+   独自に背景ごと持つため、ページ本体が明るい背景〔/courses/ は map.astro と同系統〕でも
+   コントラスト問題を起こさない——このパターンは M9c の /history/ 実装で「ページの明るい
+   背景に対してダーク surface 用の文字色だけを流用する」ことがaxe color-contrast違反を
+   招くと判明した教訓を踏まえ、常に自前の背景とセットで使う)。 */
+
+.diagnostic {
+	max-width: 44rem;
+	margin: 1.5rem auto 2rem;
+	padding: 1.25rem;
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 12px;
+	background: var(--nabla-surface, #1a1d29);
+	color: var(--nabla-text-primary, #e7e9f0);
+	line-height: 1.7;
+}
+
+.heading {
+	margin-top: 0;
+	font-size: 1.1rem;
+}
+
+.intro {
+	color: var(--nabla-text-secondary, #a7adc0);
+	margin-bottom: 1rem;
+}
+
+.skipButton {
+	font: inherit;
+	background: transparent;
+	border: 1px solid var(--nabla-grid, #33384a);
+	color: inherit;
+	border-radius: 8px;
+	padding: 0.35rem 0.75rem;
+	cursor: pointer;
+	margin-bottom: 1rem;
+}
+
+/* .dismissedNotice は .diagnostic の外(ダーク自己完結カードの外側)にレンダリングされる
+   (コンポーネントが dismissed 時にカードごと差し替えるため)。/courses/ ページ本体は
+   map.astro と同系統の明るい背景であり、ダーク surface 用のフォールバック色
+   (--nabla-text-secondary #a7adc0・--nabla-text-primary #e7e9f0)をそのまま使うと
+   コントラスト比が2.5:1未満になり axe の color-contrast(Serious)に抵触する
+   ——M9c の /history/ 実装で発見・修正したのと同型の欠陥(2026-07-24 数学QA指摘で
+   CourseEntryDiagnostic にも同じパターンが再発していたことを検出)。ここは明るい背景
+   専用の高コントラスト色(#444 / #1a1a1a、実測 9.7:1 / 17:1)を直接指定する。 */
+.dismissedNotice {
+	max-width: 44rem;
+	margin: 1.5rem auto;
+	color: #444;
+	font-size: 0.95rem;
+}
+
+.dismissedNotice button {
+	font: inherit;
+	background: transparent;
+	border: none;
+	color: #1a1a1a;
+	text-decoration: underline;
+	cursor: pointer;
+	padding: 0;
+}
+
+.dismissedNotice button:focus-visible {
+	outline: 2px solid var(--nabla-focus-ring, #8ab4ff);
+	outline-offset: 2px;
+}
+
+.questionFieldset {
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 8px;
+	padding: 0.75rem 1rem;
+	margin: 0 0 0.9rem;
+}
+
+.questionOption {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.2rem 0;
+	cursor: pointer;
+}
+
+.unsureOption {
+	color: var(--nabla-text-secondary, #a7adc0);
+	font-style: italic;
+}
+
+.primaryButton {
+	font: inherit;
+	padding: 0.45rem 1rem;
+	border-radius: 8px;
+	cursor: pointer;
+	border: 1px solid var(--nabla-grid, #33384a);
+	background: var(--nabla-accent-primary, #4f8ff0);
+	color: #0b0d14;
+	font-weight: 600;
+}
+
+.primaryButton:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.summary {
+	margin-top: 1rem;
+	padding: 0.75rem 1rem;
+	border-radius: 8px;
+	border-left: 3px solid var(--nabla-success, #4bbf7b);
+	background: rgba(75, 191, 123, 0.1);
+}
+
+.summary a {
+	color: var(--nabla-text-primary, #e7e9f0);
+	font-weight: 600;
+	text-decoration: underline;
+}
+
+.diagnostic :is(button, input, a):focus-visible {
+	outline: 2px solid var(--nabla-focus-ring, #8ab4ff);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.diagnostic * {
+		transition: none !important;
+		animation: none !important;
+	}
+}
