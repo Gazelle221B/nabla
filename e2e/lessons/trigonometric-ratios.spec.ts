@@ -110,3 +110,90 @@ test.describe('三角比と単位円ページ (TrigonometryExperiment)', () => {
 		await expect(page.getByText(/tan θ は定義されません/)).toHaveCount(0);
 	});
 });
+
+// ADR-006 M9b: 前提チェック関門(パイロット、前提単元「三平方の定理」)の実ブラウザ検証。
+// PrerequisiteCheck は client:only="react" のため SSR HTML には一切現れず、ハイドレーション
+// 完了後に初めて DOM へ挿入される(JS 無効時に「表示されないだけ」であることの裏返し)。
+declare global {
+	interface Window {
+		__gtagCalls?: [string, string, Record<string, unknown>][];
+	}
+}
+
+test.describe('前提チェック(PrerequisiteCheck、前提単元: 三平方の定理)', () => {
+	test('表示・a11y・キーボード操作・誤答時の前提単元リンク・スキップ動線が機能する', async ({ page }) => {
+		await page.goto(TRIGONOMETRIC_RATIOS_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const check = page.locator('section[aria-labelledby="prereq-check-title"]');
+		await check.waitFor();
+		await expect(page.getByRole('heading', { name: '前提チェック' })).toBeVisible();
+
+		// axe: チェック表示直後(未回答)の a11y。
+		const gate = await new AxeBuilder({ page }).analyze();
+		const gateBad = gate.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
+		expect(gateBad, JSON.stringify(gateBad, null, 2)).toEqual([]);
+
+		// キーボード操作: 最初の設問の最初の選択肢にフォーカスし、Space で選択できる。
+		const firstChoice = check.getByRole('radio').first();
+		await firstChoice.focus();
+		await firstChoice.press('Space');
+		await expect(firstChoice).toBeChecked();
+
+		// 3問中1問をあえて不正解にして採点し、前提単元へのリンクが提示されることを確認する。
+		const groups = check.getByRole('group');
+		await expect(groups).toHaveCount(3);
+		// 設問1(脚3・4の斜辺)は正解が「5」。あえて誤答「6」を選ぶ。
+		await groups.nth(0).getByRole('radio', { name: '6' }).check();
+		await groups.nth(1).getByRole('radio', { name: '(5, 12, 13)' }).check();
+		await groups.nth(2).getByRole('radio', { name: '12' }).check();
+		await check.getByRole('button', { name: '採点する' }).click();
+
+		const prereqLink = check.getByRole('link', { name: /三平方の定理/ });
+		await expect(prereqLink).toBeVisible();
+		await expect(prereqLink).toHaveAttribute('href', '../pythagorean-theorem/');
+
+		// axe: 採点結果表示後(前提単元リンクを含む)の a11y も引き続き0件。
+		const graded = await new AxeBuilder({ page }).analyze();
+		const gradedBad = graded.violations.filter(
+			(v) => v.impact === 'critical' || v.impact === 'serious',
+		);
+		expect(gradedBad, JSON.stringify(gradedBad, null, 2)).toEqual([]);
+
+		// 強制ブロックしない: スキップすると本文へ進めるようパネルが畳まれ、再表示もできる。
+		await check.getByRole('button', { name: 'スキップして本文へ進む' }).click();
+		await expect(page.getByRole('heading', { name: '前提チェック' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'もう一度確認する' }).click();
+		await expect(page.getByRole('heading', { name: '前提チェック' })).toBeVisible();
+	});
+
+	test('前提チェックの操作は GA4 中核ループイベント(experiment_interact 等)を発火しない', async ({
+		page,
+	}) => {
+		// docs/METRICS_PLAN.md の計測スコープ回帰(M9b タスク仕様): 実験セクション外である
+		// 前提チェックの操作が誤って experiment_interact 等にカウントされないことを、実際の
+		// ブラウザ・実ページ(単元本文の実験セクションを含む)上で確認する。
+		await page.addInitScript(() => {
+			window.__gtagCalls = [];
+			window.gtag = (...args: unknown[]) => {
+				window.__gtagCalls!.push(args as [string, string, Record<string, unknown>]);
+			};
+		});
+		await page.setViewportSize({ width: 1280, height: 2400 });
+		await page.goto(TRIGONOMETRIC_RATIOS_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const check = page.locator('section[aria-labelledby="prereq-check-title"]');
+		await check.waitFor();
+
+		const groups = check.getByRole('group');
+		await groups.nth(0).getByRole('radio', { name: '6' }).check();
+		await groups.nth(1).getByRole('radio', { name: '(5, 12, 13)' }).check();
+		await groups.nth(2).getByRole('radio', { name: '12' }).check();
+		await check.getByRole('button', { name: '採点する' }).click();
+		await check.getByRole('button', { name: 'スキップして本文へ進む' }).click();
+
+		const firedNames = await page.evaluate(() => window.__gtagCalls?.map((c) => c[1]) ?? []);
+		expect(firedNames).toEqual([]);
+	});
+});

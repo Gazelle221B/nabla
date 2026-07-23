@@ -21,6 +21,10 @@ contentReview:
 ---
 
 import { DerivativeFunctionExperiment } from '../../../components/lesson/DerivativeFunctionExperiment.tsx';
+import { PrerequisiteCheck } from '../../../components/lesson/PrerequisiteCheck.tsx';
+import { derivativeFunctionPrerequisiteCheck } from '../../../lib/prerequisiteChecks/derivativeFunction.ts';
+
+<PrerequisiteCheck data={derivativeFunctionPrerequisiteCheck} client:only="react" />
 
 ## 前の単元からの続き: 1点の傾きから、すべての点の傾きへ
 

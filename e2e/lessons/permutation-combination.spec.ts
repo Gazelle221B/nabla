@@ -118,3 +118,44 @@ test.describe('場合の数(順列と組合せ)ページ (CombinatoricsExperimen
 		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
 	});
 });
+
+// ADR-006 M9b: 前提チェック関門(パイロット、前提単元「確率 — 単純な試行と相対度数」)の
+// 実ブラウザ検証。PrerequisiteCheck は client:only="react" のため SSR HTML には現れず、
+// ハイドレーション完了後に初めて DOM へ挿入される(JS 無効時に「表示されないだけ」の裏返し)。
+test.describe('前提チェック(PrerequisiteCheck、前提単元: 確率 — 単純な試行と相対度数)', () => {
+	test('表示・a11y・「わからない」選択時の前提単元リンク・スキップ動線が機能する', async ({ page }) => {
+		await page.goto(PERMUTATION_COMBINATION_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const check = page.locator('section[aria-labelledby="prereq-check-title"]');
+		await check.waitFor();
+		await expect(page.getByRole('heading', { name: '前提チェック' })).toBeVisible();
+
+		const gate = await new AxeBuilder({ page }).analyze();
+		const gateBad = gate.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
+		expect(gateBad, JSON.stringify(gateBad, null, 2)).toEqual([]);
+
+		// 設問1で「わからない/自信がない」を選ぶと、不正解と同様に前提単元へのリンクが出る。
+		const groups = check.getByRole('group');
+		await expect(groups).toHaveCount(3);
+		await groups.nth(0).getByRole('radio', { name: 'わからない/自信がない' }).check();
+		await groups.nth(1).getByRole('radio', { name: '3/5' }).check();
+		await groups.nth(2).getByRole('radio', { name: '2/5' }).check();
+		await check.getByRole('button', { name: '採点する' }).click();
+
+		const prereqLink = check.getByRole('link', { name: /確率 — 単純な試行と相対度数/ });
+		await expect(prereqLink).toBeVisible();
+		await expect(prereqLink).toHaveAttribute('href', '../simple-probability/');
+
+		const graded = await new AxeBuilder({ page }).analyze();
+		const gradedBad = graded.violations.filter(
+			(v) => v.impact === 'critical' || v.impact === 'serious',
+		);
+		expect(gradedBad, JSON.stringify(gradedBad, null, 2)).toEqual([]);
+
+		await check.getByRole('button', { name: 'スキップして本文へ進む' }).click();
+		await expect(page.getByRole('heading', { name: '前提チェック' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'もう一度確認する' }).click();
+		await expect(page.getByRole('heading', { name: '前提チェック' })).toBeVisible();
+	});
+});
