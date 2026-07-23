@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/print.css';
+
+// 印刷可能な予想ワークシート(/worksheet/、ADR-006 M9d「流通の種まき」)。授業・自習で使える
+// 「予想→操作→説明」記入シート(汎用1種)。ガイド(/guide/)と共通の print CSS を使い、
+// ブラウザの印刷機能で A4 1枚に収まるよう1ページ分の分量に抑える。完全に静的な HTML のみ
+// (印刷ボタンは window.print() を呼ぶだけの inline onclick、React Island は使わない)。
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="予想ワークシート">
+	<main class="print-page">
+		<p class="breadcrumb no-print"><a href={base}>← トップへ戻る</a></p>
+		<h1>予想ワークシート</h1>
+		<p class="lede">
+			nabla の各単元で使える、汎用の「予想→操作→説明」記入シートです。印刷して
+			(下のボタン、またはブラウザの印刷機能)、画面操作と並行して記入してください。
+		</p>
+
+		<button type="button" class="print-button no-print" onclick="window.print()">印刷する</button>
+
+		<p class="disclaimer">
+			このシートは <a href={`${base}guide/`}>伴走者向けガイド</a> の進行プロトコル(予想を先に
+			言わせる・正解をすぐ教えない・操作後に自分の言葉で説明させる)をそのまま記入欄にした
+			ものです。nabla の教育効果は未検証(公開ベータ)であり、このシートの使用が学習効果を
+			保証するものではありません。
+		</p>
+
+		<!-- 記入欄(.fill-in)は紙面上で手書きするための空白であり、画面上で編集できる入力欄
+		     ではない(ペン記入を前提とした静的シート)。role="textbox" 等の対話ロールは付けず、
+		     支援技術には意味のない装飾として扱わせる(aria-hidden)。指示文(<p>)側が
+		     内容を担う。 -->
+		<section aria-labelledby="unit-field-heading">
+			<h2 id="unit-field-heading">1. 単元名</h2>
+			<p>今日取り組む単元の名前を書きましょう。</p>
+			<div class="fill-in short" aria-hidden="true"></div>
+		</section>
+
+		<section aria-labelledby="prediction-field-heading">
+			<h2 id="prediction-field-heading">2. 予想(操作する前に書く)</h2>
+			<p>
+				画面を操作する前に、「こうなるはずだ」と思うことを書きましょう。正解かどうかは
+				気にしなくて大丈夫です。
+			</p>
+			<div class="fill-in" aria-hidden="true"></div>
+		</section>
+
+		<section aria-labelledby="observation-field-heading">
+			<h2 id="observation-field-heading">3. 操作して観察したこと</h2>
+			<p>
+				実際に画面を操作して、数値や図がどう変わったかを書きましょう。予想と同じでしたか、
+				違いましたか。
+			</p>
+			<div class="fill-in" aria-hidden="true"></div>
+		</section>
+
+		<section aria-labelledby="explanation-field-heading">
+			<h2 id="explanation-field-heading">4. 自分の言葉での説明</h2>
+			<p>
+				「なぜそうなるのか」を、自分の言葉で説明してみましょう(教科書の言葉をそのまま
+				写さなくて大丈夫です)。
+			</p>
+			<div class="fill-in tall" aria-hidden="true"></div>
+		</section>
+	</main>
+</BaseLayout>
