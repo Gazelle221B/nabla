@@ -31,6 +31,11 @@ export function PrerequisiteCheck({ data }: Props) {
 		Object.fromEntries(data.questions.map((q) => [q.id, null])),
 	);
 	const [submitted, setSubmitted] = useState(false);
+	// dismissed は「畳んで表示しない」だけの表示上のフラグで、コンポーネント自体は
+	// アンマウントしない(意図的な設計): 「もう一度確認する」で再度開いたとき、
+	// answers/submitted はリセットせずそのまま保持する。スキップは「今は読まない」
+	// という一時的な操作であり、選び直した回答を毎回失わせるのは独学者にとって
+	// 不便なため(C-4 の精神: 独学者の多様な進み方を妨げない)。
 	const [dismissed, setDismissed] = useState(false);
 
 	if (dismissed) {
@@ -106,9 +111,13 @@ export function PrerequisiteCheck({ data }: Props) {
 								/>
 								わからない/自信がない
 							</label>
-							{isCorrect && <p className={`${styles.feedback} ${styles.feedbackCorrect}`}>正解です。</p>}
+							{isCorrect && (
+								<p aria-live="polite" className={`${styles.feedback} ${styles.feedbackCorrect}`}>
+									正解です。
+								</p>
+							)}
 							{isReview && (
-								<p className={`${styles.feedback} ${styles.feedbackReview}`}>
+								<p aria-live="polite" className={`${styles.feedback} ${styles.feedbackReview}`}>
 									見直しが必要かもしれません。{question.source}
 								</p>
 							)}
@@ -122,6 +131,7 @@ export function PrerequisiteCheck({ data }: Props) {
 
 			{submitted && (
 				<div
+					aria-live="polite"
 					className={`${styles.summary} ${needsReview ? styles.summaryNeedsReview : styles.summaryOk}`}
 				>
 					{needsReview ? (

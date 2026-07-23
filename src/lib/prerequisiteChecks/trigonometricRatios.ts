@@ -36,23 +36,23 @@ function satisfiesPythagoras(a: number, b: number, c: number): boolean {
 
 const q1Hypotenuse = trueHypotenuse(3, 4); // = 5 (pythagorean-theorem.mdx の具体例と一致)
 
+// 正答の位置バイアス対策(オーケストレータ指摘): 正答(5)を選択肢の先頭以外(2番目)に
+// 静的に配置する。id は値との対応を保ったまま(id='a'は常に値'5')、配列内の並び順
+// (=画面上の表示順)だけを変えている——pickCorrectChoiceId は順序に依存しないため、
+// この並び替えは正誤判定ロジックに影響しない。
+const q1ChoiceList = [
+	{ id: 'b', label: '6' },
+	{ id: 'a', label: '5' },
+	{ id: 'c', label: '7' },
+	{ id: 'd', label: '12' }, // 5-12-13 の斜辺13との混同を狙った誤答選択肢(数値そのものは誤答)
+];
+
 const q1: PrerequisiteQuestion = {
 	id: 'trig-prereq-1',
 	prompt: '直角三角形で、直角をはさむ2つの脚の長さが 3 と 4 のとき、斜辺の長さはいくつですか。',
-	choices: [
-		{ id: 'a', label: '5' },
-		{ id: 'b', label: '6' },
-		{ id: 'c', label: '7' },
-		{ id: 'd', label: '12' }, // 5-12-13 の斜辺13との混同を狙った誤答選択肢(数値そのものは誤答)
-	],
-	correctChoiceId: pickCorrectChoiceId(
-		[
-			{ id: 'a', label: '5' },
-			{ id: 'b', label: '6' },
-			{ id: 'c', label: '7' },
-			{ id: 'd', label: '12' },
-		],
-		(choice) => approximatelyZero(Number(choice.label) - q1Hypotenuse, q1Hypotenuse),
+	choices: q1ChoiceList,
+	correctChoiceId: pickCorrectChoiceId(q1ChoiceList, (choice) =>
+		approximatelyZero(Number(choice.label) - q1Hypotenuse, q1Hypotenuse),
 	),
 	source: '前提単元「三平方の定理」: a² + b² = c²(脚3・4→斜辺5の具体例と同一)。',
 	rationale:
@@ -60,10 +60,12 @@ const q1: PrerequisiteQuestion = {
 		'置いたときの2点間距離(=真の斜辺)を検算し、5 に一致する選択肢のみを正解とする。',
 };
 
+// 正答の位置バイアス対策(オーケストレータ指摘): 正答(id='a')を配列の3番目(表示順)に
+// 置く。id と数値の対応は保ったまま並び順のみ変える(pickCorrectChoiceId は順序非依存)。
 const q2Choices: readonly { id: string; a: number; b: number; c: number }[] = [
-	{ id: 'a', a: 5, b: 12, c: 13 }, // pythagorean-theorem.mdx の具体例そのもの(正解)
 	{ id: 'b', a: 5, b: 12, c: 14 }, // 斜辺だけをわずかにずらした誤答
 	{ id: 'c', a: 6, b: 8, c: 11 }, // 6-8-10 の派生に見せかけた誤答(11は不成立)
+	{ id: 'a', a: 5, b: 12, c: 13 }, // pythagorean-theorem.mdx の具体例そのもの(正解)
 	{ id: 'd', a: 2, b: 3, c: 4 }, // 小さい数字の非直角三角形
 ];
 
@@ -84,11 +86,13 @@ const q2: PrerequisiteQuestion = {
 		'残差を lib/math/compare.ts の approximatelyZero で判定する(残差≈0の候補のみ正解)。',
 };
 
+// 正答の位置バイアス対策(オーケストレータ指摘): 正答(id='a')を配列の末尾(4番目、
+// 表示順)に置く。id と数値の対応は保ったまま並び順のみ変える。
 const q3Candidates: readonly { id: string; b: number }[] = [
-	{ id: 'a', b: 12 }, // 5-12-13(正解、pythagorean-theorem.mdx の具体例)
 	{ id: 'b', b: 8 },
 	{ id: 'c', b: 18 },
 	{ id: 'd', b: 6 },
+	{ id: 'a', b: 12 }, // 5-12-13(正解、pythagorean-theorem.mdx の具体例)
 ];
 
 const q3: PrerequisiteQuestion = {

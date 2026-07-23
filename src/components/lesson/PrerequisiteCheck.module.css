@@ -46,10 +46,21 @@
 	font: inherit;
 	background: transparent;
 	border: none;
-	color: var(--nabla-accent-primary, #4f8ff0);
+	/* .summary a と同じ理由(実測でコントラスト不足を検出済み): 背景が一定しない文脈
+	   (記事本文の地の色)に置かれるボタンなので、accent-primary の青ではなく地の文と
+	   同じ高コントラストな色+下線で識別させる。 */
+	color: var(--nabla-text-primary, #e7e9f0);
 	text-decoration: underline;
 	cursor: pointer;
 	padding: 0;
+}
+
+/* .check の外(スキップ後の再表示ボタン)にもプロジェクト統一のフォーカスリングを適用する
+   (修正: 以前は `.check :is(...)` の中にしかスコープしておらず、.dismissedNotice が
+   .check の外側にレンダリングされるため focus-visible が当たらなかった)。 */
+.dismissedNotice button:focus-visible {
+	outline: 2px solid var(--nabla-focus-ring, #8ab4ff);
+	outline-offset: 2px;
 }
 
 .questionFieldset {

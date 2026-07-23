@@ -13,11 +13,14 @@ function approxEqual(a: number, b: number): boolean {
 
 const q1Value = theoreticalProbability(1, 6); // = 1/6(サイコロで1の目)
 
+// 正答の位置バイアス対策(オーケストレータ指摘): 正答(id='a', 1/6)を配列の末尾
+// (4番目、表示順)に置く。id と数値の対応は保ったまま並び順のみ変える
+// (pickCorrectChoiceId は順序非依存)。
 const q1Choices = [
-	{ id: 'a', label: '1/6', value: 1 / 6 },
 	{ id: 'b', label: '1/3', value: 1 / 3 },
 	{ id: 'c', label: '1/2', value: 1 / 2 },
 	{ id: 'd', label: '1', value: 1 },
+	{ id: 'a', label: '1/6', value: 1 / 6 },
 ];
 
 const q1: PrerequisiteQuestion = {
@@ -59,10 +62,12 @@ const q2: PrerequisiteQuestion = {
 const q3Frequencies = relativeFrequencies([4, 6]); // [1の目が出た回数, それ以外の回数] = [4, 6]
 const q3Value = q3Frequencies[0]!; // = 0.4 = 2/5
 
+// 正答の位置バイアス対策(オーケストレータ指摘): 正答(id='a', 2/5)を配列の3番目
+// (表示順)に置く。
 const q3Choices = [
-	{ id: 'a', label: '2/5', value: 2 / 5 },
 	{ id: 'b', label: '1/6', value: 1 / 6 },
 	{ id: 'c', label: '4/6', value: 4 / 6 },
+	{ id: 'a', label: '2/5', value: 2 / 5 },
 	{ id: 'd', label: '10/4', value: 10 / 4 },
 ];
 

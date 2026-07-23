@@ -49,10 +49,13 @@ const q2A = -1;
 const q2TrueSlope = derivativeAt(CURVE, q2A); // = -2
 const q2ApproxSlope = differenceQuotient(CURVE, q2A, 0.0001); // h→0 に十分近い割線の傾き
 
+// 正答の位置バイアス対策(オーケストレータ指摘): 正答(id='a', value=-2)を配列の
+// 3番目(表示順)に置く。id と数値の対応は保ったまま並び順のみ変える(pickCorrectChoiceId
+// は順序非依存)。
 const q2Choices = [
-	{ id: 'a', value: -2 },
 	{ id: 'b', value: 2 },
 	{ id: 'c', value: -1 },
+	{ id: 'a', value: -2 },
 	{ id: 'd', value: 0 },
 ];
 
@@ -89,23 +92,29 @@ if (Math.abs(q2ApproxSlope - q2TrueSlope) > CONVERGENCE_TOLERANCE) {
 
 const q3 = tangentLine(CURVE, 0); // slope=0, intercept=0 → y = 0
 
+// 修正(オーケストレータ指摘・Medium): 以前は choice.id で分岐して slope/intercept を
+// ハードコードしており、id と数値の対応がずれても検出できないリスクがあった。
+// 各選択肢に slope/intercept を直接持たせ、tangentLine の計算結果と内容ベースで
+// 比較する(id の並び順にも依存しない)。
+// 正答の位置バイアス対策(オーケストレータ指摘): 正答(y = 0)を配列の2番目(表示順)に置く。
 const q3Choices = [
-	{ id: 'a', label: 'y = 0' },
-	{ id: 'b', label: 'y = 2x' },
-	{ id: 'c', label: 'y = x' },
-	{ id: 'd', label: 'y = 1' },
+	{ id: 'b', label: 'y = 2x', slope: 2, intercept: 0 },
+	{ id: 'a', label: 'y = 0', slope: 0, intercept: 0 }, // 正解
+	{ id: 'c', label: 'y = x', slope: 1, intercept: 0 },
+	{ id: 'd', label: 'y = 1', slope: 0, intercept: 1 },
 ];
 
 const q3Question: PrerequisiteQuestion = {
 	id: 'derivfn-prereq-3',
 	prompt: 'f(x) = x² の x = 0 における接線の式はどれですか。',
-	choices: q3Choices,
-	correctChoiceId: pickCorrectChoiceId(q3Choices, (choice) => {
-		if (choice.id === 'a') return q3.slope === 0 && q3.intercept === 0;
-		if (choice.id === 'b') return q3.slope === 2 && q3.intercept === 0;
-		if (choice.id === 'c') return q3.slope === 1 && q3.intercept === 0;
-		return q3.slope === 0 && q3.intercept === 1;
-	}),
+	choices: q3Choices.map(({ id, label }) => ({ id, label })),
+	correctChoiceId: pickCorrectChoiceId(
+		q3Choices.map(({ id, label }) => ({ id, label })),
+		(choice) => {
+			const found = q3Choices.find((c) => c.id === choice.id)!;
+			return found.slope === q3.slope && found.intercept === q3.intercept;
+		},
+	),
 	source: '前提単元「微分係数と接線」: 接線の式 y = f\'(a)(x−a) + f(a)(この記事のa=0の転用問題と同一)。',
 	rationale: 'lib/math/derivative.ts の tangentLine(CURVE, 0) を検算に使う(slope=0, intercept=0)。',
 };
