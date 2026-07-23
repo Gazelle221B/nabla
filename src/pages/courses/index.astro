@@ -1,0 +1,98 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { COURSES } from '../../lib/courses/data';
+
+// コース一覧ページ(/courses/、ADR-006 M9d「流通の種まき」)。単元マップ(/map/)と同じ方針:
+// インタラクション不要のナビゲーションページのため React Island を使わず静的 HTML のみで
+// 生成する(C-3「JS無効でも本文は読める」を最も強い形で満たす)。
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="既定学習経路(コース)">
+	<main class="courses-page">
+		<h1>既定学習経路(コース)</h1>
+		<p class="intro">
+			前提関係(prerequisites)に沿って選んだ、3〜5単元のまとまった学習経路です。各コースの
+			入口で簡単な診断を受けると、すでに身についていそうな内容を飛ばして始めることもできます
+			(強制ではありません)。単元同士のより詳しい前提関係は
+			<a href={`${base}map/`}>単元マップ</a>
+			で確認できます。
+		</p>
+
+		<ul class="course-list">
+			{
+				COURSES.map((course) => (
+					<li>
+						<a href={`${base}courses/${course.slug}/`}>
+							<span class="course-title">{course.title}</span>
+							<span class="course-summary">{course.summary}</span>
+							<span class="course-meta">{course.units.length}単元・入口診断つき</span>
+						</a>
+					</li>
+				))
+			}
+		</ul>
+	</main>
+</BaseLayout>
+
+<style>
+	.courses-page {
+		max-width: 44rem;
+		margin: 0 auto;
+		padding: 2rem 1.25rem 4rem;
+		line-height: 1.8;
+	}
+	.intro {
+		color: #444;
+	}
+	.intro a {
+		color: inherit;
+	}
+	.intro a:focus-visible {
+		outline: 2px solid #1f6feb;
+		outline-offset: 2px;
+	}
+	.course-list {
+		list-style: none;
+		padding: 0;
+		margin: 1.5rem 0 0;
+		display: grid;
+		gap: 0.9rem;
+	}
+	.course-list a {
+		display: block;
+		padding: 1rem 1.1rem;
+		border: 1px solid #d5d8e0;
+		border-radius: 10px;
+		text-decoration: none;
+		color: inherit;
+	}
+	.course-list a:hover {
+		border-color: #e0a94b;
+		background: rgba(224, 169, 75, 0.08);
+	}
+	.course-list a:focus-visible {
+		border-color: #e0a94b;
+		background: rgba(224, 169, 75, 0.08);
+		outline: 2px solid #1f6feb;
+		outline-offset: 2px;
+	}
+	.course-title {
+		display: block;
+		font-weight: 600;
+		font-size: 1.1rem;
+	}
+	.course-summary {
+		display: block;
+		font-size: 0.92rem;
+		color: #444;
+		margin-top: 0.25rem;
+	}
+	.course-meta {
+		display: block;
+		font-size: 0.82rem;
+		color: #666;
+		margin-top: 0.4rem;
+	}
+</style>

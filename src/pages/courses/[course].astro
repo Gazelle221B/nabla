@@ -1,0 +1,176 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { COURSES } from '../../lib/courses/data';
+import { validateCourseOrder } from '../../lib/courses/validateOrder';
+import { CourseEntryDiagnostic } from '../../components/course/CourseEntryDiagnostic';
+
+// コース詳細ページ(/courses/{slug}/、ADR-006 M9d「流通の種まき」)。単元を前提関係に沿った
+// 順序で提示し、入口で3問の診断(CourseEntryDiagnostic)を受けられる。診断そのものは
+// client:only="react"(PrerequisiteCheck/ExerciseSection と同じパターン、JS 無効時は
+// 「表示されないだけ」で単元一覧・理由文は静的 HTML のまま読める)。
+
+export async function getStaticPaths() {
+	return COURSES.map((course) => ({
+		params: { course: course.slug },
+		props: { course },
+	}));
+}
+
+const { course } = Astro.props;
+
+const entries = await getCollection('lessons');
+const titleById = new Map(entries.map((entry) => [entry.id, entry.data.title]));
+const prerequisitesById = new Map(entries.map((entry) => [entry.id, entry.data.prerequisites]));
+
+// 実在性・前提順序の整合をビルド時に検証する(C-2/C-7 の防波堤。不整合があればビルドを止める)。
+for (const unit of course.units) {
+	if (!titleById.has(unit.lessonId)) {
+		throw new Error(
+			`コース "${course.slug}": 単元 "${unit.lessonId}" が content collection に実在しません。`,
+		);
+	}
+}
+validateCourseOrder(course.slug, course.units, prerequisitesById);
+
+const base = import.meta.env.BASE_URL;
+const slugOf = (id: string) => id.split('/').pop()!;
+const lessonHref = (id: string) => `${base}lessons/${slugOf(id)}/`;
+
+const displayUnits = course.units.map((unit) => ({
+	lessonId: unit.lessonId,
+	title: titleById.get(unit.lessonId)!,
+	reachGoal: unit.reachGoal,
+	href: lessonHref(unit.lessonId),
+}));
+
+const diagnosticUnits = displayUnits.map((unit) => ({ href: unit.href, title: unit.title }));
+---
+
+<BaseLayout title={course.title}>
+	<main class="course-page">
+		<p class="breadcrumb"><a href={`${base}courses/`}>← 既定学習経路一覧</a></p>
+		<h1>{course.title}</h1>
+		<p class="summary">{course.summary}</p>
+
+		<CourseEntryDiagnostic client:only="react" data={course.diagnostic} units={diagnosticUnits} />
+
+		<section aria-labelledby="order-rationale-heading" class="rationale">
+			<h2 id="order-rationale-heading">この順で進む理由</h2>
+			<p>{course.orderRationale}</p>
+		</section>
+
+		<section aria-labelledby="unit-order-heading" class="unit-order">
+			<h2 id="unit-order-heading">単元の順序</h2>
+			<ol>
+				{
+					displayUnits.map((unit, index) => (
+						<li>
+							<a href={unit.href}>
+								<span class="unit-index">{index + 1}</span>
+								<span class="unit-body">
+									<span class="unit-title">{unit.title}</span>
+									<span class="unit-goal">到達目標: {unit.reachGoal}</span>
+								</span>
+							</a>
+						</li>
+					))
+				}
+			</ol>
+		</section>
+	</main>
+</BaseLayout>
+
+<style>
+	.course-page {
+		max-width: 44rem;
+		margin: 0 auto;
+		padding: 1.5rem 1.25rem 4rem;
+		line-height: 1.8;
+	}
+	.breadcrumb {
+		margin: 0 0 0.5rem;
+		font-size: 0.9rem;
+	}
+	.breadcrumb a {
+		color: inherit;
+	}
+	.breadcrumb a:focus-visible {
+		outline: 2px solid #1f6feb;
+		outline-offset: 2px;
+	}
+	.summary {
+		color: #444;
+	}
+	.rationale {
+		margin: 1.5rem 0;
+		padding: 0.9rem 1.1rem;
+		border: 1px solid #d5d8e0;
+		border-radius: 10px;
+		background: #f7f7fa;
+	}
+	.rationale h2 {
+		margin-top: 0;
+		font-size: 1.05rem;
+	}
+	.rationale p {
+		color: #333;
+		margin-bottom: 0;
+	}
+	.unit-order h2 {
+		font-size: 1.05rem;
+	}
+	.unit-order ol {
+		list-style: none;
+		padding: 0;
+		margin: 1rem 0 0;
+		display: grid;
+		gap: 0.75rem;
+	}
+	.unit-order a {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		padding: 0.85rem 1rem;
+		border: 1px solid #d5d8e0;
+		border-radius: 10px;
+		text-decoration: none;
+		color: inherit;
+	}
+	.unit-order a:hover {
+		border-color: #e0a94b;
+		background: rgba(224, 169, 75, 0.08);
+	}
+	.unit-order a:focus-visible {
+		border-color: #e0a94b;
+		background: rgba(224, 169, 75, 0.08);
+		outline: 2px solid #1f6feb;
+		outline-offset: 2px;
+	}
+	.unit-index {
+		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.8rem;
+		height: 1.8rem;
+		border-radius: 50%;
+		background: #1f6feb;
+		color: #fff;
+		font-weight: 600;
+		font-size: 0.9rem;
+	}
+	.unit-body {
+		display: block;
+	}
+	.unit-title {
+		display: block;
+		font-weight: 600;
+	}
+	.unit-goal {
+		display: block;
+		font-size: 0.88rem;
+		color: #555;
+		margin-top: 0.2rem;
+	}
+</style>

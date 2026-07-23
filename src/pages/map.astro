@@ -75,7 +75,9 @@ const svgHeight = layout.height;
 		<h1>単元マップ</h1>
 		<p class="intro">
 			前提関係(prerequisites)にもとづいて単元を「深さ」ごとの段に並べたマップです。上の段ほど
-			前提知識が少なく、下へ進むほど前提が積み重なります。
+			前提知識が少なく、下へ進むほど前提が積み重なります。決まった順で進みたい場合は
+			<a href={`${base}courses/`}>既定学習経路(コース)</a>
+			も用意しています。
 		</p>
 
 		<section aria-hidden="true" class="legend-visual">
@@ -171,6 +173,13 @@ const svgHeight = layout.height;
 	.intro {
 		color: #444;
 		max-width: 44rem;
+	}
+	.intro a {
+		color: inherit;
+	}
+	.intro a:focus-visible {
+		outline: 2px solid #1f6feb;
+		outline-offset: 2px;
 	}
 	.legend-visual {
 		margin: 1.5rem 0 2.5rem;
