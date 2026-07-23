@@ -1,0 +1,74 @@
+/* ExerciseSection(演習、ADR-006 M9c)のレイアウト。PrerequisiteCheck.module.css と同じ
+   色トークン(MATH_CONVENTIONS.md §9)を再利用し、視覚的に統一する。 */
+
+.section {
+	max-width: 44rem;
+	margin: 2rem auto;
+	padding: 1.25rem;
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 12px;
+	background: var(--nabla-surface, #1a1d29);
+	color: var(--nabla-text-primary, #e7e9f0);
+	line-height: 1.7;
+}
+
+.heading {
+	margin-top: 0;
+	font-size: 1.1rem;
+}
+
+.intro {
+	color: var(--nabla-text-secondary, #a7adc0);
+	margin-bottom: 1rem;
+}
+
+.questionFieldset {
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 8px;
+	padding: 0.75rem 1rem;
+	margin: 0 0 0.9rem;
+}
+
+.choiceOption {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.2rem 0;
+	cursor: pointer;
+}
+
+.feedback {
+	margin-top: 0.5rem;
+	font-size: 0.95rem;
+}
+
+.feedbackCorrect {
+	color: var(--nabla-success, #4bbf7b);
+	font-weight: 600;
+}
+
+.feedbackIncorrect {
+	color: var(--nabla-warning, #e0a94b);
+	font-weight: 600;
+}
+
+.summary {
+	margin-top: 1rem;
+	padding: 0.75rem 1rem;
+	border-radius: 8px;
+	border-left: 3px solid var(--nabla-accent-primary, #4f8ff0);
+	background: rgba(79, 143, 240, 0.1);
+	font-weight: 600;
+}
+
+.section :is(input):focus-visible {
+	outline: 2px solid var(--nabla-focus-ring, #8ab4ff);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.section * {
+		transition: none !important;
+		animation: none !important;
+	}
+}

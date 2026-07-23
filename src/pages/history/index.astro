@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { PredictionHistoryView } from '../../components/history/PredictionHistoryView.tsx';
+
+// 「あなたの予想履歴」ページ(/history/、ADR-006 M9c)。単元本文とは独立した専用ページとして
+// 実装する(C-8: 既存の32単元ページ・既存Islandには一切手を入れない)。
+// h1・noscript案内は静的にレンダリングする(JS無効時でも「何のページか」「なぜ空か」が
+// わかるようにする。localStorageの読み取り自体はJS必須のため、一覧・操作はPredictionHistoryView
+// (client:only="react")に閉じる)。
+---
+
+<BaseLayout title="あなたの予想履歴">
+	<main class="history-page">
+		<h1>あなたの予想履歴</h1>
+		<p class="lede">
+			これまでに各単元で確定した予想を、この端末のブラウザ内(localStorage)だけで振り返れます。
+		</p>
+		<noscript>
+			<p class="noscript-notice">
+				この機能は JavaScript が必要です。JavaScript を有効にしてページを再読み込みしてください。
+			</p>
+		</noscript>
+		<PredictionHistoryView client:only="react" />
+	</main>
+</BaseLayout>
+
+<style>
+	.history-page {
+		max-width: 44rem;
+		margin: 0 auto;
+		padding: 2rem 1.25rem 4rem;
+		line-height: 1.8;
+	}
+	.lede {
+		color: var(--nabla-text-secondary, #555);
+	}
+	.noscript-notice {
+		padding: 0.75rem 1rem;
+		border: 1px solid var(--nabla-grid, #d5d8e0);
+		border-radius: 8px;
+	}
+</style>

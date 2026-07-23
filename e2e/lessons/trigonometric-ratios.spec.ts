@@ -197,3 +197,74 @@ test.describe('前提チェック(PrerequisiteCheck、前提単元: 三平方の
 		expect(firedNames).toEqual([]);
 	});
 });
+
+// ADR-006 M9c: 演習(パイロット、単元自身「三角比と単位円」の理解確認)の実ブラウザ検証。
+// ExerciseSection は client:only="react" のため SSR HTML には一切現れず、ハイドレーション
+// 完了後に初めて DOM へ挿入される(JS 無効時に「表示されないだけ」であることの裏返し)。
+test.describe('演習(ExerciseSection、単元: 三角比と単位円)', () => {
+	test('表示・a11y・即時採点・誤答パターン別フィードバックが機能する', async ({ page }) => {
+		await page.goto(TRIGONOMETRIC_RATIOS_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const exercise = page.locator('section[aria-labelledby="exercise-section-title"]');
+		await exercise.waitFor();
+		await expect(page.getByRole('heading', { name: '演習' })).toBeVisible();
+
+		const gate = await new AxeBuilder({ page }).analyze();
+		const gateBad = gate.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
+		expect(gateBad, JSON.stringify(gateBad, null, 2)).toEqual([]);
+
+		const groups = exercise.getByRole('group');
+		await expect(groups).toHaveCount(5);
+
+		// Q1(θ=270°の点)を正答「(0, -1)」で選ぶ → 即時に「正解です。」が表示される。
+		await groups.nth(0).getByRole('radio', { name: '(0, -1)', exact: true }).check();
+		await expect(exercise.getByText('正解です。').first()).toBeVisible();
+
+		// Q2(tanθが定義できない角度)をあえて誤答「0°」で選ぶ → その誤答固有の説明が出る。
+		await groups.nth(1).getByRole('radio', { name: '0°', exact: true }).check();
+		await expect(
+			exercise.getByText(/cosθ=0ではなくsinθ=0になる角度と混同している/),
+		).toBeVisible();
+
+		// キーボード操作: Tab/Spaceでラジオを選択できる。
+		const q3FirstChoice = groups.nth(2).getByRole('radio').first();
+		await q3FirstChoice.focus();
+		await q3FirstChoice.press('Space');
+		await expect(q3FirstChoice).toBeChecked();
+
+		// 全問解答すると正解数のサマリーが表示される(残り2問を正答で埋める)。
+		await groups.nth(2).getByRole('radio', { name: '1', exact: true }).check();
+		await groups.nth(3).getByRole('radio', { name: '1', exact: true }).check();
+		await groups.nth(4).getByRole('radio', { name: '1から0へ減少する', exact: true }).check();
+		await expect(exercise.getByText(/5問中\d問正解です。/)).toBeVisible();
+
+		const graded = await new AxeBuilder({ page }).analyze();
+		const gradedBad = graded.violations.filter(
+			(v) => v.impact === 'critical' || v.impact === 'serious',
+		);
+		expect(gradedBad, JSON.stringify(gradedBad, null, 2)).toEqual([]);
+	});
+
+	test('演習の操作はGA4中核ループイベント(experiment_interact等)を発火しない', async ({ page }) => {
+		await page.addInitScript(() => {
+			window.__gtagCalls = [];
+			window.gtag = (...args: unknown[]) => {
+				window.__gtagCalls!.push(args as [string, string, Record<string, unknown>]);
+			};
+		});
+		await page.setViewportSize({ width: 1280, height: 2400 });
+		await page.goto(TRIGONOMETRIC_RATIOS_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const exercise = page.locator('section[aria-labelledby="exercise-section-title"]');
+		await exercise.waitFor();
+
+		const groups = exercise.getByRole('group');
+		await groups.nth(0).getByRole('radio', { name: '(0, -1)', exact: true }).check();
+		await groups.nth(1).getByRole('radio', { name: '90°', exact: true }).check();
+
+		const firedNames = await page.evaluate(() => window.__gtagCalls?.map((c) => c[1]) ?? []);
+		expect(firedNames).toEqual([]);
+	});
+});

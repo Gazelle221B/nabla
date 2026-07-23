@@ -22,7 +22,9 @@ contentReview:
 
 import { TrigonometryExperiment } from '../../../components/lesson/TrigonometryExperiment.tsx';
 import { PrerequisiteCheck } from '../../../components/lesson/PrerequisiteCheck.tsx';
+import { ExerciseSection } from '../../../components/lesson/ExerciseSection.tsx';
 import { trigonometricRatiosPrerequisiteCheck } from '../../../lib/prerequisiteChecks/trigonometricRatios.ts';
+import { trigonometricRatiosExercise } from '../../../lib/exercises/trigonometricRatios.ts';
 
 <PrerequisiteCheck data={trigonometricRatiosPrerequisiteCheck} client:only="react" />
 
@@ -102,3 +104,5 @@ $$
 3. $\theta = 180°$ の点は $(-1, 0)$ で $\cos 180° = -1 \neq 0$ なので、$\tan 180° = \dfrac{\sin 180°}{\cos 180°} = \dfrac{0}{-1} = 0$ と定義できます。
 
 </details>
+
+<ExerciseSection data={trigonometricRatiosExercise} client:only="react" />

@@ -53,6 +53,12 @@ const gaEnabled = Boolean(gaMeasurementId) && import.meta.env.PROD;
 			// 不在時にノーオペレーションになるため、コンソールエラーは発生しない)。
 			import { initCoreLoopMetrics } from '../lib/analytics/coreLoopObserver.ts';
 			initCoreLoopMetrics();
+
+			// 予想履歴の記録 (ADR-006 M9c)。単元ページ以外 (URLが/lessons/{slug}/でない) では
+			// 内部で早期リターンし何もしない。localStorageのみに書き込み、どこにも送信しない。
+			// 記録失敗時は無言で機能停止する (predictionHistoryRecorder.ts 内で吸収済み)。
+			import { initPredictionHistoryRecorder } from '../lib/analytics/predictionHistoryRecorder.ts';
+			initPredictionHistoryRecorder();
 		</script>
 	</body>
 </html>
