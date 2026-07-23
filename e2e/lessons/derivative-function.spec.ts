@@ -111,3 +111,49 @@ test.describe('導関数ページ (DerivativeFunctionExperiment)', () => {
 		await expect(page.getByRole('heading', { name: '観察' })).toBeVisible();
 	});
 });
+
+// ADR-006 M9b: 前提チェック関門(パイロット、前提単元「微分係数と接線」)の実ブラウザ検証。
+// PrerequisiteCheck は client:only="react" のため SSR HTML には現れず、ハイドレーション完了後に
+// 初めて DOM へ挿入される(JS 無効時に「表示されないだけ」であることの裏返し)。
+test.describe('前提チェック(PrerequisiteCheck、前提単元: 微分係数と接線)', () => {
+	test('表示・a11y・キーボード操作・全問正解時の肯定メッセージ・スキップ動線が機能する', async ({
+		page,
+	}) => {
+		await page.goto(DERIVATIVE_FUNCTION_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const check = page.locator('section[aria-labelledby="prereq-check-title"]');
+		await check.waitFor();
+		await expect(page.getByRole('heading', { name: '前提チェック' })).toBeVisible();
+
+		const gate = await new AxeBuilder({ page }).analyze();
+		const gateBad = gate.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
+		expect(gateBad, JSON.stringify(gateBad, null, 2)).toEqual([]);
+
+		const firstChoice = check.getByRole('radio').first();
+		await firstChoice.focus();
+		await firstChoice.press('Space');
+		await expect(firstChoice).toBeChecked();
+
+		// 3問とも正解(f'(3)=6, a=-1での割線の傾きの極限=-2, x=0の接線=y=0)を選び、
+		// 前提単元へのリンクが出ないこと・肯定メッセージが出ることを確認する。
+		const groups = check.getByRole('group');
+		await expect(groups).toHaveCount(3);
+		await groups.nth(0).getByRole('radio', { name: '6' }).check();
+		await groups.nth(1).getByRole('radio', { name: '-2' }).check();
+		await groups.nth(2).getByRole('radio', { name: 'y = 0' }).check();
+		await check.getByRole('button', { name: '採点する' }).click();
+
+		await expect(check.getByText(/3問とも正解でした/)).toBeVisible();
+		await expect(check.getByRole('link', { name: /微分係数と接線/ })).toHaveCount(0);
+
+		const graded = await new AxeBuilder({ page }).analyze();
+		const gradedBad = graded.violations.filter(
+			(v) => v.impact === 'critical' || v.impact === 'serious',
+		);
+		expect(gradedBad, JSON.stringify(gradedBad, null, 2)).toEqual([]);
+
+		await check.getByRole('button', { name: 'スキップして本文へ進む' }).click();
+		await expect(page.getByRole('heading', { name: '前提チェック' })).toHaveCount(0);
+	});
+});

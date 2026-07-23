@@ -21,6 +21,10 @@ contentReview:
 ---
 
 import { CombinatoricsExperiment } from '../../../components/lesson/CombinatoricsExperiment.tsx';
+import { PrerequisiteCheck } from '../../../components/lesson/PrerequisiteCheck.tsx';
+import { permutationCombinationPrerequisiteCheck } from '../../../lib/prerequisiteChecks/permutationCombination.ts';
+
+<PrerequisiteCheck data={permutationCombinationPrerequisiteCheck} client:only="react" />
 
 中学2年の確率では、樹形図などで「起こりうるすべての場合」を数え上げ、その割合として確率を求めました。しかし場面が少し複雑になると、樹形図で全部を書き出すのはすぐに大変になります。**数え上げを正確に、かつ速く行うための道具**——それがこの単元で学ぶ「場合の数」の記号と考え方です(ここで身につけた数え方は、そのままより複雑な確率の分母・分子の計算に使えます)。
 

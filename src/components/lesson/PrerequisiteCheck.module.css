@@ -1,0 +1,152 @@
+/* PrerequisiteCheck(前提チェック関門、ADR-006 M9b)のレイアウト。既存 Experiment 系
+   (*.module.css)と同じ色トークン(MATH_CONVENTIONS.md §9)を再利用し、視覚的に統一する。
+   このコンポーネントは「予想→操作→観察→確認」の Experiment テンプレとは別物(単なる
+   選択式クイズ+誘導リンク)のため、専用の軽量なスタイルに留める。 */
+
+.check {
+	max-width: 44rem;
+	margin: 1.5rem auto 2rem;
+	padding: 1.25rem;
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 12px;
+	background: var(--nabla-surface, #1a1d29);
+	color: var(--nabla-text-primary, #e7e9f0);
+	line-height: 1.7;
+}
+
+.heading {
+	margin-top: 0;
+	font-size: 1.1rem;
+}
+
+.intro {
+	color: var(--nabla-text-secondary, #a7adc0);
+	margin-bottom: 1rem;
+}
+
+.skipButton {
+	font: inherit;
+	background: transparent;
+	border: 1px solid var(--nabla-grid, #33384a);
+	color: inherit;
+	border-radius: 8px;
+	padding: 0.35rem 0.75rem;
+	cursor: pointer;
+	margin-bottom: 1rem;
+}
+
+.dismissedNotice {
+	max-width: 44rem;
+	margin: 1.5rem auto;
+	color: var(--nabla-text-secondary, #a7adc0);
+	font-size: 0.95rem;
+}
+
+.dismissedNotice button {
+	font: inherit;
+	background: transparent;
+	border: none;
+	/* .summary a と同じ理由(実測でコントラスト不足を検出済み): 背景が一定しない文脈
+	   (記事本文の地の色)に置かれるボタンなので、accent-primary の青ではなく地の文と
+	   同じ高コントラストな色+下線で識別させる。 */
+	color: var(--nabla-text-primary, #e7e9f0);
+	text-decoration: underline;
+	cursor: pointer;
+	padding: 0;
+}
+
+/* .check の外(スキップ後の再表示ボタン)にもプロジェクト統一のフォーカスリングを適用する
+   (修正: 以前は `.check :is(...)` の中にしかスコープしておらず、.dismissedNotice が
+   .check の外側にレンダリングされるため focus-visible が当たらなかった)。 */
+.dismissedNotice button:focus-visible {
+	outline: 2px solid var(--nabla-focus-ring, #8ab4ff);
+	outline-offset: 2px;
+}
+
+.questionFieldset {
+	border: 1px solid var(--nabla-grid, #33384a);
+	border-radius: 8px;
+	padding: 0.75rem 1rem;
+	margin: 0 0 0.9rem;
+}
+
+.questionOption {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.2rem 0;
+	cursor: pointer;
+}
+
+.unsureOption {
+	color: var(--nabla-text-secondary, #a7adc0);
+	font-style: italic;
+}
+
+.feedback {
+	margin-top: 0.5rem;
+	font-size: 0.95rem;
+}
+
+.feedbackCorrect {
+	color: var(--nabla-success, #4bbf7b);
+	font-weight: 600;
+}
+
+.feedbackReview {
+	color: var(--nabla-warning, #e0a94b);
+	font-weight: 600;
+}
+
+.primaryButton {
+	font: inherit;
+	padding: 0.45rem 1rem;
+	border-radius: 8px;
+	cursor: pointer;
+	border: 1px solid var(--nabla-grid, #33384a);
+	background: var(--nabla-accent-primary, #4f8ff0);
+	color: #0b0d14;
+	font-weight: 600;
+}
+
+.primaryButton:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.summary {
+	margin-top: 1rem;
+	padding: 0.75rem 1rem;
+	border-radius: 8px;
+}
+
+.summaryNeedsReview {
+	border-left: 3px solid var(--nabla-warning, #e0a94b);
+	background: rgba(224, 169, 75, 0.1);
+}
+
+.summaryOk {
+	border-left: 3px solid var(--nabla-success, #4bbf7b);
+	background: rgba(75, 191, 123, 0.1);
+}
+
+/* リンク色に accent-primary(#4f8ff0)を使うと、警告色タイント(rgba amber 0.1)を重ねた
+   背景に対してWCAG AAコントラスト比(4.5:1)を満たさない(axe 実測: 4.35)。色だけに頼らず
+   下線+太字で識別させつつ、地の文と同じ高コントラストな色を使う。 */
+.summary a {
+	color: var(--nabla-text-primary, #e7e9f0);
+	font-weight: 600;
+	text-decoration: underline;
+}
+
+.check :is(button, input, a):focus-visible {
+	outline: 2px solid var(--nabla-focus-ring, #8ab4ff);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.check * {
+		transition: none !important;
+		animation: none !important;
+	}
+}

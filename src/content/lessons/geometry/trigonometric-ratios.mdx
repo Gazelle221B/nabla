@@ -21,6 +21,10 @@ contentReview:
 ---
 
 import { TrigonometryExperiment } from '../../../components/lesson/TrigonometryExperiment.tsx';
+import { PrerequisiteCheck } from '../../../components/lesson/PrerequisiteCheck.tsx';
+import { trigonometricRatiosPrerequisiteCheck } from '../../../lib/prerequisiteChecks/trigonometricRatios.ts';
+
+<PrerequisiteCheck data={trigonometricRatiosPrerequisiteCheck} client:only="react" />
 
 直角三角形の辺の比から出発して、角度をどれだけ大きくしても使える一般的な定義へ広げていきましょう。鍵になるのは、三平方の定理が支える**単位円**(原点を中心とする半径 $1$ の円)という考え方です。
 
