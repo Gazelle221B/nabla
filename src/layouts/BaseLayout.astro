@@ -10,6 +10,13 @@ const { frontmatter, title } = Astro.props;
 // ページ固有タイトルがある場合のみサイト名サフィックスを付与(重複 "nabla(∇) | nabla(∇)" 防止)
 const pageTitle = frontmatter?.title ?? title;
 const documentTitle = pageTitle ? `${pageTitle} | nabla(∇)` : 'nabla(∇)';
+
+// GA4 計測の有効化判定 (docs/METRICS_PLAN.md §6): 測定IDが設定され、かつ本番ビルドの
+// 場合のみスクリプトを出力する。測定IDは本ADR起票時点で未発行 (HUMANゲート) のため、
+// 現時点では dev・preview・CI・本番ビルドいずれでも常に無効。未設定時は計測コードを
+// 一切出力しない (安全な既定動作、C-3の精神 = 欠落を隠さずfail-safeにする)。
+const gaMeasurementId = import.meta.env.PUBLIC_GA4_ID;
+const gaEnabled = Boolean(gaMeasurementId) && import.meta.env.PROD;
 ---
 
 <!DOCTYPE html>
@@ -19,8 +26,33 @@ const documentTitle = pageTitle ? `${pageTitle} | nabla(∇)` : 'nabla(∇)';
 		<link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>{documentTitle}</title>
+		{
+			gaEnabled && (
+				<>
+					<script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`} />
+					<script is:inline define:vars={{ gaMeasurementId }}>
+						window.dataLayer = window.dataLayer || [];
+						function gtag(...args) {
+							window.dataLayer.push(args);
+						}
+						window.gtag = gtag;
+						gtag('js', new Date());
+						// IP匿名化はGA4既定動作だが明示指定する (docs/DESIGN.md §非機能要件)。
+						gtag('config', gaMeasurementId, { anonymize_ip: true });
+					</script>
+				</>
+			)
+		}
 	</head>
 	<body>
 		<slot />
+		<script>
+			// 中核ループ計測の初期化 (docs/METRICS_PLAN.md §3・§4)。実験セクションを含まない
+			// ページ (トップ・単元マップ等) では内部で早期リターンし何もしない。
+			// gaEnabled が false の環境でも安全に動作する (trackEvent が window.gtag の
+			// 不在時にノーオペレーションになるため、コンソールエラーは発生しない)。
+			import { initCoreLoopMetrics } from '../lib/analytics/coreLoopObserver.ts';
+			initCoreLoopMetrics();
+		</script>
 	</body>
 </html>
