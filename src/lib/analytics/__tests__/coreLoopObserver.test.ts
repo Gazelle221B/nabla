@@ -5,7 +5,9 @@ import { CHECKPOINT_DWELL_MS, initCoreLoopMetrics } from '../coreLoopObserver.js
 // coreLoopObserver.ts 冒頭コメント) に依存する。ここでは実際の Island を使わず、その規約を
 // 満たす最小限の DOM フィクスチャで発火条件を検証する。
 
-type IntersectionCallback = (entries: Pick<IntersectionObserverEntry, 'isIntersecting'>[]) => void;
+type IntersectionCallback = (
+	entries: Pick<IntersectionObserverEntry, 'isIntersecting' | 'target'>[],
+) => void;
 
 class FakeIntersectionObserver {
 	static instances: FakeIntersectionObserver[] = [];
@@ -22,8 +24,8 @@ class FakeIntersectionObserver {
 		this.observed = [];
 	}
 	unobserve() {}
-	trigger(isIntersecting: boolean) {
-		this.callback([{ isIntersecting }]);
+	trigger(isIntersecting: boolean, target: Element = this.observed[this.observed.length - 1]) {
+		this.callback([{ isIntersecting, target }]);
 	}
 }
 
@@ -41,7 +43,7 @@ function buildExperimentFixture(prefix: string): void {
 	`;
 }
 
-function appendControlsAndCheckpoint(prefix: string): void {
+function appendControlsAndCheckpoint(prefix: string): { checkpoint: HTMLElement } {
 	const section = document.querySelector('section')!;
 	const controls = document.createElement('div');
 	controls.innerHTML = `
@@ -53,6 +55,25 @@ function appendControlsAndCheckpoint(prefix: string): void {
 	const checkpoint = document.createElement('div');
 	checkpoint.innerHTML = `<h3>予想と結果</h3><p>...</p>`;
 	section.appendChild(checkpoint);
+
+	return { checkpoint };
+}
+
+// GraphTheoryExperiment (GraphScene) 相当: -slider/-number の <input> を一切持たず、
+// SVG の role="switch" + tabIndex=0 要素で操作する単元を模したフィクスチャ。
+function appendSwitchControlAndCheckpoint(): { toggle: HTMLElement } {
+	const section = document.querySelector('section')!;
+	const toggle = document.createElement('g') as unknown as HTMLElement;
+	toggle.setAttribute('role', 'switch');
+	toggle.setAttribute('tabindex', '0');
+	toggle.setAttribute('aria-checked', 'true');
+	section.appendChild(toggle);
+
+	const checkpoint = document.createElement('div');
+	checkpoint.innerHTML = `<h3>予想と結果</h3><p>...</p>`;
+	section.appendChild(checkpoint);
+
+	return { toggle };
 }
 
 describe('initCoreLoopMetrics', () => {
@@ -158,10 +179,10 @@ describe('initCoreLoopMetrics', () => {
 	it('操作なしでチェックポイントが可視化されても lesson_complete は発火しない', () => {
 		buildExperimentFixture('pythagoras');
 		dispose = initCoreLoopMetrics();
-		appendControlsAndCheckpoint('pythagoras');
+		const { checkpoint } = appendControlsAndCheckpoint('pythagoras');
 
 		expect(FakeIntersectionObserver.instances).toHaveLength(1);
-		FakeIntersectionObserver.instances[0].trigger(true);
+		FakeIntersectionObserver.instances[0].trigger(true, checkpoint);
 		vi.advanceTimersByTime(CHECKPOINT_DWELL_MS + 10);
 
 		expect(gtagMock).not.toHaveBeenCalledWith('event', 'lesson_complete', expect.anything());
@@ -170,13 +191,13 @@ describe('initCoreLoopMetrics', () => {
 	it('操作 → チェックポイント可視 (1000ms以上) で lesson_complete が発火する', () => {
 		buildExperimentFixture('pythagoras');
 		dispose = initCoreLoopMetrics();
-		appendControlsAndCheckpoint('pythagoras');
+		const { checkpoint } = appendControlsAndCheckpoint('pythagoras');
 
 		document
 			.querySelector('#pythagoras-a-slider')!
 			.dispatchEvent(new Event('change', { bubbles: true }));
 
-		FakeIntersectionObserver.instances[0].trigger(true);
+		FakeIntersectionObserver.instances[0].trigger(true, checkpoint);
 		vi.advanceTimersByTime(CHECKPOINT_DWELL_MS + 10);
 
 		expect(gtagMock).toHaveBeenCalledWith('event', 'lesson_complete', {
@@ -184,20 +205,84 @@ describe('initCoreLoopMetrics', () => {
 		});
 	});
 
+	it('GraphTheoryExperiment 相当 (role="switch"、-slider/-numberなし) のクリックで experiment_interact が発火する', () => {
+		buildExperimentFixture('graph-theory');
+		dispose = initCoreLoopMetrics();
+		const { toggle } = appendSwitchControlAndCheckpoint();
+
+		toggle.dispatchEvent(new Event('click', { bubbles: true }));
+
+		expect(gtagMock).toHaveBeenCalledWith('event', 'experiment_interact', {
+			unit_slug: 'pythagorean-theorem',
+		});
+	});
+
+	it('role="switch" 要素のキーボード操作 (Enter/Space) でも experiment_interact が発火する (ネイティブ click を自動発火しない要素への対応)', () => {
+		buildExperimentFixture('graph-theory');
+		dispose = initCoreLoopMetrics();
+		const { toggle } = appendSwitchControlAndCheckpoint();
+
+		toggle.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+
+		expect(gtagMock).toHaveBeenCalledWith('event', 'experiment_interact', {
+			unit_slug: 'pythagorean-theorem',
+		});
+	});
+
+	it('予想確定ボタンへの Enter キー押下は experiment_interact を誤発火させない (submit との混同防止)', () => {
+		buildExperimentFixture('pythagoras');
+		dispose = initCoreLoopMetrics();
+
+		const button = document.querySelector('button')!;
+		button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+		expect(gtagMock).not.toHaveBeenCalledWith('event', 'experiment_interact', expect.anything());
+	});
+
+	it('実験セクションの外側にある操作コントロール風の要素は experiment_interact を発火しない (スコープ制限)', () => {
+		buildExperimentFixture('pythagoras');
+		dispose = initCoreLoopMetrics();
+
+		const outsideSlider = document.createElement('input');
+		outsideSlider.type = 'range';
+		outsideSlider.id = 'unrelated-slider';
+		document.body.appendChild(outsideSlider);
+
+		outsideSlider.dispatchEvent(new Event('change', { bubbles: true }));
+
+		expect(gtagMock).not.toHaveBeenCalledWith('event', 'experiment_interact', expect.anything());
+	});
+
 	it('ドウェル時間 (1000ms) 未満でビューポートから外れた場合は lesson_complete が発火しない', () => {
 		buildExperimentFixture('pythagoras');
 		dispose = initCoreLoopMetrics();
-		appendControlsAndCheckpoint('pythagoras');
+		const { checkpoint } = appendControlsAndCheckpoint('pythagoras');
 
 		document
 			.querySelector('#pythagoras-a-slider')!
 			.dispatchEvent(new Event('change', { bubbles: true }));
 
 		const observer = FakeIntersectionObserver.instances[0];
-		observer.trigger(true);
+		observer.trigger(true, checkpoint);
 		vi.advanceTimersByTime(CHECKPOINT_DWELL_MS - 200);
-		observer.trigger(false);
+		observer.trigger(false, checkpoint);
 		vi.advanceTimersByTime(1000);
+
+		expect(gtagMock).not.toHaveBeenCalledWith('event', 'lesson_complete', expect.anything());
+	});
+
+	it('チェックポイントが可視中にDOMから切り離された場合 (再レンダリングでの差し替え想定) lesson_complete は発火しない', () => {
+		buildExperimentFixture('pythagoras');
+		dispose = initCoreLoopMetrics();
+		const { checkpoint } = appendControlsAndCheckpoint('pythagoras');
+
+		document
+			.querySelector('#pythagoras-a-slider')!
+			.dispatchEvent(new Event('change', { bubbles: true }));
+
+		FakeIntersectionObserver.instances[0].trigger(true, checkpoint);
+		checkpoint.remove();
+		vi.advanceTimersByTime(CHECKPOINT_DWELL_MS + 10);
 
 		expect(gtagMock).not.toHaveBeenCalledWith('event', 'lesson_complete', expect.anything());
 	});

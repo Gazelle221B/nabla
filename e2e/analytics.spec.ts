@@ -19,6 +19,7 @@ declare global {
 }
 
 const PYTHAGORAS_PATH = './lessons/pythagorean-theorem/';
+const GRAPH_THEORY_PATH = './lessons/graph-theory-intro/';
 
 test.describe('計測基盤 (GA4 中核ループイベント, docs/METRICS_PLAN.md)', () => {
 	test('測定ID未設定のため GA4 スクリプトは出力されず、コンソールエラーも発生しない', async ({ page }) => {
@@ -99,5 +100,73 @@ test.describe('計測基盤 (GA4 中核ループイベント, docs/METRICS_PLAN.
 			expect(call[0]).toBe('event');
 			expect(call[2]).toEqual({ unit_slug: 'pythagorean-theorem' });
 		}
+	});
+
+	// GraphTheoryExperiment(グラフ理論入門)は32単元中唯一 -slider/-number の <input> を
+	// 持たず、辺のON/OFFを SVG の role="switch" 要素(クリック/Enter/Space)で操作する。
+	// 独立レビュー(Kimi K2.7、2026-07-24)で「旧定義(-slider/-numberのみ)では
+	// experiment_interact が永遠に発火しない」と指摘された単元そのものを実ページで検証する
+	// (docs/METRICS_PLAN.md §3 の一般化された operational definition の回帰ロック)。
+	test('GraphTheoryExperiment: role="switch" の辺トグル(クリック)で experiment_interact が発火する', async ({
+		page,
+	}) => {
+		await page.addInitScript(() => {
+			window.__gtagCalls = [];
+			window.gtag = (...args: unknown[]) => {
+				window.__gtagCalls!.push(args as [string, string, Record<string, unknown>]);
+			};
+		});
+
+		await page.setViewportSize({ width: 1280, height: 2600 });
+		await page.goto(GRAPH_THEORY_PATH);
+		await page.waitForLoadState('networkidle');
+		await page.locator('section[data-hydrated="true"]').waitFor();
+
+		const firedNames = () => page.evaluate(() => window.__gtagCalls?.map((c) => c[1]) ?? []);
+
+		await selectPredictionRobustly(page, 'できる', 'できない');
+		await expect.poll(firedNames).toContain('prediction_start');
+
+		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
+		await expect.poll(firedNames).toContain('prediction_submit');
+
+		// -slider/-number は存在しないため、このクリック(role="switch")だけが
+		// experiment_interact の発火点になる。
+		const bridgeAD = page.getByRole('switch', { name: /^辺 A-D/ });
+		await bridgeAD.click();
+		await expect.poll(firedNames).toContain('experiment_interact');
+
+		const calls = await page.evaluate(() => window.__gtagCalls ?? []);
+		expect(calls.map((c) => c[1])).toEqual(['prediction_start', 'prediction_submit', 'experiment_interact']);
+		for (const call of calls) {
+			expect(call[2]).toEqual({ unit_slug: 'graph-theory-intro' });
+		}
+	});
+
+	test('GraphTheoryExperiment: role="switch" の辺トグルをキーボード(Space)で操作しても experiment_interact が発火する', async ({
+		page,
+	}) => {
+		await page.addInitScript(() => {
+			window.__gtagCalls = [];
+			window.gtag = (...args: unknown[]) => {
+				window.__gtagCalls!.push(args as [string, string, Record<string, unknown>]);
+			};
+		});
+
+		await page.setViewportSize({ width: 1280, height: 2600 });
+		await page.goto(GRAPH_THEORY_PATH);
+		await page.waitForLoadState('networkidle');
+		await page.locator('section[data-hydrated="true"]').waitFor();
+
+		await selectPredictionRobustly(page, 'できる', 'できない');
+		await page.getByRole('button', { name: '予想を確定して実験する' }).click();
+
+		const bridgeAD = page.getByRole('switch', { name: /^辺 A-D/ });
+		await bridgeAD.focus();
+		await bridgeAD.press('Space');
+
+		await expect
+			.poll(() => page.evaluate(() => window.__gtagCalls?.map((c) => c[1]) ?? []))
+			.toContain('experiment_interact');
 	});
 });

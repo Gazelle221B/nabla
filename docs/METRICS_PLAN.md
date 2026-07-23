@@ -24,17 +24,25 @@
 |---|---|---|---|
 | `prediction_start` | 予想入力開始 | 単元ページ内で予想の選択肢(ラジオボタン)を最初に選んだ時点 | `unit_slug` |
 | `prediction_submit` | 予想確定 | 「予想を確定して実験する」ボタンを押した時点(以降ドラッグ・スライダー操作が可能になる) | `unit_slug` |
-| `experiment_interact` | 操作(実験)実施 | 予想確定後に表示される操作コントロール(スライダー・数値入力)を最初に変化させた時点 | `unit_slug` |
+| `experiment_interact` | 操作(実験)実施 | 予想確定後の実験セクション内にある操作コントロールを最初に操作した時点(下記の一般化された定義) | `unit_slug` |
 | `lesson_complete` | 単元完了 | §4 の操作的定義を満たした時点 | `unit_slug` |
 
 - 各イベントは **1 ページ読み込みにつき単元ごとに最大 1 回** のみ発火する(多重カウント防止。§6 実装対応)。
 - 属性は `unit_slug: string` の 1 個のみ。TypeScript の型(`NablaEventParams`)でこれ以外のプロパティを渡すとコンパイルエラーになるようにし、実装がこの許可リストから逸脱できないようにする(§6)。
 
+### `experiment_interact` の一般化された定義(2026-07-24 改訂)
+
+初版では「操作コントロール」を `-slider`/`-number` の id を持つ `<input>` に限定していたが、独立レビュー(Kimi K2.7)で **`GraphTheoryExperiment`(辺のON/OFFを SVG の `role="switch"` 要素で行い、`-slider`/`-number` の `<input>` を一切持たない)だけが検出漏れになる**ことが判明した。そのため「操作コントロール」を以下へ一般化する(コード側は `src/lib/analytics/coreLoopObserver.ts` の `isOperateControl` と 1:1):
+
+> 予想確定後にのみ操作可能になる、実験セクション(`section[aria-labelledby$="-exp-title"]`)内の対話要素——`<input>` への `input`/`change`(予想ラジオを除く。プリセット選択ラジオ・スライダー・数値入力を含む)、または `button`・`[role="button"]`・`[role="switch"]`・`[tabindex="0"]` への `click`/`keydown`(Enter/Space)——への最初の操作。予想確定ボタン自身(文言「予想を確定して実験する」)は除外する。
+
+これにより `<input>` 以外の対話パターン(SVGのスイッチ等)を持つ将来の単元にも、個別配線なしで対応できる。実験セクションの外側にある要素は対象外(スコープ制限)。
+
 ## 4. 「単元完了」の操作的定義
 
 **静的サイト(バックエンドなし)で検証可能な定義**として、以下を採用する:
 
-> 予想確定後にのみ出現する操作コントロール(スライダー・数値入力)を **少なくとも1回操作した上で**、予想確定後にのみ出現する「予想と結果」(チェックポイント)セクションの見出しが **1000ms 以上継続してビューポート内に留まった** 時点を「単元完了」とする。
+> 予想確定後にのみ出現する操作コントロール(§3 の一般化された定義)を **少なくとも1回操作した上で**、予想確定後にのみ出現する「予想と結果」(チェックポイント)セクションの見出しが **1000ms 以上継続してビューポート内に留まった** 時点を「単元完了」とする。
 
 ### 根拠
 
@@ -63,12 +71,14 @@
 
 - `src/lib/analytics/events.ts`: 許可リストのイベント名 union 型(`NablaEventName`)と送信属性型(`NablaEventParams = { unit_slug: string }`)を定義。これ以外のイベント名・属性は型エラーになる。
 - `src/lib/analytics/ga4.ts`: `trackEvent(name, params)` が `window.gtag` の有無を確認し、無ければ何もしない安全なノーオペレーション(コンソールエラーを出さない)。
-- `src/lib/analytics/coreLoopObserver.ts`: §3・§4 の発火条件を DOM イベント委譲(ラジオ `change` / ボタン `click` / コントロール `change` / `IntersectionObserver`)で実装。既存の32単元 Experiment Island 自体には手を入れず(構造的規約への準拠を利用)、`unit_slug` は URL パス `/lessons/{slug}/` から導出する。
+- `src/lib/analytics/coreLoopObserver.ts`: §3・§4 の発火条件を DOM イベント委譲(ラジオ `change` / ボタン `click` / 操作コントロールへの `change`・`input`・`click`・`keydown` / `IntersectionObserver`)で実装。既存の32単元 Experiment Island 自体には手を入れず(構造的規約への準拠を利用)、`unit_slug` は URL パス `/lessons/{slug}/` から導出する。
 - **非本番(dev/preview)では計測無効**: GA4 スクリプトの出力は `import.meta.env.PUBLIC_GA4_ID`(未設定 = 無効)と `import.meta.env.PROD`(`astro dev` では false)の両方を満たす場合のみ行う。測定 ID は本 ADR 起票時点で未発行(HUMAN ゲート)のため、現時点では常に無効(dev・preview・CI・本番ビルドいずれも同じ挙動になる)。将来 HUMAN が GitHub Actions の `deploy.yml` にのみ `PUBLIC_GA4_ID` シークレットを注入する運用を想定しており、ローカル環境にこの値が漏れることは C-1(`.env` commit禁止)により構造的に防がれる。
   - 残存リスクとして明記: 開発者が本番用 ID を手元の `.env` に複製して `astro build && astro preview` を実行した場合、`PROD` フラグは true になるため計測が有効化されてしまう。この経路は運用規約(シークレットを手元に複製しない)で防ぐものであり、コードでは検出できない。今回のテストはこの経路を検証対象にしない。
+- **構造契約の回帰検出**: `src/components/lesson/__tests__/experimentContract.test.ts` が全32単元 Experiment(+ それが import する Scene コンポーネント)のソースを走査し、実験セクション・予想ラジオ・確定ボタン文言・チェックポイント見出し・(一般化後の定義に基づく)計測可能な操作コントロールの存在を検証する。新単元の追加やリファクタで構造契約が破れた場合、無音の計測欠落ではなく CI の FAIL として即座に検知する。
 
 ## 7. 改訂履歴
 
 | 日付 | 変更 |
 |---|---|
 | 2026-07-24 | 初版。ADR-006 M9a の実装前事前登録として作成(IMPLEMENTER)。 |
+| 2026-07-24 | 独立レビュー(Kimi K2.7)の指摘を反映: `experiment_interact` の発火条件を `-slider`/`-number` の `<input>` 限定から、実験セクション内の対話要素全般(`<input>` + `button`/`[role="button"]`/`[role="switch"]`/`[tabindex="0"]`)へ一般化(§3)。`GraphTheoryExperiment` は旧定義では検出漏れだったため、単体テストで発火を固定。構造契約の回帰検出テストを追加(§6)。 |
