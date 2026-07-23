@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { unitCirclePoint, sine, cosine, tangent, pythagoreanIdentityResidual } from '../../lib/math/trigonometry.js';
 import { approximatelyZero } from '../../lib/math/compare.js';
+import { getPresetSearchParams, readNumberPreset } from '../../lib/urlPreset.js';
 import { UnitCircleScene } from '../scenes/mafs/UnitCircleScene.js';
 import styles from './TrigonometryExperiment.module.css';
 
@@ -26,6 +27,13 @@ const MAX_THETA_DEG = 359;
 const INITIAL_THETA_DEG = 0;
 const THETA_STEP = 1;
 
+// URL パラメータでの初期状態固定 (ADR-006 M9d、一斉提示モード、パイロット3単元の1つ)。
+// ?theta=<度> で角度 θ の初期値だけを差し替えられる (教師が「全員同じ初期状態」で提示する
+// 用途)。不正値・範囲外は lib/urlPreset.ts が黙って INITIAL_THETA_DEG へフォールバックする
+// (console エラーなし)。予想 (prediction)・確定 (submitted) 状態はこのパラメータの対象外
+// ——予想ゲートは迂回できない (下の useState の初期値計算にのみ影響する)。
+const THETA_PRESET_PARAM = 'theta';
+
 type Prediction = 'decreases' | 'increases' | 'constant';
 
 const PREDICTION_OPTIONS: { value: Prediction; label: string }[] = [
@@ -45,13 +53,24 @@ function round2(value: number): number {
 }
 
 export function TrigonometryExperiment() {
-	const [thetaDeg, setThetaDeg] = useState(INITIAL_THETA_DEG);
+	// 初期値は既定値 (INITIAL_THETA_DEG) だが、?theta=<度> があればそちらを優先する
+	// (readNumberPreset が [MIN_THETA_DEG, MAX_THETA_DEG] へクランプ済みの値を返す)。
+	const [thetaDeg, setThetaDeg] = useState(() =>
+		normalizeThetaDeg(
+			readNumberPreset(getPresetSearchParams(), THETA_PRESET_PARAM, {
+				min: MIN_THETA_DEG,
+				max: MAX_THETA_DEG,
+				fallback: INITIAL_THETA_DEG,
+			}),
+		),
+	);
 	const [prediction, setPrediction] = useState<Prediction | null>(null);
 	const [submitted, setSubmitted] = useState(false);
 
 	// 数値入力の編集途中の文字列を保持する表示用 state (QuadraticFunctionExperiment と同じ理由:
 	// 確定 (blur/Enter) 時にのみ clamp/正規化して数値 state へ反映し、入力途中の破壊を防ぐ)。
-	const [inputTheta, setInputTheta] = useState(String(INITIAL_THETA_DEG));
+	// 初期表示は上で解決済みの thetaDeg (プリセット反映後) に合わせる。
+	const [inputTheta, setInputTheta] = useState(() => String(round2(thetaDeg)));
 
 	// 状態の正規化 (360 度で折り返す) はここに集約する。ドラッグ・スライダー・数値入力すべてが
 	// このハンドラを通るため、入力経路によらず単一の真実の状態になる。

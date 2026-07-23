@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -214,5 +214,52 @@ describe('CombinatoricsExperiment', () => {
 	it('JS 無効フォールバックの <noscript> 要素を持つ', () => {
 		const { container } = render(<CombinatoricsExperiment />);
 		expect(container.querySelector('noscript')).toBeTruthy();
+	});
+});
+
+// ADR-006 M9d: URL パラメータでの初期状態固定(一斉提示モード、パイロット3単元の1つ)。
+describe('CombinatoricsExperiment: URL プリセット (ADR-006 M9d)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	afterEach(() => {
+		window.history.pushState({}, '', '/');
+	});
+
+	it('?n=5&r=3 で予想確定後の初期値が n=5, r=3 になる', async () => {
+		window.history.pushState({}, '', '/?n=5&r=3');
+		const user = userEvent.setup();
+		render(<CombinatoricsExperiment />);
+		await enterExperiment(user);
+		expect(rowCell(/^全体の数 n/)).toBe('5');
+		expect(rowCell(/^選ぶ数 r/)).toBe('3');
+	});
+
+	it('現在の n を超える ?r= は n へクランプされる(n=3, r=6 → r=3)', async () => {
+		window.history.pushState({}, '', '/?n=3&r=6');
+		const user = userEvent.setup();
+		render(<CombinatoricsExperiment />);
+		await enterExperiment(user);
+		expect(rowCell(/^全体の数 n/)).toBe('3');
+		expect(rowCell(/^選ぶ数 r/)).toBe('3');
+	});
+
+	it('不正な ?n=abc は既定値(4)へ黙ってフォールバックする(console.error なし)', async () => {
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		window.history.pushState({}, '', '/?n=abc');
+		const user = userEvent.setup();
+		render(<CombinatoricsExperiment />);
+		await enterExperiment(user);
+		expect(rowCell(/^全体の数 n/)).toBe('4');
+		expect(errorSpy).not.toHaveBeenCalled();
+		errorSpy.mockRestore();
+	});
+
+	it('プリセットが指定されていても予想ゲートは表示されたままで、確定前は観察パネルが出ない(迂回不可)', () => {
+		window.history.pushState({}, '', '/?n=5&r=3');
+		render(<CombinatoricsExperiment />);
+		expect(screen.queryByRole('heading', { name: '観察' })).not.toBeInTheDocument();
+		expect(screen.getByRole('button', { name: '予想を確定して実験する' })).toBeDisabled();
 	});
 });

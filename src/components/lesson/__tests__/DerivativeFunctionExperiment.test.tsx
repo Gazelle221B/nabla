@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -223,5 +223,52 @@ describe('DerivativeFunctionExperiment (M6)', () => {
 	it('JS 無効フォールバックの <noscript> 要素を持つ', () => {
 		const { container } = render(<DerivativeFunctionExperiment />);
 		expect(container.querySelector('noscript')).toBeTruthy();
+	});
+});
+
+// ADR-006 M9d: URL パラメータでの初期状態固定(一斉提示モード、パイロット3単元の1つ)。
+describe('DerivativeFunctionExperiment: URL プリセット (ADR-006 M9d)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	afterEach(() => {
+		window.history.pushState({}, '', '/');
+	});
+
+	it('?fn=cube&a=1 で予想確定後の初期状態が f(x)=x³, a=1 になる', async () => {
+		window.history.pushState({}, '', '/?fn=cube&a=1');
+		const user = userEvent.setup();
+		render(<DerivativeFunctionExperiment />);
+		await enterExperiment(user);
+		expect(screen.getByTestId('scene-coeffs-length')).toHaveTextContent('4'); // [0,0,0,1] = x³
+		expect(rowValue(/^f\(a\)/)).toBe('1');
+		expect(rowValue(/^微分係数/)).toBe('3'); // f'(x)=3x², a=1
+	});
+
+	it('?fn=cube の可動域に合わせて ?a= がクランプされる(x³の上限1.5を超える2は1.5へ)', async () => {
+		window.history.pushState({}, '', '/?fn=cube&a=2');
+		const user = userEvent.setup();
+		render(<DerivativeFunctionExperiment />);
+		await enterExperiment(user);
+		expect(screen.getByTestId('scene-a')).toHaveTextContent('1.5');
+	});
+
+	it('不正な ?fn=quartic は既定値(square)へ黙ってフォールバックする(console.error なし)', async () => {
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		window.history.pushState({}, '', '/?fn=quartic');
+		const user = userEvent.setup();
+		render(<DerivativeFunctionExperiment />);
+		await enterExperiment(user);
+		expect(screen.getByTestId('scene-coeffs-length')).toHaveTextContent('3'); // [0,0,1] = x²
+		expect(errorSpy).not.toHaveBeenCalled();
+		errorSpy.mockRestore();
+	});
+
+	it('プリセットが指定されていても予想ゲートは表示されたままで、確定前は観察パネルが出ない(迂回不可)', () => {
+		window.history.pushState({}, '', '/?fn=cube&a=1');
+		render(<DerivativeFunctionExperiment />);
+		expect(screen.queryByRole('heading', { name: '観察' })).not.toBeInTheDocument();
+		expect(screen.getByRole('button', { name: '予想を確定して実験する' })).toBeDisabled();
 	});
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { differenceQuotient, derivativeAt } from '../../lib/math/derivative.js';
 import { evaluatePoly, exactDerivativePoly, toDifferentiableFunction, type Polynomial } from '../../lib/math/derivativeFunction.js';
+import { getPresetSearchParams, readEnumPreset, readNumberPreset } from '../../lib/urlPreset.js';
 import { DerivativeFunctionScene } from '../scenes/mafs/DerivativeFunctionScene.js';
 import styles from './DerivativeFunctionExperiment.module.css';
 
@@ -72,7 +73,17 @@ const FUNCTION_CONFIGS: Record<FunctionId, FunctionConfig> = {
 };
 
 const DEFAULT_FUNCTION_ID: FunctionId = 'square';
+const FUNCTION_IDS: readonly FunctionId[] = Object.keys(FUNCTION_CONFIGS) as FunctionId[];
 const STEP_A = 0.1;
+
+// URL パラメータでの初期状態固定 (ADR-006 M9d、一斉提示モード、パイロット3単元の1つ)。
+// ?fn=<square|cube> で対象関数、?a=<数値> で接点 a の初期値を差し替えられる (教師が
+// 「全員同じ初期状態」で提示する用途)。不正値・範囲外は lib/urlPreset.ts が黙って既定値へ
+// フォールバックする (console エラーなし)。a の可動域は選ばれた fn の config に依存するため、
+// fn を先に解決してから a のクランプ範囲を決める。予想 (prediction)・確定 (submitted) 状態は
+// このパラメータの対象外——予想ゲートは迂回できない (下の useState の初期値計算にのみ影響する)。
+const FUNCTION_PRESET_PARAM = 'fn';
+const A_PRESET_PARAM = 'a';
 
 // 差分商での実行時検証専用の固定 h (ユーザー操作対象ではない、内部定数)。
 // derivative-tangent-line (M2) の isCloseToTangent と同じ理由: h→0 の収束は本質的に
@@ -101,8 +112,18 @@ function round2(value: number): number {
 }
 
 export function DerivativeFunctionExperiment() {
-	const [functionId, setFunctionId] = useState<FunctionId>(DEFAULT_FUNCTION_ID);
-	const [a, setA] = useState(FUNCTION_CONFIGS[DEFAULT_FUNCTION_ID].initialA);
+	// 初期値は既定値 (DEFAULT_FUNCTION_ID / config.initialA) だが、?fn=/?a= があればそちらを
+	// 優先する。fn を先に解決し、その config の可動域 [aMin, aMax] へ a をクランプする。
+	const [functionId, setFunctionId] = useState<FunctionId>(() =>
+		readEnumPreset(getPresetSearchParams(), FUNCTION_PRESET_PARAM, FUNCTION_IDS, DEFAULT_FUNCTION_ID),
+	);
+	const [a, setA] = useState(() =>
+		readNumberPreset(getPresetSearchParams(), A_PRESET_PARAM, {
+			min: FUNCTION_CONFIGS[functionId].aMin,
+			max: FUNCTION_CONFIGS[functionId].aMax,
+			fallback: FUNCTION_CONFIGS[functionId].initialA,
+		}),
+	);
 	const [prediction, setPrediction] = useState<Prediction | null>(null);
 	const [submitted, setSubmitted] = useState(false);
 
@@ -110,7 +131,8 @@ export function DerivativeFunctionExperiment() {
 
 	// 数値入力の編集途中の文字列を保持する表示用 state (DerivativeExperiment と同じ理由:
 	// 確定 (blur/Enter) 時にのみ clamp して数値 state へ反映し、入力途中の破壊を防ぐ)。
-	const [inputA, setInputA] = useState(String(FUNCTION_CONFIGS[DEFAULT_FUNCTION_ID].initialA));
+	// 初期表示は上で解決済みの a (プリセット反映後) に合わせる。
+	const [inputA, setInputA] = useState(() => String(round2(a)));
 
 	const handleAChange = (value: number) => setA(clampA(config, value));
 
