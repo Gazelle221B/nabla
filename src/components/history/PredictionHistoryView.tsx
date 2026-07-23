@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
 	clearPredictionHistory,
 	readPredictionHistory,
@@ -40,6 +40,27 @@ function buildExportPayload(records: readonly PredictionRecord[]): string {
 export function PredictionHistoryView() {
 	const [records, setRecords] = useState<readonly PredictionRecord[]>(() => readPredictionHistory());
 	const [confirmingClear, setConfirmingClear] = useState(false);
+	const deleteButtonRef = useRef<HTMLButtonElement>(null);
+	const triggerButtonRef = useRef<HTMLButtonElement>(null);
+	const wasConfirmingRef = useRef(false);
+
+	// a11y修正(独立レビュー指摘・2026-07-24): 確認UI(「本当にすべての履歴を削除しますか?」)
+	// が出現した時点で、先頭のボタン(削除する)へフォーカスを移動する。スクリーンリーダー
+	// 利用者・キーボード操作者が、確認UIの出現に気づかないまま別の操作を続けてしまうことを防ぐ
+	// (フォーカスの移動自体が状態変化の通知を兼ねる)。確認UIが閉じたとき(キャンセル・削除確定
+	// のいずれでも)は、操作の起点だった「すべて削除」ボタンへフォーカスを戻す(標準的な
+	// ダイアログの作法。削除確定後はボタンが disabled になるため focus() は無害な no-op)。
+	// クリックハンドラ内で直接 .focus() すると、React の再レンダー(ボタンの mount/disabled
+	// 切替)より前に実行されて対象が見つからない・古い状態を参照するため、useEffect で
+	// レンダー後に実行する。
+	useEffect(() => {
+		if (confirmingClear) {
+			deleteButtonRef.current?.focus();
+		} else if (wasConfirmingRef.current) {
+			triggerButtonRef.current?.focus();
+		}
+		wasConfirmingRef.current = confirmingClear;
+	}, [confirmingClear]);
 
 	// 新しい順(直近の予想が先頭)に並べ替えて表示する。ストレージ自体は記録順(古い→新しい)
 	// のまま保つ(predictionHistory.ts の追記順、単純さを優先)。
@@ -64,7 +85,11 @@ export function PredictionHistoryView() {
 	function handleConfirmClear(): void {
 		clearPredictionHistory();
 		setRecords([]);
-		setConfirmingClear(false);
+		setConfirmingClear(false); // フォーカス復帰は上の useEffect が担う
+	}
+
+	function handleCancelClear(): void {
+		setConfirmingClear(false); // フォーカス復帰は上の useEffect が担う
 	}
 
 	return (
@@ -79,18 +104,24 @@ export function PredictionHistoryView() {
 					JSONでエクスポート
 				</button>
 				{confirmingClear ? (
-					<span className={styles.confirmGroup}>
+					<span className={styles.confirmGroup} aria-live="polite">
 						<span>本当にすべての履歴を削除しますか?</span>
-						<button type="button" className={styles.dangerButton} onClick={handleConfirmClear}>
+						<button
+							type="button"
+							ref={deleteButtonRef}
+							className={styles.dangerButton}
+							onClick={handleConfirmClear}
+						>
 							削除する
 						</button>
-						<button type="button" onClick={() => setConfirmingClear(false)}>
+						<button type="button" onClick={handleCancelClear}>
 							キャンセル
 						</button>
 					</span>
 				) : (
 					<button
 						type="button"
+						ref={triggerButtonRef}
 						onClick={() => setConfirmingClear(true)}
 						disabled={records.length === 0}
 					>

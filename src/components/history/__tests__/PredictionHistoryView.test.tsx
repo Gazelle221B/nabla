@@ -104,6 +104,53 @@ describe('PredictionHistoryView(あなたの予想履歴、ADR-006 M9c)', () => 
 		expect(screen.getByText('記録1')).toBeInTheDocument();
 	});
 
+	it('a11y: 確認UI出現時に「削除する」ボタンへフォーカスが移動する(独立レビュー指摘)', async () => {
+		appendPredictionRecord({
+			unitSlug: 'trigonometric-ratios',
+			choiceValue: 'a',
+			choiceLabel: '記録1',
+			confirmedAt: '2026-07-24T01:00:00.000Z',
+		});
+		const user = userEvent.setup();
+		render(<PredictionHistoryView />);
+
+		await user.click(screen.getByRole('button', { name: 'すべて削除' }));
+
+		expect(screen.getByRole('button', { name: '削除する' })).toHaveFocus();
+	});
+
+	it('a11y: キャンセルすると、フォーカスが「すべて削除」ボタンへ戻る', async () => {
+		appendPredictionRecord({
+			unitSlug: 'trigonometric-ratios',
+			choiceValue: 'a',
+			choiceLabel: '記録1',
+			confirmedAt: '2026-07-24T01:00:00.000Z',
+		});
+		const user = userEvent.setup();
+		render(<PredictionHistoryView />);
+
+		await user.click(screen.getByRole('button', { name: 'すべて削除' }));
+		await user.click(screen.getByRole('button', { name: 'キャンセル' }));
+
+		expect(screen.getByRole('button', { name: 'すべて削除' })).toHaveFocus();
+	});
+
+	it('a11y: 確認UIの外枠は aria-live="polite" を持つ(スクリーンリーダーへの通知)', async () => {
+		appendPredictionRecord({
+			unitSlug: 'trigonometric-ratios',
+			choiceValue: 'a',
+			choiceLabel: '記録1',
+			confirmedAt: '2026-07-24T01:00:00.000Z',
+		});
+		const user = userEvent.setup();
+		render(<PredictionHistoryView />);
+
+		await user.click(screen.getByRole('button', { name: 'すべて削除' }));
+
+		const liveRegion = screen.getByText('本当にすべての履歴を削除しますか?').closest('[aria-live]');
+		expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+	});
+
 	it('すべて削除→削除するで確定すると、履歴が全削除され空状態に戻る', async () => {
 		appendPredictionRecord({
 			unitSlug: 'trigonometric-ratios',

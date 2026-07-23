@@ -25,25 +25,23 @@
 // (/lessons/{slug}/) から導出するため、Island 側に slug を渡す配線も不要。
 import { trackEvent } from './ga4.js';
 import type { NablaEventName } from './events.js';
+import { PREDICTION_RADIO_SELECTOR, SUBMIT_BUTTON_TEXT, getUnitSlug } from '../predictionContract.js';
+
+// PREDICTION_RADIO_SELECTOR・SUBMIT_BUTTON_TEXT・getUnitSlug は predictionContract.ts
+// (中立モジュール、GA4計測と予想履歴のどちらの持ち物でもない)から輸入する。以前はこの
+// ファイルが所有し predictionHistoryRecorder.ts がそこから拝借する形だったが、GA4計測とは
+// 無関係な予想履歴機能がGA4専用モジュールの内部実装に依存する不自然な結合だったため、
+// 独立レビュー指摘(2026-07-24)を受けて中立モジュールへ切り出した。以降このファイルは
+// これらを再輸出しない(predictionHistoryRecorder.ts は predictionContract.ts から直接
+// import する)。
 
 const EXPERIMENT_SECTION_SELECTOR = 'section[aria-labelledby$="-exp-title"]';
-// M9c(ADR-006)の predictionHistoryRecorder.ts でも同じ「予想ラジオ」「確定ボタン文言」の
-// 構造規約を参照するため export する(32単元共通の構造契約、docs/METRICS_PLAN.md §3 と同一)。
-export const PREDICTION_RADIO_SELECTOR = 'input[type="radio"][name$="-prediction"]';
 // 操作コントロールとして扱うクリック可能要素 (予想確定ボタン自身は文言で個別に除外する)。
 const OPERATE_CLICKABLE_SELECTOR = 'button, [role="button"], [role="switch"], [tabindex="0"]';
-export const SUBMIT_BUTTON_TEXT = '予想を確定して実験する';
 const CHECKPOINT_HEADING_TEXT = '予想と結果';
 
 /** チェックポイント可視のドウェル判定時間 (docs/METRICS_PLAN.md §4)。 */
 export const CHECKPOINT_DWELL_MS = 1000;
-
-// M9c(ADR-006)の predictionHistoryRecorder.ts でも同じ単元 slug 抽出ロジックを再利用する
-// (URL パスからの導出は GA4 計測と予想履歴で共通のため、export して重複実装を避ける)。
-export function getUnitSlug(): string | null {
-	const match = window.location.pathname.match(/\/lessons\/([^/]+)\/?/);
-	return match?.[1] ?? null;
-}
 
 function findCheckpointHeading(): Element | null {
 	const headings = document.querySelectorAll('h3');

@@ -80,7 +80,12 @@ const q3Choices: readonly ExerciseChoice[] = [
 	{ id: 'a', label: '20', misconception: null }, // 正解
 	{ id: 'b', label: '10', misconception: '役割の違い(順序)を無視し、組合せ5C2=10を使ってしまっている。' },
 	{ id: 'c', label: '25', misconception: '5²のように単純に掛け算(累乗)している。' },
-	{ id: 'd', label: '3', misconception: '5-2のように引き算で考えてしまっている。' },
+	{
+		id: 'd',
+		label: '3',
+		misconception:
+			'5-2=3のように引き算で考えてしまっている(場合の数を数えるにはこの問題では掛け算(積の法則)が必要で、引き算では求まらない)。',
+	},
 ];
 
 const q3: ExerciseQuestion = {
@@ -117,7 +122,9 @@ const q4Choices: readonly ExerciseChoice[] = [
 	{
 		id: 'd',
 		label: 'どちらも1(選び方は1通りしかない)',
-		misconception: 'r=1(1人選ぶ)の場合と、r=0(何も選ばない)の場合を混同している。',
+		misconception:
+			'r=1(1人を選ぶ、6人の中から選ぶので6通りある)と、r=0(何も選ばない、選び方は1通りしかない)の' +
+			'場合を混同している。',
 	},
 ];
 

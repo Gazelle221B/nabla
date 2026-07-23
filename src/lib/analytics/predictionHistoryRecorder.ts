@@ -1,11 +1,14 @@
 // 予想履歴の記録(ADR-006 M9c)を担う document レベルのイベント委譲。coreLoopObserver.ts
 // (M9a)と同じ設計判断: 32単元共通の構造契約(予想ラジオ name="*-prediction"、確定ボタン
 // 文言「予想を確定して実験する」)に依拠し、既存 Island には一切変更を加えない(C-8)。
+// 契約の定数(PREDICTION_RADIO_SELECTOR・SUBMIT_BUTTON_TEXT・getUnitSlug)は GA4専用の
+// coreLoopObserver.ts からではなく、中立モジュール predictionContract.ts から直接 import する
+// (独立レビュー指摘、2026-07-24: 予想履歴機能がGA4専用モジュールに依存する不自然な結合を解消)。
 //
 // GA4(coreLoopObserver.ts)との違い: これは外部送信を一切行わず、localStorage のみに
 // 書き込む(docs/METRICS_PLAN.md の境界を維持——予想の選択内容は許可リストにないため
 // GA4には送らない。ここではそもそもネットワーク送信自体が無い)。
-import { getUnitSlug, PREDICTION_RADIO_SELECTOR, SUBMIT_BUTTON_TEXT } from './coreLoopObserver.js';
+import { getUnitSlug, PREDICTION_RADIO_SELECTOR, SUBMIT_BUTTON_TEXT } from '../predictionContract.js';
 import { appendPredictionRecord } from './predictionHistory.js';
 
 function isSubmitButton(el: Element): boolean {
@@ -30,7 +33,17 @@ export function initPredictionHistoryRecorder(): (() => void) | null {
 	const unitSlug = getUnitSlug();
 	if (!unitSlug) return null;
 
+	// 重複レコード防止(独立レビュー指摘、2026-07-24): 確定ボタンの連打や、フォーカス移動前の
+	// ダブルクリック等で同一の確定操作に対して click イベントが複数回配送されると、内容が
+	// 同一のレコードが何度も履歴に積み重なってしまう。coreLoopObserver.ts の
+	// `prediction_submit` イベントが「1ページロードにつき最大1回」に制限されているのと同じ
+	// fireOnce 相当のガードを設け、1回のページロードで記録するのは最初の確定操作1回だけとする。
+	// (通常の使用では各 Experiment Island 側で確定後にラジオ群が disabled になり2回目の確定
+	// 自体が起こりにくいが、その防御に依存せずここでも独立に保証する。)
+	let hasRecorded = false;
+
 	const handleClick = (event: Event): void => {
+		if (hasRecorded) return;
 		const target = event.target;
 		if (!(target instanceof Element)) return;
 		const button = target.closest('button');
@@ -50,6 +63,7 @@ export function initPredictionHistoryRecorder(): (() => void) | null {
 				choiceLabel: extractCheckedLabel(checked),
 				confirmedAt: new Date().toISOString(),
 			});
+			hasRecorded = true;
 		} catch {
 			// 無言で何もしない(タスク仕様: console エラーも出さない)。
 		}

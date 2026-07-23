@@ -95,7 +95,11 @@ const q3Choices: readonly ExerciseChoice[] = [
 		misconception: '偶数乗で負号が消えることを見落とし、3×(-1)=-3のように計算している。',
 	},
 	{ id: 'c', label: '1', misconception: '係数3を掛け忘れ、(-1)²=1だけを答えている。' },
-	{ id: 'd', label: '-1', misconception: '係数3を掛け忘れた上に、符号も誤っている。' },
+	{
+		id: 'd',
+		label: '-1',
+		misconception: '微分係数(接線の傾き)ではなく、元の関数の値 f(-1) = (-1)³ = -1 と混同している。',
+	},
 	{ id: 'a', label: '3', misconception: null }, // 正解
 ];
 
@@ -119,10 +123,15 @@ const q3: ExerciseQuestion = {
 // q3Choices と同じ設計判断)。
 const q4TrueLine = tangentLine(squareFn, 1); // slope=2, intercept=-1 → y = 2x - 1
 
+// 修正(独立レビュー指摘・2026-07-24): 以前の選択肢cは「y = x - 1」(slope=1, intercept=-1)
+// だったが、説明文「傾きf'(1)=2をf(1)=1と取り違えている」から実際に導かれる式は
+// y - 1 = 1・(x - 1) すなわち y = x(接点(1, f(1)=1)は正しく使い、傾きだけを取り違えた場合の
+// 式)であり、説明と数式が不整合だった。選択肢の値を y = x(slope=1, intercept=0)に修正し、
+// 説明文と数式を整合させる。
 const q4Candidates = [
 	{ id: 'a', label: 'y = 2x - 1', slope: 2, intercept: -1 }, // 正解
 	{ id: 'b', label: 'y = 2x + 1', slope: 2, intercept: 1 },
-	{ id: 'c', label: 'y = x - 1', slope: 1, intercept: -1 },
+	{ id: 'c', label: 'y = x', slope: 1, intercept: 0 },
 	{ id: 'd', label: 'y = 2x', slope: 2, intercept: 0 },
 ];
 
@@ -133,7 +142,8 @@ const q4Choices: readonly ExerciseChoice[] = q4Candidates.map(({ id, label }) =>
 		id === 'b'
 			? "切片の符号を取り違えている(y=f'(a)(x-a)+f(a) の展開でマイナスを見落とす)。"
 			: id === 'c'
-				? "傾き f'(1)=2 を、f(1)=1(接点のy座標)と取り違えている。"
+				? "傾き f'(1)=2 を、f(1)=1(接点のy座標)と取り違えている(間違えた傾き1と正しい接点" +
+					"(1, 1)から y − 1 = 1・(x − 1) を計算すると y = x になる)。"
 				: id === 'd'
 					? '接線が必ず原点を通ると誤解し、切片を0としている。'
 					: null,
@@ -168,7 +178,8 @@ const q5Choices: readonly ExerciseChoice[] = [
 		id: 'c',
 		label: '等しい',
 		misconception:
-			'x²とx³の導関数の式(2xと3x²)がa=1でたまたま近い値になることと、一般に等しいことを混同している。',
+			'x=1でf(x)=x²とf(x)=x³のグラフが交わる(交点(1,1)で関数の値f(1)がどちらも1になる)ことと、' +
+			'その点での微分係数(接線の傾き)が等しいことを混同している。',
 	},
 	{
 		id: 'd',
