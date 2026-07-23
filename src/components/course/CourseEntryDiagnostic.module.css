@@ -37,10 +37,18 @@
 	margin-bottom: 1rem;
 }
 
+/* .dismissedNotice は .diagnostic の外(ダーク自己完結カードの外側)にレンダリングされる
+   (コンポーネントが dismissed 時にカードごと差し替えるため)。/courses/ ページ本体は
+   map.astro と同系統の明るい背景であり、ダーク surface 用のフォールバック色
+   (--nabla-text-secondary #a7adc0・--nabla-text-primary #e7e9f0)をそのまま使うと
+   コントラスト比が2.5:1未満になり axe の color-contrast(Serious)に抵触する
+   ——M9c の /history/ 実装で発見・修正したのと同型の欠陥(2026-07-24 数学QA指摘で
+   CourseEntryDiagnostic にも同じパターンが再発していたことを検出)。ここは明るい背景
+   専用の高コントラスト色(#444 / #1a1a1a、実測 9.7:1 / 17:1)を直接指定する。 */
 .dismissedNotice {
 	max-width: 44rem;
 	margin: 1.5rem auto;
-	color: var(--nabla-text-secondary, #a7adc0);
+	color: #444;
 	font-size: 0.95rem;
 }
 
@@ -48,7 +56,7 @@
 	font: inherit;
 	background: transparent;
 	border: none;
-	color: var(--nabla-text-primary, #e7e9f0);
+	color: #1a1a1a;
 	text-decoration: underline;
 	cursor: pointer;
 	padding: 0;

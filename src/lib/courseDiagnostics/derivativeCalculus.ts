@@ -40,28 +40,72 @@ const q1: CourseDiagnosticQuestion = {
 		'derivativeAt に渡し、x=3 での値(=6)を検算する。',
 };
 
-// ---- Q2 (checksUnitIndex=1, 導関数): f(x)=x³ の導関数 f'(x) を x=2 で評価 ----
-const q2TrueValue = derivativeAt(cubeFn, 2); // = 12 (3x², x=2)
+// ---- Q2 (checksUnitIndex=1, 導関数): f(x)=x³ の導関数の式はどれか ----
+// 学習設計指摘(2026-07-24): 旧版は「f(x)=x³, x=2 の微分係数はいくつか」という、Q1
+// (f(x)=x², x=3 の微分係数)と実質同型の設問だった(単元「導関数」固有の内容——微分係数
+// という1点の数値ではなく、それを集めた「関数」として導関数を捉える考え方——を確認できて
+// いなかった)。「式そのもの」を問う設問へ変更する。
+//
+// 正誤判定はハードコードした式比較(choice.id === 'a' 等)ではなく、各選択肢を実際の関数
+// (JS の (x:number)=>number)として、複数の標本点で lib/math の係数規則
+// (derivativeAt、cubeFn = x³ の真の導関数)による値と突き合わせる(C-7: 自己確認的な検証を
+// 禁止——1点だけの一致は偶然の可能性が排除できないため、5つの相異なる標本点すべてで
+// 一致することを要求する。真の導関数・全候補式はいずれも次数3以下の多項式であり、
+// 「次数n以下の相異なる2つの多項式は高々n個の点でしか一致しない」という代数学の基本定理の
+// 帰結により、5点全てで一致する候補は真の導関数と恒等的に等しいことが数学的に保証される)。
+const q2SamplePoints: readonly number[] = [-2, -1, 0.5, 1.5, 2.5]; // 0 と 1 は複数の候補式が
+// 偶然一致しうる退化点(x=0: 全候補が0、x=1: 3x²と3xが3で一致)のため意図的に外す
+// (退化点だけで判定すると誤って複数正解扱いになりうるため——実際に候補設計時に検出し、
+// 標本点から除外する対処を選んだ)。
 
-const q2Choices: readonly { id: string; label: string }[] = [
-	{ id: 'b', label: '4' },
-	{ id: 'c', label: '6' },
-	{ id: 'a', label: '12' }, // 正解(表示順3番目)
-	{ id: 'd', label: '24' },
-];
+type Q2CandidateId = 'a' | 'b' | 'c' | 'd';
+
+// 候補式(いずれも「指数を1つ下げて係数を掛ける」係数規則の適用を誤ったよくある間違いを
+// 再現する): b=係数3を掛け忘れ、c=指数をさらに1つ余計に下げている、d=微分ではなく
+// 積分の公式(xⁿ⁺¹/(n+1))と混同している。
+const q2Candidates: Readonly<Record<Q2CandidateId, (x: number) => number>> = {
+	a: (x) => 3 * x * x, // 3x²(正解)
+	b: (x) => x * x, // x²
+	c: (x) => 3 * x, // 3x
+	d: (x) => (x * x * x) / 3, // x³/3
+};
+
+function matchesTrueDerivativeOfCube(candidate: (x: number) => number): boolean {
+	return q2SamplePoints.every((x) => {
+		const trueValue = derivativeAt(cubeFn, x);
+		return approximatelyZero(candidate(x) - trueValue, Math.max(1, Math.abs(trueValue)));
+	});
+}
+
+const Q2_LABELS: Readonly<Record<Q2CandidateId, string>> = {
+	a: '3x²',
+	b: 'x²',
+	c: '3x',
+	d: 'x³/3',
+};
+
+// 正答の位置バイアス対策: 正答('a')を表示順3番目に置く。
+const q2ChoiceOrder: readonly Q2CandidateId[] = ['b', 'd', 'a', 'c'];
+const q2Choices: readonly { id: string; label: string }[] = q2ChoiceOrder.map((id) => ({
+	id,
+	label: Q2_LABELS[id],
+}));
 
 const q2: CourseDiagnosticQuestion = {
 	id: 'course-deriv-2',
-	prompt: 'f(x) = x³ の導関数 f\'(x) を x = 2 で評価すると、いくつですか。',
+	prompt: 'f(x) = x³ の導関数 f\'(x) の式として正しいものはどれですか。',
 	choices: q2Choices,
 	correctChoiceId: pickCorrectChoiceId(q2Choices, (choice) =>
-		approximatelyZero(Number(choice.label) - q2TrueValue, Math.max(1, Math.abs(q2TrueValue))),
+		matchesTrueDerivativeOfCube(q2Candidates[choice.id as Q2CandidateId]),
 	),
 	checksUnitIndex: 1,
-	source: '単元「導関数」: 係数の規則(x^n の導関数は n·x^(n-1))から f(x)=x³ の f\'(x)=3x²。',
+	source:
+		'単元「導関数」: 各点の微分係数(接線の傾き)を集めると、元の関数 f(x) とは別の関数(導関数 f\'(x))になる。' +
+		'係数の規則(xⁿ の導関数は n·xⁿ⁻¹)から f(x)=x³ の f\'(x)=3x²。',
 	rationale:
-		'lib/math/derivativeFunction.ts の toDifferentiableFunction([0,0,0,1]) を derivativeAt に渡し、' +
-		'x=2 での値(=12)を検算する。',
+		'各選択肢を関数として、5つの相異なる標本点(-2, -1, 0.5, 1.5, 2.5)すべてで ' +
+		'lib/math/derivative.ts の derivativeAt(cubeFn, x)(coefficient rule による真の導関数)と' +
+		'一致するかを検証する(次数3以下の多項式の一致定理により、5点一致は恒等的な一致を保証する)。',
 };
 
 // ---- Q3 (checksUnitIndex=2, 定積分と面積): f(x)=x² の [0,3] での定積分 ----

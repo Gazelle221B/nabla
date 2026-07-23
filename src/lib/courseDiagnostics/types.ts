@@ -87,3 +87,24 @@ export function nearestChoiceId(
 	}
 	return bestId;
 }
+
+/**
+ * lib/math の計算値(無理数等、有限小数で表せない値)を表示用ラベルにする際、
+ * 小数点以下 decimals 桁で**一度だけ**丸める。
+ *
+ * 数学QA指摘(2026-07-24、course-geo-trig-3): √57≈7.549834… を人間が「約7.55」と
+ * 暗算でまず丸め、その7.55をさらに小数第1位へ丸めて「7.6」と選択肢に書いてしまう
+ * **二重丸め**の事故が実際に起きた(正しい単一丸めの結果は 7.5498…→7.5)。このヘルパーを
+ * 経由せずに選択肢ラベルへ手書きの近似値を書き込まないこと——常に
+ * `roundToDecimal(trueValue, decimals).toFixed(decimals)` の形で1回だけ計算する。
+ */
+export function roundToDecimal(value: number, decimals: number): number {
+	if (!Number.isFinite(value)) {
+		throw new RangeError(`roundToDecimal: value must be finite, got ${value}`);
+	}
+	if (!Number.isInteger(decimals) || decimals < 0) {
+		throw new RangeError(`roundToDecimal: decimals must be a non-negative integer, got ${decimals}`);
+	}
+	const factor = 10 ** decimals;
+	return Math.round(value * factor) / factor;
+}

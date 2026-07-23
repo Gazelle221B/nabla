@@ -76,7 +76,7 @@ test.describe('コース詳細ページ (/courses/geometry-and-trigonometry/)', 
 		expect(consoleErrors, consoleErrors.join('\n')).toEqual([]);
 	});
 
-	test('axe: Critical/Seriousの違反が0件(診断表示時+採点後の両方)', async ({ page }) => {
+	test('axe: Critical/Seriousの違反が0件(診断表示時+採点後+スキップ後の3状態)', async ({ page }) => {
 		await page.goto(COURSE_PATH);
 		await page.waitForLoadState('networkidle');
 		await expect(page.getByRole('heading', { name: '入口診断' })).toBeVisible();
@@ -94,6 +94,19 @@ test.describe('コース詳細ページ (/courses/geometry-and-trigonometry/)', 
 		const after = await new AxeBuilder({ page }).analyze();
 		const afterBad = after.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
 		expect(afterBad, JSON.stringify(afterBad, null, 2)).toEqual([]);
+
+		// スキップ後状態(ダーク自己完結カードの外にレンダリングされる .dismissedNotice)の
+		// a11y も固定する(数学QA指摘、2026-07-24: M9c /history/ と同型のコントラスト欠陥が
+		// 再発していたため、回帰ガードとして明示的に検証する)。
+		await page.getByRole('button', { name: 'スキップして最初の単元から始める' }).click();
+		await expect(page.getByRole('heading', { name: '入口診断' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'もう一度診断する' })).toBeVisible();
+
+		const dismissed = await new AxeBuilder({ page }).analyze();
+		const dismissedBad = dismissed.violations.filter(
+			(v) => v.impact === 'critical' || v.impact === 'serious',
+		);
+		expect(dismissedBad, JSON.stringify(dismissedBad, null, 2)).toEqual([]);
 	});
 
 	test('入口診断: 全問正解すると最後の単元(内積)が推奨され、スキップ動線も機能する', async ({ page }) => {
@@ -102,10 +115,10 @@ test.describe('コース詳細ページ (/courses/geometry-and-trigonometry/)', 
 		const diagnostic = page.locator('section[aria-labelledby="course-diagnostic-title"]');
 		await diagnostic.waitFor();
 
-		// Q1(脚9・12の斜辺): 正解 15。Q2(cosθ=60°): 正解 0.5。Q3(余弦定理): 正解 7.6。
+		// Q1(脚9・12の斜辺): 正解 15。Q2(cosθ=60°): 正解 0.5。Q3(余弦定理): 正解 7.5。
 		await diagnostic.getByRole('radio', { name: '15', exact: true }).check();
 		await diagnostic.getByRole('radio', { name: '0.5' }).check();
-		await diagnostic.getByRole('radio', { name: '7.6' }).check();
+		await diagnostic.getByRole('radio', { name: '7.5' }).check();
 		await diagnostic.getByRole('button', { name: '診断する' }).click();
 
 		const recommendation = diagnostic.getByRole('link', { name: /内積/ });
@@ -127,7 +140,7 @@ test.describe('コース詳細ページ (/courses/geometry-and-trigonometry/)', 
 
 		await diagnostic.getByRole('radio', { name: '18' }).check(); // Q1誤答
 		await diagnostic.getByRole('radio', { name: '0.5' }).check();
-		await diagnostic.getByRole('radio', { name: '7.6' }).check();
+		await diagnostic.getByRole('radio', { name: '7.5' }).check();
 		await diagnostic.getByRole('button', { name: '診断する' }).click();
 
 		const recommendation = diagnostic.getByRole('link', { name: /三平方の定理/ });
@@ -149,7 +162,7 @@ test.describe('コース詳細ページ (/courses/geometry-and-trigonometry/)', 
 
 		await diagnostic.getByRole('radio', { name: '15', exact: true }).check();
 		await diagnostic.getByRole('radio', { name: '0.5' }).check();
-		await diagnostic.getByRole('radio', { name: '7.6' }).check();
+		await diagnostic.getByRole('radio', { name: '7.5' }).check();
 		await diagnostic.getByRole('button', { name: '診断する' }).click();
 
 		const firedNames = await page.evaluate(() => window.__gtagCalls?.map((c) => c[1]) ?? []);

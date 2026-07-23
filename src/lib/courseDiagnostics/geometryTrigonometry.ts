@@ -14,6 +14,7 @@ import { approximatelyZero } from '../math/compare.js';
 import {
 	pickCorrectChoiceId,
 	nearestChoiceId,
+	roundToDecimal,
 	type CourseDiagnosticData,
 	type CourseDiagnosticQuestion,
 } from './types.js';
@@ -32,7 +33,7 @@ const q1Choices: readonly { id: string; label: string }[] = [
 
 const q1: CourseDiagnosticQuestion = {
 	id: 'course-geo-trig-1',
-	prompt: '直角三角形で、直角をはさむ2つの脚の長さが 9 と 12 のとき、斜辺の長さはいくつですか。',
+	prompt: '直角三角形で、直角をはさむ2辺の長さが 9 と 12 のとき、斜辺の長さはいくつですか。',
 	choices: q1Choices,
 	correctChoiceId: pickCorrectChoiceId(q1Choices, (choice) =>
 		approximatelyZero(Number(choice.label) - q1Hypotenuse, q1Hypotenuse),
@@ -56,7 +57,7 @@ const q2Choices: readonly { id: string; label: string }[] = [
 
 const q2: CourseDiagnosticQuestion = {
 	id: 'course-geo-trig-2',
-	prompt: '単位円上で角度 θ = 60° のとき、cos θ に最も近い値はどれですか。',
+	prompt: '単位円上で角度 θ = 60° のとき、cos θ の値はどれですか。',
 	choices: q2Choices,
 	correctChoiceId: pickCorrectChoiceId(
 		q2Choices,
@@ -68,13 +69,18 @@ const q2: CourseDiagnosticQuestion = {
 };
 
 // ---- Q3 (checksUnitIndex=2, 正弦定理・余弦定理): 2辺7・8と挟角60°から対辺を余弦定理で求める ----
-const q3Side = lawOfCosinesSide(7, 8, 60 * DEG_TO_RAD); // = √(49+64-56) = √57 ≈ 7.55
+const q3Side = lawOfCosinesSide(7, 8, 60 * DEG_TO_RAD); // = √(49+64-56) = √57 = 7.549834…
+
+// 数学QA指摘(2026-07-24): 以前は「√57≈7.55」を経由してさらに小数第1位へ丸め「7.6」と
+// 手書きしており、これは二重丸めによる誤り(単一の丸めなら 7.549834…→7.5)。
+// roundToDecimal(courseDiagnostics/types.ts)で一度だけ丸めた値を toFixed で文字列化する。
+const q3CorrectLabel = roundToDecimal(q3Side, 1).toFixed(1); // = '7.5'
 
 const q3Choices: readonly { id: string; label: string }[] = [
 	{ id: 'b', label: '5.0' },
 	{ id: 'c', label: '9.0' },
 	{ id: 'd', label: '15.0' }, // 単純に7+8-挟角度数のような誤った合成を狙った誤答
-	{ id: 'a', label: '7.6' }, // 正解(表示順4番目、√57≈7.55の小数第1位丸め)
+	{ id: 'a', label: q3CorrectLabel }, // 正解(表示順4番目、'7.5')
 ];
 
 const q3: CourseDiagnosticQuestion = {
@@ -89,7 +95,9 @@ const q3: CourseDiagnosticQuestion = {
 	source: '単元「正弦定理・余弦定理」: 余弦定理 a = √(b² + c² − 2bc·cosA)。',
 	rationale:
 		'lib/math/lawOfSinesCosines.ts の lawOfCosinesSide(7, 8, 60°→ラジアン変換後) を検算し、' +
-		'√57(≈7.55)に最も近い選択肢を正解とする。',
+		'√57(=7.549834…)を courseDiagnostics/types.ts の roundToDecimal で小数第1位へ' +
+		'一度だけ丸めた 7.5 に最も近い選択肢を正解とする(数学QA指摘: 「約7.55」を経由して' +
+		'7.6とする二重丸めは誤り)。',
 };
 
 export const geometryTrigonometryDiagnostic: CourseDiagnosticData = {

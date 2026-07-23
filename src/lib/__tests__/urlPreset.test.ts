@@ -86,4 +86,24 @@ describe('readEnumPreset', () => {
 		expect(errorSpy).not.toHaveBeenCalled();
 		errorSpy.mockRestore();
 	});
+
+	// 任意採用(Low、2026-07-24 コードレビュー指摘): 教師が URL を手打ちする際の表記ゆれに
+	// 耐性を持たせる(前後空白・大文字小文字を無視する)。
+	it('前後の空白を無視する', () => {
+		const params = new URLSearchParams('fn=' + encodeURIComponent('  cube  '));
+		expect(readEnumPreset(params, 'fn', allowed, 'square')).toBe('cube');
+	});
+
+	it('大文字・小文字を区別せず許可リストと突き合わせ、許可リスト側の正規表記を返す', () => {
+		const params = new URLSearchParams('fn=CUBE');
+		expect(readEnumPreset(params, 'fn', allowed, 'square')).toBe('cube');
+
+		const paramsMixed = new URLSearchParams('fn=CuBe');
+		expect(readEnumPreset(paramsMixed, 'fn', allowed, 'square')).toBe('cube');
+	});
+
+	it('空白のみの値は空文字列扱いとなり、許可リストに一致しなければ fallback を返す', () => {
+		const params = new URLSearchParams('fn=' + encodeURIComponent('   '));
+		expect(readEnumPreset(params, 'fn', allowed, 'square')).toBe('square');
+	});
 });

@@ -47,6 +47,10 @@ export function readNumberPreset(
 
 /**
  * 列挙(許可リスト)パラメータを読む。パラメータ欠落・許可リスト外の値は黙って fallback を返す。
+ * 前後の空白は無視し、大文字・小文字を区別せずに許可リストと突き合わせる(教師が URL を
+ * 手打ちする際の表記ゆれ——`?fn=Cube` や `?fn= cube ` 等——への耐性、任意採用)。
+ * 一致した場合は許可リスト側の正規の表記(元の大文字小文字)を返す(URL 側の表記をそのまま
+ * 返さない——呼び出し側の型 T のリテラル値と一致させるため)。
  */
 export function readEnumPreset<T extends string>(
 	params: URLSearchParams,
@@ -56,5 +60,7 @@ export function readEnumPreset<T extends string>(
 ): T {
 	const raw = params.get(key);
 	if (raw === null) return fallback;
-	return (allowed as readonly string[]).includes(raw) ? (raw as T) : fallback;
+	const normalized = raw.trim().toLowerCase();
+	const matched = allowed.find((value) => value.toLowerCase() === normalized);
+	return matched ?? fallback;
 }

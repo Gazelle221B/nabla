@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pickCorrectChoiceId, nearestChoiceId } from '../types.js';
+import { pickCorrectChoiceId, nearestChoiceId, roundToDecimal } from '../types.js';
 import { geometryTrigonometryDiagnostic } from '../geometryTrigonometry.js';
 import { derivativeCalculusDiagnostic } from '../derivativeCalculus.js';
 import { probabilityCombinatoricsDiagnostic } from '../probabilityCombinatorics.js';
@@ -41,6 +41,45 @@ describe('pickCorrectChoiceId / nearestChoiceId', () => {
 	it('nearestChoiceId: 空配列は例外を投げる', () => {
 		expect(() => nearestChoiceId([], 1)).toThrow();
 	});
+
+	// 数学QA指摘(2026-07-24、course-geo-trig-3): √57≈7.549834… を「約7.55」経由でさらに
+	// 丸めて「7.6」と手書きする二重丸めの事故が実際に起きた。roundToDecimal は常に
+	// 一度だけ丸めることを固定する回帰テスト。
+	describe('roundToDecimal: 一度だけ丸める(二重丸め防止の回帰ガード)', () => {
+		it('√57(=7.549834…)を小数第1位へ丸めると7.5になる(7.6ではない)', () => {
+			const value = Math.sqrt(57);
+			expect(roundToDecimal(value, 1)).toBeCloseTo(7.5, 10);
+			expect(roundToDecimal(value, 1).toFixed(1)).toBe('7.5');
+		});
+
+		it('通常の四捨五入として機能する(0桁・1桁・2桁)', () => {
+			expect(roundToDecimal(2.5, 0)).toBe(3);
+			expect(roundToDecimal(1.25, 1)).toBeCloseTo(1.3, 10);
+			// 1.005 のような境界値は2進浮動小数点の表現誤差(1.005 は実際には
+			// 1.00499999999999989…)により四捨五入の境界例としては不適切なため避ける
+			// (roundToDecimal自体の欠陥ではなくJSの数値表現の性質)。
+			expect(roundToDecimal(1.234, 2)).toBeCloseTo(1.23, 10);
+			expect(roundToDecimal(1.236, 2)).toBeCloseTo(1.24, 10);
+		});
+
+		it('二重丸めの温床になる「中間丸め値をさらに丸める」呼び出し方はしない(直接 value を渡すことの確認)', () => {
+			// 7.549834… を先に「7.55」へ丸めてから再度丸めると7.6になってしまう
+			// (これが実際に起きたバグの再現)。roundToDecimal は生の値を直接渡す限り
+			// 常に単一の丸めで7.5になることを固定する。
+			const raw = Math.sqrt(57);
+			const doubleRounded = roundToDecimal(roundToDecimal(raw, 2), 1);
+			const singleRounded = roundToDecimal(raw, 1);
+			expect(doubleRounded).toBeCloseTo(7.6, 10); // 二重丸めなら誤って7.6になる例の再現
+			expect(singleRounded).toBeCloseTo(7.5, 10); // 単一丸めが正しい(7.5)
+		});
+
+		it('非有限値・不正な decimals は例外を投げる', () => {
+			expect(() => roundToDecimal(Number.NaN, 1)).toThrow();
+			expect(() => roundToDecimal(Infinity, 1)).toThrow();
+			expect(() => roundToDecimal(1, -1)).toThrow();
+			expect(() => roundToDecimal(1, 1.5)).toThrow();
+		});
+	});
 });
 
 describe('geometryTrigonometryDiagnostic(コース: 図形と三角比)', () => {
@@ -65,11 +104,13 @@ describe('geometryTrigonometryDiagnostic(コース: 図形と三角比)', () => 
 		expect(correct.label).toBe('0.5');
 	});
 
-	it('Q3: b=7,c=8,A=60°の余弦定理の対辺は√57(≈7.55)に最も近い(lawOfCosinesSide で独立に再検算)', () => {
+	it('Q3: b=7,c=8,A=60°の余弦定理の対辺は√57(=7.549834…、単一丸めで7.5)に最も近い(lawOfCosinesSide で独立に再検算)', () => {
 		const side = lawOfCosinesSide(7, 8, (60 * Math.PI) / 180);
 		expect(side).toBeCloseTo(Math.sqrt(57), 10);
+		// 単一丸め(roundToDecimal)の結果が7.5であることを独立に固定する(7.6は二重丸めの誤り)。
+		expect(roundToDecimal(side, 1).toFixed(1)).toBe('7.5');
 		const correct = data.questions[2]!.choices.find((c) => c.id === data.questions[2]!.correctChoiceId)!;
-		expect(correct.label).toBe('7.6');
+		expect(correct.label).toBe('7.5');
 	});
 });
 
@@ -89,10 +130,37 @@ describe('derivativeCalculusDiagnostic(コース: 微分と積分の考え方)',
 		expect(correct.label).toBe('6');
 	});
 
-	it("Q2: f(x)=x³ の f'(2) は12(derivativeAt で独立に再検算)", () => {
-		expect(derivativeAt(cubeFn, 2)).toBe(12);
+	it("Q2: f(x)=x³ の導関数の式は「3x²」(5つの独立な標本点で derivativeAt と再検算、C-7)", () => {
+		// データファイル内の判定(5点: -2,-1,0.5,1.5,2.5)とは独立に、別の5点でも
+		// candidate=3x² が derivativeAt(cubeFn, x) と一致し、distractor(x², 3x, x³/3)は
+		// 一致しないことを確認する(自己確認的な検証にしない、C-7)。
+		const independentSamplePoints = [-3, -0.5, 0.25, 1, 4];
+		const candidates: Record<string, (x: number) => number> = {
+			correct: (x) => 3 * x * x,
+			forgotCoefficient: (x) => x * x,
+			overReducedExponent: (x) => 3 * x,
+			confusedWithIntegral: (x) => (x * x * x) / 3,
+		};
+		for (const x of independentSamplePoints) {
+			const trueValue = derivativeAt(cubeFn, x);
+			expect(candidates.correct!(x)).toBeCloseTo(trueValue, 10);
+		}
+		// distractor は少なくともどこかの標本点で不一致になる(=全点一致はしない)。
+		for (const key of ['forgotCoefficient', 'overReducedExponent', 'confusedWithIntegral'] as const) {
+			const mismatches = independentSamplePoints.filter(
+				(x) => Math.abs(candidates[key]!(x) - derivativeAt(cubeFn, x)) > 1e-9,
+			);
+			expect(mismatches.length, `${key} は全点で一致してはならない`).toBeGreaterThan(0);
+		}
+
 		const correct = data.questions[1]!.choices.find((c) => c.id === data.questions[1]!.correctChoiceId)!;
-		expect(correct.label).toBe('12');
+		expect(correct.label).toBe('3x²');
+	});
+
+	it('Q1とQ2は異なる観点(1点の微分係数の値 vs 導関数そのものの式)を問い、設問文が重複しない', () => {
+		expect(data.questions[0]!.prompt).not.toBe(data.questions[1]!.prompt);
+		expect(data.questions[0]!.prompt).toMatch(/微分係数.*f'\(3\)/);
+		expect(data.questions[1]!.prompt).toMatch(/導関数.*式として/);
 	});
 
 	it('Q3: f(x)=x² の [0,3] 定積分は9(exactIntegralPoly で独立に再検算)', () => {
