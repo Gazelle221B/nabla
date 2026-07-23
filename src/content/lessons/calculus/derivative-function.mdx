@@ -22,7 +22,9 @@ contentReview:
 
 import { DerivativeFunctionExperiment } from '../../../components/lesson/DerivativeFunctionExperiment.tsx';
 import { PrerequisiteCheck } from '../../../components/lesson/PrerequisiteCheck.tsx';
+import { ExerciseSection } from '../../../components/lesson/ExerciseSection.tsx';
 import { derivativeFunctionPrerequisiteCheck } from '../../../lib/prerequisiteChecks/derivativeFunction.ts';
+import { derivativeFunctionExercise } from '../../../lib/exercises/derivativeFunction.ts';
 
 <PrerequisiteCheck data={derivativeFunctionPrerequisiteCheck} client:only="react" />
 
@@ -86,3 +88,5 @@ $$
 </details>
 
 計算(係数の規則)と、図の上での観察(点を集めた軌跡)が一致することを確認できれば、「微分係数(1点の値)」と「導関数(すべての点を集めた新しい関数)」の違いを理解できたと言えます。
+
+<ExerciseSection data={derivativeFunctionExercise} client:only="react" />

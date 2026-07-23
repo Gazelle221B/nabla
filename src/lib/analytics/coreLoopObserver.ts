@@ -27,16 +27,20 @@ import { trackEvent } from './ga4.js';
 import type { NablaEventName } from './events.js';
 
 const EXPERIMENT_SECTION_SELECTOR = 'section[aria-labelledby$="-exp-title"]';
-const PREDICTION_RADIO_SELECTOR = 'input[type="radio"][name$="-prediction"]';
+// M9c(ADR-006)の predictionHistoryRecorder.ts でも同じ「予想ラジオ」「確定ボタン文言」の
+// 構造規約を参照するため export する(32単元共通の構造契約、docs/METRICS_PLAN.md §3 と同一)。
+export const PREDICTION_RADIO_SELECTOR = 'input[type="radio"][name$="-prediction"]';
 // 操作コントロールとして扱うクリック可能要素 (予想確定ボタン自身は文言で個別に除外する)。
 const OPERATE_CLICKABLE_SELECTOR = 'button, [role="button"], [role="switch"], [tabindex="0"]';
-const SUBMIT_BUTTON_TEXT = '予想を確定して実験する';
+export const SUBMIT_BUTTON_TEXT = '予想を確定して実験する';
 const CHECKPOINT_HEADING_TEXT = '予想と結果';
 
 /** チェックポイント可視のドウェル判定時間 (docs/METRICS_PLAN.md §4)。 */
 export const CHECKPOINT_DWELL_MS = 1000;
 
-function getUnitSlug(): string | null {
+// M9c(ADR-006)の predictionHistoryRecorder.ts でも同じ単元 slug 抽出ロジックを再利用する
+// (URL パスからの導出は GA4 計測と予想履歴で共通のため、export して重複実装を避ける)。
+export function getUnitSlug(): string | null {
 	const match = window.location.pathname.match(/\/lessons\/([^/]+)\/?/);
 	return match?.[1] ?? null;
 }

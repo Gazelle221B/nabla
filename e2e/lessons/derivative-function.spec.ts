@@ -157,3 +157,71 @@ test.describe('前提チェック(PrerequisiteCheck、前提単元: 微分係数
 		await expect(page.getByRole('heading', { name: '前提チェック' })).toHaveCount(0);
 	});
 });
+
+// ADR-006 M9c: 演習(パイロット、単元自身「導関数」の理解確認)の実ブラウザ検証。
+declare global {
+	interface Window {
+		__gtagCalls?: [string, string, Record<string, unknown>][];
+	}
+}
+
+test.describe('演習(ExerciseSection、単元: 導関数)', () => {
+	test('表示・a11y・即時採点・誤答パターン別フィードバックが機能する', async ({ page }) => {
+		await page.goto(DERIVATIVE_FUNCTION_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const exercise = page.locator('section[aria-labelledby="exercise-section-title"]');
+		await exercise.waitFor();
+		await expect(page.getByRole('heading', { name: '演習' })).toBeVisible();
+
+		const gate = await new AxeBuilder({ page }).analyze();
+		const gateBad = gate.violations.filter((v) => v.impact === 'critical' || v.impact === 'serious');
+		expect(gateBad, JSON.stringify(gateBad, null, 2)).toEqual([]);
+
+		const groups = exercise.getByRole('group');
+		await expect(groups).toHaveCount(5);
+
+		// Q1(f'(2), f(x)=x²)を正答「4」で選ぶ → 即時に「正解です。」。
+		await groups.nth(0).getByRole('radio', { name: '4', exact: true }).check();
+		await expect(exercise.getByText('正解です。').first()).toBeVisible();
+
+		// Q2(f'(2), f(x)=x³)をあえて誤答「6」で選ぶ → その誤答固有の説明が出る。
+		await groups.nth(1).getByRole('radio', { name: '6', exact: true }).check();
+		await expect(exercise.getByText(/指数の下げ方を誤り/)).toBeVisible();
+
+		await groups.nth(1).getByRole('radio', { name: '12', exact: true }).check();
+		await groups.nth(2).getByRole('radio', { name: '3', exact: true }).check();
+		await groups.nth(3).getByRole('radio', { name: 'y = 2x - 1', exact: true }).check();
+		await groups.nth(4).getByRole('radio', { name: 'x³の方が大きい', exact: true }).check();
+
+		await expect(exercise.getByText(/5問中\d問正解です。/)).toBeVisible();
+
+		const graded = await new AxeBuilder({ page }).analyze();
+		const gradedBad = graded.violations.filter(
+			(v) => v.impact === 'critical' || v.impact === 'serious',
+		);
+		expect(gradedBad, JSON.stringify(gradedBad, null, 2)).toEqual([]);
+	});
+
+	test('演習の操作はGA4中核ループイベント(experiment_interact等)を発火しない', async ({ page }) => {
+		await page.addInitScript(() => {
+			window.__gtagCalls = [];
+			window.gtag = (...args: unknown[]) => {
+				window.__gtagCalls!.push(args as [string, string, Record<string, unknown>]);
+			};
+		});
+		await page.setViewportSize({ width: 1280, height: 2400 });
+		await page.goto(DERIVATIVE_FUNCTION_PATH);
+		await page.waitForLoadState('networkidle');
+
+		const exercise = page.locator('section[aria-labelledby="exercise-section-title"]');
+		await exercise.waitFor();
+
+		const groups = exercise.getByRole('group');
+		await groups.nth(0).getByRole('radio', { name: '4', exact: true }).check();
+		await groups.nth(1).getByRole('radio', { name: '12', exact: true }).check();
+
+		const firedNames = await page.evaluate(() => window.__gtagCalls?.map((c) => c[1]) ?? []);
+		expect(firedNames).toEqual([]);
+	});
+});

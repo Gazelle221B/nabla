@@ -1,0 +1,90 @@
+/* PredictionHistoryView(あなたの予想履歴、ADR-006 M9c)のレイアウト。この Island は
+   PrerequisiteCheck/ExerciseSection(暗い "surface" カード、記事本文内に埋め込む)とは異なり、
+   /history/ という独立した明るい背景のページに直接置かれる(index.astro / map.astro と同じ
+   明るいトーン)。そのため色は nabla-surface 系のダークトークンを流用せず、白背景での
+   コントラスト比を実測して選ぶ(index.astro の色 #444/#555/#d5d8e0/#1f6feb と同系統)。
+   実測: #444444 on #ffffff ≈ 9.74:1、#9c2b1c on #ffffff ≈ 7.57:1(いずれもWCAG AA 4.5:1超)。 */
+
+.section {
+	max-width: 44rem;
+	margin: 0 auto;
+	line-height: 1.7;
+}
+
+.intro {
+	margin-bottom: 1.25rem;
+	color: #555;
+}
+
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 1.5rem;
+}
+
+.actions button {
+	font: inherit;
+	padding: 0.5rem 1rem;
+	border-radius: 8px;
+	cursor: pointer;
+	border: 1px solid #d5d8e0;
+	background: transparent;
+	color: #222;
+}
+
+.actions button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.actions button:focus-visible {
+	outline: 2px solid #1f6feb;
+	outline-offset: 2px;
+}
+
+.confirmGroup {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	color: #444;
+	font-weight: 600;
+}
+
+.dangerButton {
+	border-color: #9c2b1c !important;
+	color: #9c2b1c;
+}
+
+.empty {
+	color: #444;
+}
+
+.table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.tableCaption {
+	text-align: left;
+	margin-bottom: 0.5rem;
+	color: #444;
+	font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+	text-align: left;
+	padding: 0.5rem 0.75rem;
+	border-bottom: 1px solid #d5d8e0;
+	color: #222;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.section * {
+		transition: none !important;
+		animation: none !important;
+	}
+}

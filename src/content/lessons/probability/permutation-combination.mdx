@@ -22,7 +22,9 @@ contentReview:
 
 import { CombinatoricsExperiment } from '../../../components/lesson/CombinatoricsExperiment.tsx';
 import { PrerequisiteCheck } from '../../../components/lesson/PrerequisiteCheck.tsx';
+import { ExerciseSection } from '../../../components/lesson/ExerciseSection.tsx';
 import { permutationCombinationPrerequisiteCheck } from '../../../lib/prerequisiteChecks/permutationCombination.ts';
+import { permutationCombinationExercise } from '../../../lib/exercises/permutationCombination.ts';
 
 <PrerequisiteCheck data={permutationCombinationPrerequisiteCheck} client:only="react" />
 
@@ -97,3 +99,5 @@ $$
 </details>
 
 「選ぶだけ」なのか「選んで、さらに並べる(役割をつける)」のか——この違いを問題文から正しく読み取り、組合せ($_n\mathrm{C}_r$)と順列($_n\mathrm{P}_r$)を使い分けられるようになれば、この単元の理解は十分です。
+
+<ExerciseSection data={permutationCombinationExercise} client:only="react" />
