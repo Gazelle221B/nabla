@@ -142,6 +142,19 @@ describe('initCoreLoopMetrics', () => {
 		expect(interactCalls).toHaveLength(1);
 	});
 
+	it('change ではなく input イベントのみでも experiment_interact が発火する (ドラッグ操作経路の取りこぼし防止)', () => {
+		buildExperimentFixture('pythagoras');
+		dispose = initCoreLoopMetrics();
+		appendControlsAndCheckpoint('pythagoras');
+
+		const slider = document.querySelector('#pythagoras-a-slider')!;
+		slider.dispatchEvent(new Event('input', { bubbles: true }));
+
+		expect(gtagMock).toHaveBeenCalledWith('event', 'experiment_interact', {
+			unit_slug: 'pythagorean-theorem',
+		});
+	});
+
 	it('操作なしでチェックポイントが可視化されても lesson_complete は発火しない', () => {
 		buildExperimentFixture('pythagoras');
 		dispose = initCoreLoopMetrics();

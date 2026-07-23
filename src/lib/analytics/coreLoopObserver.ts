@@ -65,7 +65,10 @@ export function initCoreLoopMetrics(): (() => void) | null {
 	// 前提条件にする。
 	let hasInteracted = false;
 
-	const handleChange = (event: Event): void => {
+	// 予想ラジオは 'change' のみを発火する (仕様上 'input' は無い)。操作コントロール
+	// (スライダー・数値入力) はドラッグ/キーボード操作の経路によって 'input' のみが
+	// 先に来る場合があるため、両方を購読して取りこぼしを防ぐ (fireOnce で多重発火は防止済み)。
+	const handleInteractionEvent = (event: Event): void => {
 		const target = event.target;
 		if (!(target instanceof Element)) return;
 		if (target.matches(PREDICTION_RADIO_SELECTOR)) {
@@ -86,7 +89,8 @@ export function initCoreLoopMetrics(): (() => void) | null {
 		}
 	};
 
-	document.addEventListener('change', handleChange);
+	document.addEventListener('change', handleInteractionEvent);
+	document.addEventListener('input', handleInteractionEvent);
 	document.addEventListener('click', handleClick);
 
 	// チェックポイントは予想確定後にのみ DOM へ現れるため、MutationObserver で出現を待ち、
@@ -125,7 +129,8 @@ export function initCoreLoopMetrics(): (() => void) | null {
 	}
 
 	return () => {
-		document.removeEventListener('change', handleChange);
+		document.removeEventListener('change', handleInteractionEvent);
+		document.removeEventListener('input', handleInteractionEvent);
 		document.removeEventListener('click', handleClick);
 		intersectionObserver.disconnect();
 		mutationObserver.disconnect();
